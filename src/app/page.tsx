@@ -150,12 +150,20 @@ export default function Home() {
               FAQ
             </a>
           </div>
-          <a
-            href="#pricing"
-            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            Get Started
-          </a>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm text-slate-400 hover:text-white transition"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
       </nav>
 
