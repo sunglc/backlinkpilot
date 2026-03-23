@@ -10,5 +10,23 @@ export default async function Dashboard() {
     redirect("/login");
   }
 
-  return <DashboardClient user={user} />;
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  const { data: products } = await supabase
+    .from("products")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  return (
+    <DashboardClient
+      user={user}
+      subscription={subscription}
+      products={products || []}
+    />
+  );
 }
