@@ -247,27 +247,31 @@ export default function DashboardClient({
         ) : (
           <div className="space-y-4">
             {products.map((product) => (
-              <div
+              <a
                 key={product.id}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex items-center justify-between"
+                href={`/dashboard/product/${product.id}`}
+                className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex items-center justify-between hover:border-slate-700 transition block"
               >
                 <div>
                   <h3 className="text-white font-semibold">{product.name}</h3>
                   <p className="text-sm text-slate-400 mt-1">{product.url}</p>
                   <p className="text-sm text-slate-500 mt-1">{product.description}</p>
                 </div>
-                <span
-                  className={`text-xs font-medium px-3 py-1 rounded-full ${
-                    product.status === "active"
-                      ? "bg-green-500/10 text-green-400"
-                      : product.status === "completed"
-                      ? "bg-blue-500/10 text-blue-400"
-                      : "bg-yellow-500/10 text-yellow-400"
-                  }`}
-                >
-                  {product.status}
-                </span>
-              </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`text-xs font-medium px-3 py-1 rounded-full ${
+                      product.status === "active"
+                        ? "bg-green-500/10 text-green-400"
+                        : product.status === "completed"
+                        ? "bg-blue-500/10 text-blue-400"
+                        : "bg-yellow-500/10 text-yellow-400"
+                    }`}
+                  >
+                    {product.status}
+                  </span>
+                  <span className="text-slate-500 text-sm">→</span>
+                </div>
+              </a>
             ))}
           </div>
         )}
