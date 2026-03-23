@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -82,6 +82,18 @@ export default function ProductDetail({
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
+
+  // Auto-refresh when there are running/queued submissions
+  const hasActive = submissions.some(
+    (s) => s.status === "queued" || s.status === "running"
+  );
+  useEffect(() => {
+    if (!hasActive) return;
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [hasActive, router]);
 
   async function startSubmission(channelId: string) {
     setSubmitting(channelId);
@@ -165,9 +177,19 @@ export default function ProductDetail({
                 {!available ? (
                   <span className="text-xs text-slate-500">Upgrade to unlock</span>
                 ) : activeSubmission ? (
-                  <span className="text-xs text-blue-400">
-                    {activeSubmission.status === "queued" ? "Queued..." : "Running..."}
-                  </span>
+                  <div>
+                    <span className="text-xs text-blue-400">
+                      {activeSubmission.status === "queued" ? "Queued..." : `Running ${activeSubmission.completed_sites}/${activeSubmission.total_sites}`}
+                    </span>
+                    {activeSubmission.total_sites > 0 && (
+                      <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
+                        <div
+                          className="bg-blue-500 h-1.5 rounded-full transition-all"
+                          style={{ width: `${(activeSubmission.completed_sites / activeSubmission.total_sites) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <button
                     onClick={() => startSubmission(channel.id)}
