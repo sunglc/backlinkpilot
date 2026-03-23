@@ -51,6 +51,12 @@ const CHANNELS = [
   },
 ];
 
+interface SiteResult {
+  site: string;
+  success: boolean;
+  output: string;
+}
+
 interface Submission {
   id: string;
   channel: string;
@@ -58,6 +64,7 @@ interface Submission {
   total_sites: number;
   completed_sites: number;
   success_sites: number;
+  results: SiteResult[];
   created_at: string;
 }
 
@@ -211,29 +218,101 @@ export default function ProductDetail({
             <p className="text-slate-400 text-sm">No submissions yet. Choose a channel above to start.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {submissions.map((sub) => (
-              <div
-                key={sub.id}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between"
-              >
-                <div>
-                  <h3 className="text-white font-medium text-sm">{channelName(sub.channel)}</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {new Date(sub.created_at).toLocaleDateString()}{" "}
+          <div className="space-y-4">
+            {submissions.map((sub) => {
+              const isActive = sub.status === "running" || sub.status === "queued";
+              const progress = sub.total_sites > 0 ? Math.round((sub.completed_sites / sub.total_sites) * 100) : 0;
+              const results = sub.results || [];
+
+              return (
+                <div key={sub.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                  {/* Header */}
+                  <div className="p-5 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-white font-medium">{channelName(sub.channel)}</h3>
+                        <span className={`text-xs font-medium px-3 py-1 rounded-full ${statusBadge(sub.status)}`}>
+                          {sub.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {new Date(sub.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
                     {sub.total_sites > 0 && (
-                      <>
-                        · {sub.completed_sites}/{sub.total_sites} sites
-                        · {sub.success_sites} successful
-                      </>
+                      <div className="text-right">
+                        <p className="text-white font-semibold text-lg">
+                          {sub.success_sites}<span className="text-slate-500 text-sm">/{sub.total_sites}</span>
+                        </p>
+                        <p className="text-xs text-slate-500">successful</p>
+                      </div>
                     )}
-                  </p>
+                  </div>
+
+                  {/* Progress Bar */}
+                  {isActive && sub.total_sites > 0 && (
+                    <div className="px-5 pb-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-400">
+                          Submitting... {sub.completed_sites}/{sub.total_sites} sites
+                        </span>
+                        <span className="text-xs text-blue-400">{progress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Site Results */}
+                  {results.length > 0 && (
+                    <div className="border-t border-slate-800 px-5 py-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {results.map((r, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                              r.success
+                                ? "bg-green-500/5 text-green-400"
+                                : "bg-red-500/5 text-red-400"
+                            }`}
+                            title={r.output}
+                          >
+                            <span>{r.success ? "✓" : "✗"}</span>
+                            <span className="truncate">{r.site}</span>
+                          </div>
+                        ))}
+                        {/* Pending placeholders */}
+                        {isActive && sub.total_sites > results.length && (
+                          Array.from({ length: Math.min(sub.total_sites - results.length, 4) }).map((_, i) => (
+                            <div
+                              key={`pending-${i}`}
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-slate-800/50 text-slate-500"
+                            >
+                              <span className="animate-pulse">⏳</span>
+                              <span>Pending...</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Queued State */}
+                  {sub.status === "queued" && results.length === 0 && (
+                    <div className="border-t border-slate-800 px-5 py-4">
+                      <div className="flex items-center gap-2 text-sm text-slate-400">
+                        <span className="animate-pulse">⏳</span>
+                        Waiting for worker to pick up this job...
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <span className={`text-xs font-medium px-3 py-1 rounded-full ${statusBadge(sub.status)}`}>
-                  {sub.status}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
