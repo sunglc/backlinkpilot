@@ -4,52 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import { CHANNELS, LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import type { User } from "@supabase/supabase-js";
-
-const CHANNELS = [
-  {
-    id: "directory",
-    name: "Directory Submission",
-    icon: "📂",
-    desc: "Submit to 500+ AI tool directories",
-    plans: ["starter", "growth", "scale"],
-  },
-  {
-    id: "stealth",
-    name: "Stealth Browser",
-    icon: "🥷",
-    desc: "Bypass Cloudflare & CAPTCHAs for protected directories",
-    plans: ["starter", "growth", "scale"],
-  },
-  {
-    id: "community",
-    name: "Community Submission",
-    icon: "👥",
-    desc: "GitHub, Product Hunt, dev communities",
-    plans: ["growth", "scale"],
-  },
-  {
-    id: "resource_page",
-    name: "Resource Page Outreach",
-    icon: "📧",
-    desc: "Find & email resource page owners",
-    plans: ["growth", "scale"],
-  },
-  {
-    id: "social",
-    name: "Social Distribution",
-    icon: "📱",
-    desc: "X, Pinterest, automated social posts",
-    plans: ["scale"],
-  },
-  {
-    id: "editorial",
-    name: "Editorial Outreach",
-    icon: "✍️",
-    desc: "Contact editors and bloggers for reviews",
-    plans: ["scale"],
-  },
-];
 
 interface SiteResult {
   site: string;
@@ -123,6 +79,23 @@ export default function ProductDetail({
     return CHANNELS.find((c) => c.id === id)?.name || id;
   }
 
+  function supportBadge(channelId: string) {
+    const channel = CHANNELS.find((c) => c.id === channelId);
+    if (!channel) return null;
+    if (channel.support_status === "live") {
+      return (
+        <span className="text-[10px] font-medium uppercase tracking-wide text-green-400">
+          Live
+        </span>
+      );
+    }
+    return (
+      <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        Planned
+      </span>
+    );
+  }
+
   function statusBadge(status: string) {
     const styles: Record<string, string> = {
       queued: "bg-yellow-500/10 text-yellow-400",
@@ -162,10 +135,18 @@ export default function ProductDetail({
         </div>
 
         {/* Channels */}
-        <h2 className="text-lg font-semibold text-white mb-4">Channels</h2>
+        <div className="flex items-end justify-between mb-4 gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Channels</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {LIVE_CHANNEL_COUNT} live today, {TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} in controlled rollout.
+            </p>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {CHANNELS.map((channel) => {
             const available = channel.plans.includes(plan);
+            const live = channel.support_status === "live";
             const activeSubmission = submissions.find(
               (s) => s.channel === channel.id && (s.status === "queued" || s.status === "running")
             );
@@ -178,11 +159,16 @@ export default function ProductDetail({
                 }`}
               >
                 <div className="text-2xl mb-2">{channel.icon}</div>
-                <h3 className="text-white font-semibold text-sm">{channel.name}</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-white font-semibold text-sm">{channel.name}</h3>
+                  {supportBadge(channel.id)}
+                </div>
                 <p className="text-xs text-slate-400 mt-1 mb-4">{channel.desc}</p>
 
                 {!available ? (
                   <span className="text-xs text-slate-500">Upgrade to unlock</span>
+                ) : !live ? (
+                  <span className="text-xs text-slate-500">Not customer-runnable yet</span>
                 ) : activeSubmission ? (
                   <div>
                     <span className="text-xs text-blue-400">
@@ -200,7 +186,7 @@ export default function ProductDetail({
                 ) : (
                   <button
                     onClick={() => startSubmission(channel.id)}
-                    disabled={submitting === channel.id}
+                    disabled={submitting === channel.id || !live}
                     className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition"
                   >
                     {submitting === channel.id ? "Starting..." : "Start Submission"}

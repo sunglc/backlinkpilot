@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 
 export const metadata: Metadata = {
   title: "Best Backlink Automation Tool 2026 — BacklinkPilot",
   description:
-    "Automate your backlink building with AI-powered directory submission, stealth browser technology, and 6-channel outreach. 500+ directories. From $29/month.",
+    `Automate your backlink building with AI-powered directory submission, stealth browser technology, and ${LIVE_CHANNEL_COUNT} live channels today. 500+ directories. From $29/month.`,
   keywords: [
     "backlink automation tool",
     "automated backlink builder",
@@ -89,8 +90,8 @@ export default function BacklinkAutomationTool() {
                 desc: "Anti-fingerprint browser tech bypasses Cloudflare, Turnstile, and CAPTCHAs. This unlocks 42% more directories that regular tools can't access.",
               },
               {
-                title: "6-Channel Outreach",
-                desc: "Beyond directories: resource page outreach, community submissions, social distribution, email campaigns, and GitHub presence — all automated.",
+                title: "Phased Multi-Channel Rollout",
+                desc: `BacklinkPilot runs ${LIVE_CHANNEL_COUNT} live channels today. Resource outreach, community, social, and editorial lanes are being connected in controlled rollout, not oversold as fully live.`,
               },
               {
                 title: "Real-Time Dashboard",
@@ -133,7 +134,7 @@ export default function BacklinkAutomationTool() {
                   ["Auto directory submission", "Yes", "No", "Manual"],
                   ["Stealth browser", "Yes", "No", "No"],
                   ["AI form filling", "Yes", "No", "No"],
-                  ["Multi-channel", "6 channels", "Email only", "1-2"],
+                  ["Multi-channel", `${LIVE_CHANNEL_COUNT} live / ${TOTAL_CHANNEL_COUNT} planned`, "Email only", "1-2"],
                   ["Price", "From $29/mo", "From $195/mo", "$500-1500/mo"],
                   ["Setup time", "5 minutes", "Hours", "Days"],
                 ].map(([feature, bp, pb, manual]) => (

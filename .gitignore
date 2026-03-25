@@ -2,6 +2,9 @@ node_modules/
 .next/
 out/
 .vercel
+.gstack/
+worker/__pycache__/
+tsconfig.tsbuildinfo
 .env
 .env.local
 .env*.local

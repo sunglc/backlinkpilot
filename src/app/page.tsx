@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 
 const stats = [
   { value: "500+", label: "Directories" },
-  { value: "6", label: "Channels" },
+  { value: `${LIVE_CHANNEL_COUNT}`, label: "Live Channels" },
   { value: "42%", label: "Stealth Unlock Rate" },
   { value: "< 5min", label: "Setup Time" },
 ];
@@ -81,7 +82,8 @@ const pricing = [
     features: [
       "3 products",
       "500 submissions/month",
-      "All 6 channels",
+      `${LIVE_CHANNEL_COUNT} live channels today`,
+      `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} in rollout`,
       "Stealth browser",
       "Resource page outreach",
       "Priority support",
@@ -96,7 +98,8 @@ const pricing = [
     features: [
       "10 products",
       "Unlimited submissions",
-      "All 6 channels",
+      `${LIVE_CHANNEL_COUNT} live channels today`,
+      `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} in rollout`,
       "Stealth browser",
       "Custom directory list",
       "API access",
@@ -180,7 +183,7 @@ export default function Home() {
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">
             Submit your product to 500+ directories automatically. AI-powered
-            form filling, stealth browser technology, 6-channel outreach. Set up
+            form filling, stealth browser technology, {LIVE_CHANNEL_COUNT} live channels today, and a {TOTAL_CHANNEL_COUNT}-channel roadmap. Set up
             in 5 minutes.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -263,7 +266,7 @@ export default function Home() {
               {
                 step: "2",
                 title: "Choose Channels",
-                desc: "Pick which channels to activate: directories, outreach, social, community — or all of them.",
+                desc: `Pick which channels to activate. ${LIVE_CHANNEL_COUNT} are live today and the rest are rolling out in phases.`,
               },
               {
                 step: "3",
@@ -293,7 +296,7 @@ export default function Home() {
           </h2>
           <p className="text-slate-400 text-center mb-12 max-w-2xl mx-auto">
             Most tools only do one thing. BacklinkPilot automates your entire
-            backlink strategy across 6 channels.
+            backlink strategy across {LIVE_CHANNEL_COUNT} live channels today, with additional channels in rollout.
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {channels.map((ch) => (

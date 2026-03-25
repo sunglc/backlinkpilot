@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import type { User } from "@supabase/supabase-js";
 
 interface Subscription {
@@ -204,8 +205,8 @@ export default function DashboardClient({
               Ready to build your backlink profile?
             </h2>
             <p className="text-slate-400 text-sm mb-6 max-w-md mx-auto">
-              Choose a plan to start submitting your product to 500+ directories
-              across 6 channels with stealth browser automation.
+              Choose a plan to start submitting your product to vetted directories
+              across {LIVE_CHANNEL_COUNT} live channels today, with a {TOTAL_CHANNEL_COUNT}-channel roadmap.
             </p>
             <div className="flex items-center justify-center gap-3">
               <a

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 
 export const metadata: Metadata = {
   title: "Pricing — BacklinkPilot",
@@ -29,7 +30,8 @@ const plans = [
     features: [
       "3 products",
       "500 submissions/month",
-      "All 6 channels",
+      `${LIVE_CHANNEL_COUNT} live channels today`,
+      `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
       "Stealth browser technology",
       "Resource page outreach",
       "Community submissions",
@@ -46,7 +48,8 @@ const plans = [
     features: [
       "10 products",
       "Unlimited submissions",
-      "All 6 channels",
+      `${LIVE_CHANNEL_COUNT} live channels today`,
+      `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
       "Stealth browser technology",
       "Custom directory list",
       "API access",

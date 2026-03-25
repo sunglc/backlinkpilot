@@ -1,0 +1,59 @@
+{
+  "channels": [
+    {
+      "id": "directory",
+      "name": "Directory Submission",
+      "icon": "📂",
+      "desc": "Submit to vetted AI tool directories with AI-powered form completion.",
+      "plans": ["starter", "growth", "scale"],
+      "support_status": "live",
+      "site_config_glob": "config.*.local.json"
+    },
+    {
+      "id": "stealth",
+      "name": "Stealth Browser",
+      "icon": "🥷",
+      "desc": "Use the same directory network with stealth protections enabled.",
+      "plans": ["starter", "growth", "scale"],
+      "support_status": "live",
+      "site_config_glob": "config.*.local.json"
+    },
+    {
+      "id": "community",
+      "name": "Community Submission",
+      "icon": "👥",
+      "desc": "GitHub, Product Hunt, and developer communities are in controlled rollout.",
+      "plans": ["growth", "scale"],
+      "support_status": "planned",
+      "site_config_glob": null
+    },
+    {
+      "id": "resource_page",
+      "name": "Resource Page Outreach",
+      "icon": "📧",
+      "desc": "Editorial resource-page outreach is in controlled rollout.",
+      "plans": ["growth", "scale"],
+      "support_status": "planned",
+      "site_config_glob": null
+    },
+    {
+      "id": "social",
+      "name": "Social Distribution",
+      "icon": "📱",
+      "desc": "X and Pinterest distribution is handled outside the customer worker today.",
+      "plans": ["scale"],
+      "support_status": "planned",
+      "site_config_glob": null
+    },
+    {
+      "id": "editorial",
+      "name": "Editorial Outreach",
+      "icon": "✍️",
+      "desc": "Editorial outreach is in controlled rollout.",
+      "plans": ["scale"],
+      "support_status": "planned",
+      "site_config_glob": null
+    }
+  ],
+  "submission_statuses": ["queued", "running", "completed", "failed"]
+}

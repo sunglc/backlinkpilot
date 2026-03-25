@@ -33,12 +33,31 @@ BACKLINKS_ROOT = Path(os.environ.get(
     "BACKLINKS_ROOT",
     "/root/openclaw-stack/workspaces/seo-strategy/operations/backlinks"
 ))
+EXECUTION_CONTRACT_PATH = Path(
+    os.environ.get(
+        "EXECUTION_CONTRACT_PATH",
+        "/root/backlinkpilot/src/lib/execution-contract.json",
+    )
+)
 
-# Map channel IDs to site config glob patterns
-CHANNEL_SITE_CONFIGS = {
-    "directory": "config.*.local.json",
-    "stealth": "config.*.local.json",  # same sites, stealth mode enabled in config
-}
+def load_channel_site_configs():
+    if not EXECUTION_CONTRACT_PATH.exists():
+        logger.warning("Execution contract not found: %s", EXECUTION_CONTRACT_PATH)
+        return {}
+    try:
+        payload = json.loads(EXECUTION_CONTRACT_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.error("Failed to parse execution contract: %s", exc)
+        return {}
+    mapping = {}
+    for channel in payload.get("channels", []):
+        channel_id = channel.get("id")
+        if channel.get("support_status") != "live":
+            continue
+        glob_pattern = channel.get("site_config_glob")
+        if channel_id and glob_pattern:
+            mapping[channel_id] = glob_pattern
+    return mapping
 
 logging.basicConfig(
     level=logging.INFO,
@@ -91,7 +110,8 @@ def generate_site_config(product, site_config_path, output_dir):
 
 def get_site_configs(channel):
     """Get list of site config files for a channel."""
-    pattern = CHANNEL_SITE_CONFIGS.get(channel)
+    channel_site_configs = load_channel_site_configs()
+    pattern = channel_site_configs.get(channel)
     if not pattern:
         return []
 
@@ -133,6 +153,20 @@ def process_job(sb, job):
     product = job.get("products") or {}
 
     logger.info("Processing job %s: channel=%s product=%s", job_id, channel, product.get("name"))
+
+    channel_site_configs = load_channel_site_configs()
+    if channel not in channel_site_configs:
+        logger.warning("Unsupported channel requested: %s", channel)
+        sb.table("submissions").update({
+            "status": "failed",
+            "results": [{
+                "site": channel,
+                "success": False,
+                "output": f"Unsupported channel in worker: {channel}",
+            }],
+            "updated_at": "now()",
+        }).eq("id", job_id).execute()
+        return
 
     # Update status to running
     sb.table("submissions").update({

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "BacklinkPilot — Autopilot for Your Backlinks",
   description:
-    "Automatically submit your product to 500+ directories. AI-powered form filling, stealth browser technology, multi-channel outreach. From $29/month.",
+    "Automatically submit your product to vetted directories with AI-powered form filling and stealth browser technology. Additional outreach channels roll out in phases. From $29/month.",
   keywords: [
     "backlink automation",
     "directory submission",
