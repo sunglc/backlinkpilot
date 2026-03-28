@@ -62,10 +62,260 @@ interface OperationalInsights {
   today_action_count: number;
   today_action_root_domain_count: number;
   today_quality_result_count: number;
+  today_quality_root_domain_count: number;
   source_library_root_domain_count: number;
+  source_segments: Record<string, number>;
+  playbook: {
+    updated_at: string;
+    learned_from_live_execution: boolean;
+    source_campaign: string;
+    north_star_metric: string;
+    north_star_target: number;
+    measurement_status: string;
+    current_domain_rating: number | null;
+    remaining_gap: number | null;
+    quality_bar_ids: string[];
+    recommended_lane_ids: string[];
+    anti_pattern_ids: string[];
+    proof_snapshot: {
+      host_public_verified_count: number;
+      today_action_root_domain_count: number;
+      reusable_root_domain_count: number;
+    };
+    raw: {
+      operating_principles: string[];
+      winning_patterns: string[];
+      anti_patterns: string[];
+      lane_labels: Record<string, string>;
+      anti_pattern_labels: Record<string, string>;
+    };
+  };
 }
 
 const PLAN_ORDER = ["free", "starter", "growth", "scale"] as const;
+type ExpansionAction =
+  | {
+      kind: "launch";
+      channelId: string;
+      label: string;
+    }
+  | {
+      kind: "href";
+      href: string;
+      label: string;
+    };
+
+type LocalizedPlaybookItem = {
+  zh: {
+    title: string;
+    description: string;
+  };
+  en: {
+    title: string;
+    description: string;
+  };
+};
+
+const PLAYBOOK_LANE_COPY: Record<string, LocalizedPlaybookItem> = {
+  editorial_resource_outreach: {
+    zh: {
+      title: "编辑/资源页外联",
+      description: "优先拿独立站点上的真实编辑位、资源页或专题页收录。",
+    },
+    en: {
+      title: "Editorial/resource outreach",
+      description: "Prioritize real placements on independent editorial, roundup, and resource pages.",
+    },
+  },
+  editorial_email_outreach: {
+    zh: {
+      title: "高质量邮件外联",
+      description: "面向明确编辑对象发少量高匹配邮件，而不是群发堆量。",
+    },
+    en: {
+      title: "High-fit email outreach",
+      description: "Send a small number of high-fit outreach emails instead of chasing bulk volume.",
+    },
+  },
+  public_verification_followup: {
+    zh: {
+      title: "公开验证跟进",
+      description: "已提交后持续复查，直到拿到公开可见证明或明确降级。",
+    },
+    en: {
+      title: "Public verification follow-up",
+      description: "Keep following up until the link is publicly visible or explicitly downgraded.",
+    },
+  },
+  new_root_domain_discovery: {
+    zh: {
+      title: "新根域发现",
+      description: "持续补充新的高质量根域名，避免在旧站点上重复刷量。",
+    },
+    en: {
+      title: "New root-domain discovery",
+      description: "Keep adding new worthwhile roots instead of recycling the same host families.",
+    },
+  },
+  route_recovery: {
+    zh: {
+      title: "高价值路由恢复",
+      description: "对高相关目标继续找可执行入口，而不是轻易放弃。",
+    },
+    en: {
+      title: "Route recovery",
+      description: "Recover viable submit or contact paths on high-fit targets before giving up.",
+    },
+  },
+  submit_surface_discovery: {
+    zh: {
+      title: "提交入口探测",
+      description: "先找真正可执行的表单或编辑入口，再决定是否投入动作。",
+    },
+    en: {
+      title: "Submit-surface discovery",
+      description: "Find the real submit or contact surface before spending execution effort.",
+    },
+  },
+  high_value_followup: {
+    zh: {
+      title: "高价值补跟进",
+      description: "对已命中的好机会继续推进，不把好线索停在第一步。",
+    },
+    en: {
+      title: "High-value follow-up",
+      description: "Push valuable openings forward instead of letting them stall after the first touch.",
+    },
+  },
+};
+
+const QUALITY_BAR_COPY: Record<string, LocalizedPlaybookItem> = {
+  topic_relevance: {
+    zh: {
+      title: "主题相关",
+      description: "目标站点必须和产品用例、受众或主题高度相关。",
+    },
+    en: {
+      title: "Topic relevance",
+      description: "The target must strongly match the product use case, audience, or topic.",
+    },
+  },
+  host_audience_value: {
+    zh: {
+      title: "对宿主有价值",
+      description: "这次推荐应当真的能帮助宿主页内容或它的读者。",
+    },
+    en: {
+      title: "Value to the host",
+      description: "The placement should genuinely improve the host page or help its audience.",
+    },
+  },
+  service_grade_value: {
+    zh: {
+      title: "达到服务级别",
+      description: "方法必须好到值得以后作为付费服务交付给客户。",
+    },
+    en: {
+      title: "Service-grade method",
+      description: "The method should be strong enough to justify shipping it as a paid service later.",
+    },
+  },
+};
+
+const ANTI_PATTERN_COPY: Record<string, LocalizedPlaybookItem> = {
+  repeat_host_inflation: {
+    zh: {
+      title: "重复根域刷量",
+      description: "不要把同一批站点的重复动作误当成权威增长。",
+    },
+    en: {
+      title: "Repeat-host inflation",
+      description: "Do not mistake repeated actions on the same host families for authority growth.",
+    },
+  },
+  community_volume_as_authority: {
+    zh: {
+      title: "社区量冒充权威",
+      description: "社区/GitHub 量不是独立宿主权威，不能拿来替代高质量站点。",
+    },
+    en: {
+      title: "Community volume as authority",
+      description: "Community or GitHub volume does not replace independent-host authority.",
+    },
+  },
+  homepage_only_pitching: {
+    zh: {
+      title: "只推首页",
+      description: "优先推具体用例页、对比页和资源页，不要永远只推首页。",
+    },
+    en: {
+      title: "Homepage-only pitching",
+      description: "Prefer use-case, comparison, and resource pages over always pitching the homepage.",
+    },
+  },
+  low_trust_directory_shells: {
+    zh: {
+      title: "低信任壳目录",
+      description: "不要把低信任目录壳站当成和编辑类 mention 一样的价值。",
+    },
+    en: {
+      title: "Low-trust directory shells",
+      description: "Do not treat low-trust directory shells like real editorial mentions.",
+    },
+  },
+  knowledge_trapped_in_chat: {
+    zh: {
+      title: "知识停在聊天里",
+      description: "重复出现的判断要沉淀成系统能力，而不是留在人工记忆里。",
+    },
+    en: {
+      title: "Knowledge trapped in chat",
+      description: "Repeated judgment should become reusable system capability, not stay in chat memory.",
+    },
+  },
+};
+
+const EMPTY_PLAYBOOK = {
+  updated_at: "",
+  learned_from_live_execution: false,
+  source_campaign: "",
+  north_star_metric: "",
+  north_star_target: 0,
+  measurement_status: "",
+  current_domain_rating: null,
+  remaining_gap: null,
+  quality_bar_ids: [] as string[],
+  recommended_lane_ids: [] as string[],
+  anti_pattern_ids: [] as string[],
+  proof_snapshot: {
+    host_public_verified_count: 0,
+    today_action_root_domain_count: 0,
+    reusable_root_domain_count: 0,
+  },
+  raw: {
+    operating_principles: [] as string[],
+    winning_patterns: [] as string[],
+    anti_patterns: [] as string[],
+    lane_labels: {} as Record<string, string>,
+    anti_pattern_labels: {} as Record<string, string>,
+  },
+};
+
+function localizePlaybookItem(
+  locale: Locale,
+  catalog: Record<string, LocalizedPlaybookItem>,
+  id: string,
+  fallbackTitle?: string
+) {
+  const entry = catalog[id];
+  if (!entry) {
+    return {
+      title: fallbackTitle || id,
+      description: "",
+    };
+  }
+  return locale === "zh" ? entry.zh : entry.en;
+}
 
 function getProductDetailCopy(locale: Locale) {
   if (locale === "zh") {
@@ -215,6 +465,47 @@ function getProductDetailCopy(locale: Locale) {
         completedBody: "这条渠道已经跑过，当前有结果可复盘。",
         failedBody: "这条渠道最近一轮没有顺利完成，值得优先复盘。",
       },
+      expansion: {
+        title: "扩张路径",
+        body:
+          "把当前能跑的、下一档会解锁的、以及更深一层的分发路线压成一条清晰路径，让升级和执行都更像产品决策。",
+        currentEyebrow: "当前层",
+        nextEyebrow: "下一档",
+        laterEyebrow: "更深一层",
+        setupTitle: "免费配置已经完成。",
+        setupBody:
+          "你已经把产品资料放进系统里。现在最值钱的是把它切进第一条 live 渠道，而不是继续停在配置态。",
+        runTitle: "当前层先把 live 渠道跑深。",
+        runBody:
+          "先用现在这档计划把推荐渠道跑起来，再决定是不是继续扩层。",
+        activeTitle: "先等这一轮跑完。",
+        activeBody:
+          "这条 live 渠道正在处理。最好的下一步是基于结果决定是否扩到下一层。",
+        reviewTitle: "当前层已经有结果可用了。",
+        reviewBody:
+          "先吃透这一层的结果，再决定是否需要上更深的分发层。",
+        nextImmediateBody:
+          "这一档会立刻多出可执行渠道，适合现在就把分发半径拉开。",
+        nextPlannedBody:
+          "这一档主要是把下一层分发路线排进来。今天不一定立刻能跑，但升级方向会更清楚。",
+        laterBody:
+          "更后面的计划负责更深的分发层和更重的外联动作，适合等当前层跑顺后再开。",
+        maxTitle: "当前已经在最高档。",
+        maxBody:
+          "现在更值钱的是把已有 live 渠道跑深，并结合结果证明与执行智能做取舍。",
+        currentAction: "先执行当前推荐",
+        watchRun: "先看当前进度",
+        reviewHistory: "查看执行历史",
+        upgradeTo: "升级到",
+        seePlans: "查看计划",
+        includedNow: "当前已包含",
+        unlocksNext: "下一档会增加",
+        laterUnlocks: "更后面会增加",
+        playbookSignal: "最佳实践正在指向",
+        noFurtherUnlocks: "没有更多计划层可解锁",
+        runnableNow: "今天可跑",
+        rolloutQueue: "等待 rollout",
+      },
       intelligence: {
         title: "执行智能",
         body:
@@ -235,6 +526,13 @@ function getProductDetailCopy(locale: Locale) {
         todayRootDomains: "今日根域名",
         qualityResultsToday: "今日高质量结果",
         reusableToday: "可复用来源",
+        playbookTitle: "当前最佳实践",
+        playbookBody:
+          "这套规则会随着真实执行持续更新，并直接影响系统该优先投入哪些通道、该过滤哪些低价值动作。",
+        prioritiesTitle: "当前优先",
+        qualityBarTitle: "质量门槛",
+        avoidTitle: "当前避免",
+        learnedFromLive: "这些规则来自真实执行反馈，而不是静态模板。",
       },
       errors: {
         startFailed: "暂时无法创建这个提交任务。",
@@ -395,6 +693,47 @@ function getProductDetailCopy(locale: Locale) {
       completedBody: "This lane has already run and now has outcomes to review.",
       failedBody: "The latest run for this lane did not finish cleanly and should be reviewed first.",
     },
+    expansion: {
+      title: "Expansion path",
+      body:
+        "Compress what runs now, what the next plan unlocks, and what sits one layer deeper into a single path, so upgrading feels like a product decision instead of a pricing table.",
+      currentEyebrow: "Current layer",
+      nextEyebrow: "Next plan",
+      laterEyebrow: "Deeper layer",
+      setupTitle: "Free setup is already done.",
+      setupBody:
+        "The product profile is already inside the system. The valuable move now is pushing it into the first live lane, not leaving it parked in setup mode.",
+      runTitle: "Run the current live layer deeper first.",
+      runBody:
+        "Use the current plan to run the recommended lane first, then decide whether the product needs a wider layer.",
+      activeTitle: "Let this run finish first.",
+      activeBody:
+        "This live lane is already in progress. The best next decision comes after the result lands.",
+      reviewTitle: "The current layer already has usable signal.",
+      reviewBody:
+        "Absorb what this layer has produced first, then decide whether a deeper distribution tier is justified.",
+      nextImmediateBody:
+        "This plan adds runnable lanes immediately, so it is the fastest way to widen distribution right now.",
+      nextPlannedBody:
+        "This plan mostly lines up the next distribution layer. It may not run instantly today, but it makes the upgrade path concrete.",
+      laterBody:
+        "The later plan is where the deeper distribution stack and heavier outreach motions live. It matters after the current layer is working.",
+      maxTitle: "You are already on the top plan.",
+      maxBody:
+        "The high-value move now is pushing the current live lanes deeper and using result proof plus execution intelligence to choose carefully.",
+      currentAction: "Run current recommendation",
+      watchRun: "Watch current run",
+      reviewHistory: "Review history",
+      upgradeTo: "Upgrade to",
+      seePlans: "See plans",
+      includedNow: "Included now",
+      unlocksNext: "Adds next",
+      laterUnlocks: "Adds later",
+      playbookSignal: "Live playbook is leaning toward",
+      noFurtherUnlocks: "No further plan layer to unlock",
+      runnableNow: "Runnable today",
+      rolloutQueue: "Waiting for rollout",
+    },
     intelligence: {
       title: "Execution intelligence",
       body:
@@ -415,6 +754,13 @@ function getProductDetailCopy(locale: Locale) {
       todayRootDomains: "Today root domains",
       qualityResultsToday: "Quality results today",
       reusableToday: "Reusable sources",
+      playbookTitle: "Current best-practice playbook",
+      playbookBody:
+        "These rules update as live execution changes, and they directly shape which lanes the system should push or avoid next.",
+      prioritiesTitle: "Current priorities",
+      qualityBarTitle: "Quality bar",
+      avoidTitle: "Avoid now",
+      learnedFromLive: "These rules are learned from live execution feedback, not static templates.",
     },
     errors: {
       startFailed: "Could not create that submission.",
@@ -626,6 +972,10 @@ export default function ProductDetail({
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const sourcePreview = outreachLibrary.sources.slice(0, 6);
+  const playbook = operationalInsights.playbook || EMPTY_PLAYBOOK;
+  const recommendedLaneIds = (playbook.recommended_lane_ids || []).slice(0, 4);
+  const qualityBarIds = (playbook.quality_bar_ids || []).slice(0, 3);
+  const antiPatternIds = (playbook.anti_pattern_ids || []).slice(0, 4);
 
   const hasActive = submissions.some(
     (submission) => submission.status === "queued" || submission.status === "running"
@@ -665,6 +1015,19 @@ export default function ProductDetail({
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
   const plannedChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
   const availableLiveChannels = liveChannels.filter((channel) => channel.plans.includes(plan));
+  const currentPlanIndex = PLAN_ORDER.indexOf(
+    (PLAN_ORDER.includes(plan as (typeof PLAN_ORDER)[number])
+      ? plan
+      : "free") as (typeof PLAN_ORDER)[number]
+  );
+  const nextPlan =
+    currentPlanIndex >= 0 && currentPlanIndex < PLAN_ORDER.length - 1
+      ? PLAN_ORDER[currentPlanIndex + 1]
+      : null;
+  const laterPlan =
+    currentPlanIndex >= 0 && currentPlanIndex < PLAN_ORDER.length - 2
+      ? PLAN_ORDER[currentPlanIndex + 2]
+      : null;
   const usedLiveChannelIds = new Set(
     submissions
       .filter((submission) =>
@@ -691,6 +1054,24 @@ export default function ProductDetail({
       (submission) =>
         submission.status === "completed" || submission.status === "failed"
     ) || null;
+  const nextPlanUnlocks = nextPlan
+    ? CHANNELS.filter(
+        (channel) => channel.plans.includes(nextPlan) && !channel.plans.includes(plan)
+      )
+    : [];
+  const laterPlanUnlocks =
+    laterPlan && nextPlan
+      ? CHANNELS.filter(
+          (channel) =>
+            channel.plans.includes(laterPlan) && !channel.plans.includes(nextPlan)
+        )
+      : [];
+  const nextPlanLiveUnlocks = nextPlanUnlocks.filter(
+    (channel) => channel.support_status === "live"
+  );
+  const nextPlanPlannedUnlocks = nextPlanUnlocks.filter(
+    (channel) => channel.support_status !== "live"
+  );
   const recapSubmission = activeSubmission || latestResolvedSubmission || latestSubmission;
   const recapChannel = recapSubmission
     ? CHANNELS.find((channel) => channel.id === recapSubmission.channel) || null
@@ -711,6 +1092,47 @@ export default function ProductDetail({
     latestResolvedSubmission?.results.filter((result) => !result.success).slice(0, 4) || [];
   const latestSubmissionByChannel = new Map(
     submissions.map((submission) => [submission.channel, submission])
+  );
+  const currentLayerItems = availableLiveChannels.map((channel) => {
+    const latestChannelSubmission = latestSubmissionByChannel.get(channel.id) || null;
+    const channelName = getLocalizedChannel(channel, locale).name;
+    const suffix =
+      latestChannelSubmission?.status === "queued" ||
+      latestChannelSubmission?.status === "running"
+        ? copy.launchMap.status.running
+        : latestChannelSubmission?.status === "completed"
+          ? copy.launchMap.status.completed
+          : latestChannelSubmission?.status === "failed"
+            ? copy.launchMap.status.failed
+            : copy.expansion.runnableNow;
+
+    return `${channelName} · ${suffix}`;
+  });
+  const nextPlanItems = nextPlanUnlocks.map((channel) => {
+    const channelName = getLocalizedChannel(channel, locale).name;
+    const availabilityLabel =
+      channel.support_status === "live"
+        ? copy.expansion.runnableNow
+        : copy.expansion.rolloutQueue;
+
+    return `${channelName} · ${availabilityLabel}`;
+  });
+  const laterPlanItems = laterPlanUnlocks.map((channel) => {
+    const channelName = getLocalizedChannel(channel, locale).name;
+    const availabilityLabel =
+      channel.support_status === "live"
+        ? copy.expansion.runnableNow
+        : copy.expansion.rolloutQueue;
+
+    return `${channelName} · ${availabilityLabel}`;
+  });
+  const localizedRecommendedPlaybook = recommendedLaneIds.map((laneId) =>
+    localizePlaybookItem(
+      locale,
+      PLAYBOOK_LANE_COPY,
+      laneId,
+      playbook.raw?.lane_labels?.[laneId]
+    ).title
   );
 
   let recapEyebrow = copy.recap.prelaunchEyebrow;
@@ -769,6 +1191,127 @@ export default function ProductDetail({
       ? copy.recap.nextMoveLaunchBody
       : copy.recap.nextMoveReviewBody;
   }
+
+  let currentExpansionTitle = copy.expansion.runTitle;
+  let currentExpansionBody = copy.expansion.runBody;
+  let currentExpansionAction: ExpansionAction | null = null;
+
+  if (plan === "free") {
+    currentExpansionTitle = copy.expansion.setupTitle;
+    currentExpansionBody = copy.expansion.setupBody;
+    currentExpansionAction = {
+      kind: "href",
+      href: checkoutHref("starter"),
+      label: copy.hero.unlockStarter,
+    };
+  } else if (activeSubmission) {
+    currentExpansionTitle = copy.expansion.activeTitle;
+    currentExpansionBody = copy.expansion.activeBody;
+    currentExpansionAction = {
+      kind: "href",
+      href: "#submission-history",
+      label: copy.expansion.watchRun,
+    };
+  } else if (recommendedNextLiveChannel) {
+    currentExpansionTitle =
+      locale === "zh"
+        ? `现在就跑 ${getLocalizedChannel(recommendedNextLiveChannel, locale).name}`
+        : `Run ${getLocalizedChannel(recommendedNextLiveChannel, locale).name} now`;
+    currentExpansionBody = copy.expansion.runBody;
+    currentExpansionAction = {
+      kind: "launch",
+      channelId: recommendedNextLiveChannel.id,
+      label: copy.expansion.currentAction,
+    };
+  } else {
+    currentExpansionTitle = copy.expansion.reviewTitle;
+    currentExpansionBody = copy.expansion.reviewBody;
+    currentExpansionAction = {
+      kind: "href",
+      href: "#submission-history",
+      label: copy.expansion.reviewHistory,
+    };
+  }
+
+  const nextExpansionTitle = nextPlan
+    ? nextPlanLiveUnlocks.length > 0
+      ? locale === "zh"
+        ? `${localizedPlanName(nextPlan, locale)} 会立刻拉开分发半径。`
+        : `${localizedPlanName(nextPlan, locale)} widens distribution immediately.`
+      : locale === "zh"
+        ? `${localizedPlanName(nextPlan, locale)} 会把下一层分发排进来。`
+        : `${localizedPlanName(nextPlan, locale)} lines up the next distribution layer.`
+    : copy.expansion.maxTitle;
+  const nextExpansionBody = nextPlan
+    ? nextPlanLiveUnlocks.length > 0
+      ? copy.expansion.nextImmediateBody
+      : copy.expansion.nextPlannedBody
+    : copy.expansion.maxBody;
+  const nextExpansionAction =
+    nextPlan && nextPlan !== plan
+      ? ({
+          kind: "href",
+          href: checkoutHref(nextPlan),
+          label: `${copy.expansion.upgradeTo} ${localizedPlanName(nextPlan, locale)}`,
+        } satisfies ExpansionAction)
+      : ({
+          kind: "href",
+          href: "/pricing",
+          label: copy.expansion.seePlans,
+        } satisfies ExpansionAction);
+  const laterExpansionTitle = laterPlan
+    ? locale === "zh"
+      ? `${localizedPlanName(laterPlan, locale)} 是更深一层的分发栈。`
+      : `${localizedPlanName(laterPlan, locale)} is the deeper distribution layer.`
+    : copy.expansion.maxTitle;
+  const laterExpansionBody = laterPlan
+    ? localizedRecommendedPlaybook.length > 0
+      ? locale === "zh"
+        ? `${copy.expansion.laterBody} ${copy.expansion.playbookSignal} ${localizedRecommendedPlaybook.join("、")}。`
+        : `${copy.expansion.laterBody} ${copy.expansion.playbookSignal} ${localizedRecommendedPlaybook.join(", ")}.`
+      : copy.expansion.laterBody
+    : copy.expansion.maxBody;
+  const expansionCards = [
+    {
+      key: "current",
+      eyebrow: copy.expansion.currentEyebrow,
+      title: currentExpansionTitle,
+      body: currentExpansionBody,
+      items: currentLayerItems,
+      itemLabel: copy.expansion.includedNow,
+      action: currentExpansionAction,
+      tone:
+        plan === "free"
+          ? "border-amber-300/15 bg-amber-300/6"
+          : activeSubmission
+            ? "border-sky-300/15 bg-sky-300/6"
+            : "border-emerald-300/15 bg-emerald-300/6",
+    },
+    {
+      key: "next",
+      eyebrow: copy.expansion.nextEyebrow,
+      title: nextExpansionTitle,
+      body: nextExpansionBody,
+      items: nextPlan ? nextPlanItems : [],
+      itemLabel: copy.expansion.unlocksNext,
+      action: nextExpansionAction,
+      tone: "border-white/10 bg-white/[0.04]",
+    },
+    {
+      key: "later",
+      eyebrow: copy.expansion.laterEyebrow,
+      title: laterExpansionTitle,
+      body: laterExpansionBody,
+      items: laterPlan ? laterPlanItems : localizedRecommendedPlaybook,
+      itemLabel: laterPlan ? copy.expansion.laterUnlocks : copy.expansion.playbookSignal,
+      action: {
+        kind: "href",
+        href: "/pricing",
+        label: copy.expansion.seePlans,
+      } as ExpansionAction,
+      tone: "border-white/8 bg-black/15",
+    },
+  ];
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-stone-950 text-stone-100">
@@ -1206,6 +1749,92 @@ export default function ProductDetail({
                 </>
               )}
             </div>
+          </div>
+        </section>
+
+        <section className="mt-12">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.expansion.title}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {copy.expansion.title}
+            </h2>
+            <p className="mt-4 text-base leading-7 text-stone-400">
+              {copy.expansion.body}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 xl:grid-cols-3">
+            {expansionCards.map((card) => {
+              const launchAction =
+                card.action?.kind === "launch" ? card.action : null;
+              const linkAction =
+                card.action?.kind === "href" ? card.action : null;
+
+              return (
+                <div
+                  key={card.key}
+                  className={`rounded-[1.75rem] border p-6 ${card.tone}`}
+                >
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500">
+                    {card.eyebrow}
+                  </p>
+                  <h3 className="mt-4 text-2xl font-semibold leading-tight text-white">
+                    {card.title}
+                  </h3>
+                  <p className="mt-4 text-sm leading-7 text-stone-400">
+                    {card.body}
+                  </p>
+
+                  <div className="mt-5">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                      {card.itemLabel}
+                    </div>
+                    {card.items.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {card.items.map((item) => (
+                          <span
+                            key={`${card.key}-${item}`}
+                            className="rounded-full border border-[var(--line-soft)] bg-black/15 px-3 py-1.5 text-xs text-stone-200"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm leading-7 text-stone-500">
+                        {copy.expansion.noFurtherUnlocks}
+                      </p>
+                    )}
+                  </div>
+
+                  {launchAction ? (
+                    <div className="mt-6">
+                      <button
+                        type="button"
+                        onClick={() => startSubmission(launchAction.channelId)}
+                        disabled={submitting === launchAction.channelId}
+                        className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      >
+                        {submitting === launchAction.channelId
+                          ? copy.channels.starting
+                          : launchAction.label}
+                      </button>
+                    </div>
+                  ) : linkAction ? (
+                    <div className="mt-6">
+                      <a
+                        href={linkAction.href}
+                        className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {linkAction.label}
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -1807,6 +2436,122 @@ export default function ProductDetail({
                   </div>
                 </div>
               </div>
+
+              {recommendedLaneIds.length > 0 ||
+              qualityBarIds.length > 0 ||
+              antiPatternIds.length > 0 ? (
+                <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {copy.intelligence.playbookTitle}
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-stone-400">
+                        {copy.intelligence.playbookBody}
+                      </p>
+                    </div>
+                    {playbook.updated_at ? (
+                      <div className="text-right text-[10px] text-stone-500">
+                        {playbook.updated_at}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {recommendedLaneIds.length > 0 ? (
+                    <div className="mt-5">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {copy.intelligence.prioritiesTitle}
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {recommendedLaneIds.map((laneId) => {
+                          const localized = localizePlaybookItem(
+                            locale,
+                            PLAYBOOK_LANE_COPY,
+                            laneId,
+                            playbook.raw?.lane_labels?.[laneId]
+                          );
+                          return (
+                            <div
+                              key={laneId}
+                              className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
+                            >
+                              <div className="text-sm font-medium text-white">
+                                {localized.title}
+                              </div>
+                              <div className="mt-1 text-xs leading-6 text-stone-400">
+                                {localized.description}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {copy.intelligence.qualityBarTitle}
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {qualityBarIds.map((barId) => {
+                          const localized = localizePlaybookItem(
+                            locale,
+                            QUALITY_BAR_COPY,
+                            barId
+                          );
+                          return (
+                            <div
+                              key={barId}
+                              className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
+                            >
+                              <div className="text-sm font-medium text-white">
+                                {localized.title}
+                              </div>
+                              <div className="mt-1 text-xs leading-6 text-stone-400">
+                                {localized.description}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {copy.intelligence.avoidTitle}
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {antiPatternIds.map((patternId) => {
+                          const localized = localizePlaybookItem(
+                            locale,
+                            ANTI_PATTERN_COPY,
+                            patternId,
+                            playbook.raw?.anti_pattern_labels?.[patternId]
+                          );
+                          return (
+                            <div
+                              key={patternId}
+                              className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
+                            >
+                              <div className="text-sm font-medium text-white">
+                                {localized.title}
+                              </div>
+                              <div className="mt-1 text-xs leading-6 text-stone-400">
+                                {localized.description}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-[11px] text-stone-500">
+                    {copy.intelligence.learnedFromLive}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>

@@ -28,7 +28,34 @@ interface OperationalInsights {
   today_action_count: number;
   today_action_root_domain_count: number;
   today_quality_result_count: number;
+  today_quality_root_domain_count: number;
   source_library_root_domain_count: number;
+  source_segments: Record<string, number>;
+  playbook: {
+    updated_at: string;
+    learned_from_live_execution: boolean;
+    source_campaign: string;
+    north_star_metric: string;
+    north_star_target: number;
+    measurement_status: string;
+    current_domain_rating: number | null;
+    remaining_gap: number | null;
+    quality_bar_ids: string[];
+    recommended_lane_ids: string[];
+    anti_pattern_ids: string[];
+    proof_snapshot: {
+      host_public_verified_count: number;
+      today_action_root_domain_count: number;
+      reusable_root_domain_count: number;
+    };
+    raw: {
+      operating_principles: string[];
+      winning_patterns: string[];
+      anti_patterns: string[];
+      lane_labels: Record<string, string>;
+      anti_pattern_labels: Record<string, string>;
+    };
+  };
 }
 
 const EMPTY_OUTREACH_LIBRARY: HighQualityOutreachLibrary = {
@@ -43,7 +70,34 @@ const EMPTY_OPERATIONAL_INSIGHTS: OperationalInsights = {
   today_action_count: 0,
   today_action_root_domain_count: 0,
   today_quality_result_count: 0,
+  today_quality_root_domain_count: 0,
   source_library_root_domain_count: 0,
+  source_segments: {},
+  playbook: {
+    updated_at: "",
+    learned_from_live_execution: false,
+    source_campaign: "",
+    north_star_metric: "",
+    north_star_target: 0,
+    measurement_status: "",
+    current_domain_rating: null,
+    remaining_gap: null,
+    quality_bar_ids: [],
+    recommended_lane_ids: [],
+    anti_pattern_ids: [],
+    proof_snapshot: {
+      host_public_verified_count: 0,
+      today_action_root_domain_count: 0,
+      reusable_root_domain_count: 0,
+    },
+    raw: {
+      operating_principles: [],
+      winning_patterns: [],
+      anti_patterns: [],
+      lane_labels: {},
+      anti_pattern_labels: {},
+    },
+  },
 };
 
 const HIGH_QUALITY_OUTREACH_LIBRARY_PATH = path.join(
