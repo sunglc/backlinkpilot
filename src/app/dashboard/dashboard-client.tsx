@@ -52,7 +52,25 @@ interface SitePreview {
   };
 }
 
+type CheckoutState = "success" | "cancelled" | null;
 type LaunchStage = "unlock" | "running" | "ready" | "momentum" | "setup";
+type ProductPrimaryAction =
+  | {
+      kind: "link";
+      href: string;
+      label: string;
+    }
+  | {
+      kind: "launch";
+      channelId: string;
+      label: string;
+    };
+
+type LaunchProductPrimaryAction = Extract<
+  ProductPrimaryAction,
+  { kind: "launch" }
+>;
+type LinkProductPrimaryAction = Extract<ProductPrimaryAction, { kind: "link" }>;
 
 interface ProductSummary {
   product: Product;
@@ -64,8 +82,7 @@ interface ProductSummary {
   totalSuccessfulActions: number;
   stage: LaunchStage;
   nextStep: string;
-  primaryHref: string;
-  primaryLabel: string;
+  primaryAction: ProductPrimaryAction;
 }
 
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
@@ -144,6 +161,7 @@ function getDashboardCopy(locale: Locale) {
         launchNext: "继续下一条渠道",
         review: "查看结果",
         continueSetup: "继续配置",
+        starting: "启动中...",
         stage: {
           unlock: "待解锁",
           running: "运行中",
@@ -158,6 +176,25 @@ function getDashboardCopy(locale: Locale) {
           momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条渠道。",
           setup: "先进入产品页确认档案，再启动第一条渠道。",
         },
+      },
+      checkout: {
+        successEyebrow: "付款已完成",
+        successTitle: "计划已经解锁，直接开始第一条 live 渠道。",
+        successBody:
+          "最好的下一步不是回头研究价格，而是立刻把这个产品送进真实分发。BacklinkPilot 应该在付款后直接带你进入执行。",
+        successPendingTitle: "付款已完成，正在确认计划状态。",
+        successPendingBody:
+          "如果页面顶部还没显示新计划，通常只是 webhook 正在同步。等几秒后刷新，这个工作台会自动切换成可执行状态。",
+        cancelledEyebrow: "付款未完成",
+        cancelledTitle: "别丢失推进节奏，选回最合适的一档继续。",
+        cancelledBody:
+          "你的产品、launch 路径和推荐渠道都还在。选对计划后，可以直接从当前工作台接着往下跑。",
+        startNow: "立即启动推荐渠道",
+        openProduct: "打开推荐产品",
+        addProduct: "添加第一个产品",
+        refresh: "刷新工作台",
+        starter: "回到入门版",
+        growth: "直接看增长版",
       },
       lanes: {
         liveTitle: "今天可执行",
@@ -298,6 +335,7 @@ function getDashboardCopy(locale: Locale) {
       launchNext: "Launch Next Lane",
       review: "Review Results",
       continueSetup: "Continue Setup",
+      starting: "Starting...",
       stage: {
         unlock: "Upgrade needed",
         running: "Running",
@@ -312,6 +350,25 @@ function getDashboardCopy(locale: Locale) {
         momentum: "This product has already started moving. The next lane should expand the distribution.",
         setup: "Open the product page, confirm the profile, and launch the first lane after that.",
       },
+    },
+    checkout: {
+      successEyebrow: "Payment received",
+      successTitle: "Your plan is unlocked. Start the first live lane now.",
+      successBody:
+        "The best next move is not going back to pricing. It is sending the product into real distribution immediately. BacklinkPilot should take you straight into execution after payment.",
+      successPendingTitle: "Payment received. Plan status is still syncing.",
+      successPendingBody:
+        "If the new plan is not visible yet, this is usually just the webhook catching up. Refresh in a few seconds and the workspace should switch into launch mode.",
+      cancelledEyebrow: "Checkout not completed",
+      cancelledTitle: "Do not lose the launch rhythm. Pick the right plan and continue.",
+      cancelledBody:
+        "Your product, launch path, and recommended lanes are all still here. Choose the right plan and continue from this exact workspace.",
+      startNow: "Start Recommended Lane",
+      openProduct: "Open Recommended Product",
+      addProduct: "Add First Product",
+      refresh: "Refresh Workspace",
+      starter: "Back to Starter",
+      growth: "See Growth",
     },
     lanes: {
       liveTitle: "Runnable today",
@@ -502,18 +559,32 @@ function minimumPlanForChannel(channel: ChannelContract) {
   );
 }
 
+function isLaunchAction(
+  action: ProductPrimaryAction
+): action is LaunchProductPrimaryAction {
+  return action.kind === "launch";
+}
+
+function isLinkAction(
+  action: ProductPrimaryAction
+): action is LinkProductPrimaryAction {
+  return action.kind === "link";
+}
+
 export default function DashboardClient({
   locale,
   user,
   subscription,
   products,
   submissions,
+  checkoutState,
 }: {
   locale: Locale;
   user: User;
   subscription: Subscription | null;
   products: Product[];
   submissions: Submission[];
+  checkoutState: CheckoutState;
 }) {
   const copy = getDashboardCopy(locale);
   const router = useRouter();
@@ -526,6 +597,8 @@ export default function DashboardClient({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
   const [preview, setPreview] = useState<SitePreview | null>(null);
+  const [launchingKey, setLaunchingKey] = useState<string | null>(null);
+  const [workspaceActionError, setWorkspaceActionError] = useState("");
 
   const isPaid = subscription?.status === "active";
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
@@ -544,6 +617,9 @@ export default function DashboardClient({
   const activeLaunches = submissions.filter(
     (submission) => submission.status === "queued" || submission.status === "running"
   ).length;
+  const isCheckoutSuccess = checkoutState === "success";
+  const isCheckoutCancelled = checkoutState === "cancelled";
+  const isPlanSyncPending = isCheckoutSuccess && !isPaid;
 
   const productSummaries: ProductSummary[] = products.map((product) => {
     const productSubmissions = submissions.filter(
@@ -568,8 +644,11 @@ export default function DashboardClient({
       null;
 
     let stage: LaunchStage = "setup";
-    let primaryLabel = copy.productCard.continueSetup;
-    let primaryHref = `/dashboard/product/${product.id}`;
+    let primaryAction: ProductPrimaryAction = {
+      kind: "link",
+      href: `/dashboard/product/${product.id}`,
+      label: copy.productCard.continueSetup,
+    };
     let nextStep = copy.productCard.stageBody.setup;
 
     if (!isPaid) {
@@ -579,8 +658,11 @@ export default function DashboardClient({
         .join(locale === "zh" ? "、" : " and ");
 
       stage = "unlock";
-      primaryLabel = copy.productCard.unlock;
-      primaryHref = "/api/stripe/checkout?plan=starter";
+      primaryAction = {
+        kind: "link",
+        href: "/api/stripe/checkout?plan=starter",
+        label: copy.productCard.unlock,
+      };
       nextStep =
         locale === "zh"
           ? `升级 Starter 后，先跑 ${laneNames}。`
@@ -595,16 +677,22 @@ export default function DashboardClient({
         : activeSubmission.channel;
 
       stage = "running";
-      primaryLabel = copy.productCard.watch;
-      primaryHref = `/dashboard/product/${product.id}#submission-history`;
+      primaryAction = {
+        kind: "link",
+        href: `/dashboard/product/${product.id}#submission-history`,
+        label: copy.productCard.watch,
+      };
       nextStep =
         locale === "zh"
           ? `继续盯住 ${activeChannelName} 的实时进度，等 worker 完成这一轮。`
           : `Keep watching ${activeChannelName} while the worker finishes this run.`;
     } else if (product.status === "draft" && productSubmissions.length === 0) {
       stage = "setup";
-      primaryLabel = copy.productCard.continueSetup;
-      primaryHref = `/dashboard/product/${product.id}`;
+      primaryAction = {
+        kind: "link",
+        href: `/dashboard/product/${product.id}`,
+        label: copy.productCard.continueSetup,
+      };
       nextStep =
         locale === "zh"
           ? "先进入产品页确认档案，再启动第一条 live 渠道。"
@@ -617,8 +705,17 @@ export default function DashboardClient({
           : "Directory Submission";
 
       stage = "ready";
-      primaryLabel = copy.productCard.launchFirst;
-      primaryHref = `/dashboard/product/${product.id}`;
+      primaryAction = recommendedChannel
+        ? {
+            kind: "launch",
+            channelId: recommendedChannel.id,
+            label: copy.productCard.launchFirst,
+          }
+        : {
+            kind: "link",
+            href: `/dashboard/product/${product.id}`,
+            label: copy.productCard.launchFirst,
+          };
       nextStep =
         locale === "zh"
           ? `先启动 ${recommendedName}，让这个产品正式进入真实分发。`
@@ -630,16 +727,22 @@ export default function DashboardClient({
       const recommendedName = getLocalizedChannel(recommendedChannel, locale).name;
 
       stage = "momentum";
-      primaryLabel = copy.productCard.launchNext;
-      primaryHref = `/dashboard/product/${product.id}`;
+      primaryAction = {
+        kind: "launch",
+        channelId: recommendedChannel.id,
+        label: copy.productCard.launchNext,
+      };
       nextStep =
         locale === "zh"
           ? `下一条建议是 ${recommendedName}，用它把首轮结果继续扩开。`
           : `Run ${recommendedName} next to expand beyond the first live result set.`;
     } else {
       stage = "momentum";
-      primaryLabel = copy.productCard.review;
-      primaryHref = `/dashboard/product/${product.id}`;
+      primaryAction = {
+        kind: "link",
+        href: `/dashboard/product/${product.id}`,
+        label: copy.productCard.review,
+      };
       nextStep =
         locale === "zh"
           ? "打开产品页复盘最近一轮结果，再决定是否加新产品或重跑。"
@@ -656,8 +759,7 @@ export default function DashboardClient({
       totalSuccessfulActions: totalProductSuccessfulActions,
       stage,
       nextStep,
-      primaryHref,
-      primaryLabel,
+      primaryAction,
     };
   });
 
@@ -667,6 +769,10 @@ export default function DashboardClient({
     productSummaries.find((summary) => summary.stage === "unlock") ||
     productSummaries[0] ||
     null;
+  const featuredLaunchAction =
+    featuredProduct && isLaunchAction(featuredProduct.primaryAction)
+      ? featuredProduct.primaryAction
+      : null;
 
   let heroTitle = copy.hero.readyTitle;
   let heroBody = copy.hero.readyBody;
@@ -680,6 +786,30 @@ export default function DashboardClient({
   } else if (activeLaunches > 0) {
     heroTitle = copy.hero.activeTitle;
     heroBody = copy.hero.activeBody;
+  }
+
+  async function handleWorkspaceLaunch(productId: string, channelId: string) {
+    const actionKey = `${productId}:${channelId}`;
+    setLaunchingKey(actionKey);
+    setWorkspaceActionError("");
+
+    const supabase = createClient();
+    const { error } = await supabase.from("submissions").insert({
+      user_id: user.id,
+      product_id: productId,
+      channel: channelId,
+      status: "queued",
+    });
+
+    if (error) {
+      setWorkspaceActionError(error.message || copy.errors.saveFailed);
+      setLaunchingKey(null);
+      return;
+    }
+
+    setLaunchingKey(null);
+    router.push(`/dashboard/product/${productId}#submission-history`);
+    router.refresh();
   }
 
   async function handleLogout() {
@@ -971,6 +1101,102 @@ export default function DashboardClient({
           </div>
         </section>
 
+        {isCheckoutSuccess || isCheckoutCancelled ? (
+          <section className="mt-8">
+            <div className="rounded-[2rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(208,166,90,0.14),rgba(159,224,207,0.09))] p-7 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-3xl">
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                    {isCheckoutSuccess
+                      ? copy.checkout.successEyebrow
+                      : copy.checkout.cancelledEyebrow}
+                  </p>
+                  <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                    {isCheckoutSuccess && isPlanSyncPending
+                      ? copy.checkout.successPendingTitle
+                      : isCheckoutSuccess
+                        ? copy.checkout.successTitle
+                        : copy.checkout.cancelledTitle}
+                  </h2>
+                  <p className="mt-4 text-base leading-7 text-stone-300">
+                    {isCheckoutSuccess && isPlanSyncPending
+                      ? copy.checkout.successPendingBody
+                      : isCheckoutSuccess
+                        ? copy.checkout.successBody
+                        : copy.checkout.cancelledBody}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  {isCheckoutSuccess ? (
+                    isPlanSyncPending ? (
+                      <button
+                        onClick={() => router.refresh()}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {copy.checkout.refresh}
+                      </button>
+                    ) : featuredProduct && featuredLaunchAction ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWorkspaceLaunch(
+                            featuredProduct.product.id,
+                            featuredLaunchAction.channelId
+                          )
+                        }
+                        disabled={
+                          launchingKey ===
+                          `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                        }
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      >
+                        {launchingKey ===
+                        `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                          ? copy.productCard.starting
+                          : copy.checkout.startNow}
+                      </button>
+                    ) : featuredProduct ? (
+                      <Link
+                        href={`/dashboard/product/${featuredProduct.product.id}`}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {copy.checkout.openProduct}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={openAddProduct}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {copy.checkout.addProduct}
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      <a
+                        href="/api/stripe/checkout?plan=starter"
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {copy.checkout.starter}
+                      </a>
+                      <a
+                        href="/api/stripe/checkout?plan=growth"
+                        className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                      >
+                        {copy.checkout.growth}
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {workspaceActionError ? (
+                <p className="mt-5 text-sm text-red-300">{workspaceActionError}</p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
         {showAddProduct ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
             <div className="w-full max-w-md rounded-[2rem] border border-[var(--line-strong)] bg-stone-950 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
@@ -1087,6 +1313,9 @@ export default function DashboardClient({
               <p className="mt-4 text-base leading-7 text-stone-400">
                 {copy.board.body}
               </p>
+              {workspaceActionError && !(isCheckoutSuccess || isCheckoutCancelled) ? (
+                <p className="mt-4 text-sm text-red-300">{workspaceActionError}</p>
+              ) : null}
             </div>
 
             {products.length === 0 ? (
@@ -1146,6 +1375,12 @@ export default function DashboardClient({
                         )
                       : 0
                     : 0;
+                  const launchAction = isLaunchAction(summary.primaryAction)
+                    ? summary.primaryAction
+                    : null;
+                  const linkAction = isLinkAction(summary.primaryAction)
+                    ? summary.primaryAction
+                    : null;
 
                   return (
                     <article
@@ -1276,19 +1511,39 @@ export default function DashboardClient({
                           </div>
 
                           <div className="mt-5 flex flex-wrap gap-3">
-                            {summary.primaryHref.startsWith("/api/") ? (
+                            {launchAction ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleWorkspaceLaunch(
+                                    summary.product.id,
+                                    launchAction.channelId
+                                  )
+                                }
+                                disabled={
+                                  launchingKey ===
+                                  `${summary.product.id}:${launchAction.channelId}`
+                                }
+                                className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                              >
+                                {launchingKey ===
+                                `${summary.product.id}:${launchAction.channelId}`
+                                  ? copy.productCard.starting
+                                  : launchAction.label}
+                              </button>
+                            ) : linkAction?.href.startsWith("/api/") ? (
                               <a
-                                href={summary.primaryHref}
+                                href={linkAction.href}
                                 className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                               >
-                                {summary.primaryLabel}
+                                {linkAction.label}
                               </a>
                             ) : (
                               <Link
-                                href={summary.primaryHref}
+                                href={linkAction?.href || `/dashboard/product/${summary.product.id}`}
                                 className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                               >
-                                {summary.primaryLabel}
+                                {linkAction?.label || copy.productCard.open}
                               </Link>
                             )}
                             <Link

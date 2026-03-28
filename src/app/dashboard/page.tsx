@@ -3,7 +3,23 @@ import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import DashboardClient from "./dashboard-client";
 
-export default async function Dashboard() {
+type DashboardSearchParams = Promise<{
+  checkout?: string | string[];
+}>;
+
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: DashboardSearchParams;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const checkoutParam = Array.isArray(resolvedSearchParams.checkout)
+    ? resolvedSearchParams.checkout[0]
+    : resolvedSearchParams.checkout;
+  const checkoutState =
+    checkoutParam === "success" || checkoutParam === "cancelled"
+      ? checkoutParam
+      : null;
   const locale = await getLocale();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -42,6 +58,7 @@ export default async function Dashboard() {
       subscription={subscription}
       products={products || []}
       submissions={submissions || []}
+      checkoutState={checkoutState}
     />
   );
 }
