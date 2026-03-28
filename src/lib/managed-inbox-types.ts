@@ -39,6 +39,17 @@ export interface ManagedInboxOpsBrief {
   status: "queued" | "updated";
 }
 
+export interface ManagedInboxLaunchRequest {
+  referenceId: string;
+  path: string;
+  relativePath: string;
+  queuePath: string;
+  queueRelativePath: string;
+  createdAt: string;
+  status: "queued" | "updated";
+  summary: string;
+}
+
 export interface ManagedInboxTimelineEvent {
   id: string;
   kind: ManagedInboxEventKind;
@@ -67,6 +78,7 @@ export interface ManagedInboxRecord {
   mailboxIdentity: ManagedInboxIdentity | null;
   bringYourOwn: BringYourOwnSender | null;
   opsBrief: ManagedInboxOpsBrief | null;
+  launchRequest: ManagedInboxLaunchRequest | null;
   timeline: ManagedInboxTimelineEvent[];
   createdAt: string;
   updatedAt: string;

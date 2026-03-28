@@ -989,6 +989,16 @@ function getManagedInboxCopy(locale: Locale) {
         upgrade: "升级到增长版解锁",
         reserved: "这个产品已经保留了专属 sender identity，可随时切回托管模式。",
         included: "Growth / Scale",
+        launchLabel: "首批外联请求",
+        launchBody:
+          "这一步会把当前产品排进托管外联队列，生成可执行的 launch request 和更新后的运营 brief。它不是假装已经发出邮件，而是把第一批真实外联准备动作交给执行链。",
+        launchActivateHint: "先启用托管邮箱，再发起首批外联请求。",
+        launchReady: "托管邮箱已就绪，现在可以把首批外联请求排进执行队列。",
+        launchCta: "发起首批外联批次",
+        launchRefresh: "刷新外联请求",
+        launchQueued: "首批外联请求已排队",
+        launchStatusQueued: "已排队给运营",
+        launchSummaryFallback: "首批托管外联请求已经生成，运营可以直接接手。",
       },
       byo: {
         title: "使用你的邮箱",
@@ -1037,6 +1047,7 @@ function getManagedInboxCopy(locale: Locale) {
         invalidEmail: "请输入有效邮箱地址。",
         saveFailed: "发信模式保存失败，请稍后再试。",
         managedFailed: "托管邮箱激活失败，请稍后再试。",
+        launchFailed: "首批外联请求创建失败，请稍后再试。",
       },
     };
   }
@@ -1060,6 +1071,18 @@ function getManagedInboxCopy(locale: Locale) {
       upgrade: "Upgrade to Growth to unlock",
       reserved: "A sender identity is already reserved for this product, so you can switch back to managed mode later.",
       included: "Growth / Scale",
+      launchLabel: "First outreach batch",
+      launchBody:
+        "This turns the current product into a real managed outreach request, with a launch file and refreshed ops brief that the execution lane can pick up immediately. It does not pretend a send already happened.",
+      launchActivateHint: "Activate the managed inbox before queueing the first batch.",
+      launchReady:
+        "The managed inbox is ready. Queue the first outreach batch when you want ops to take it live.",
+      launchCta: "Queue first outreach batch",
+      launchRefresh: "Refresh outreach request",
+      launchQueued: "First outreach batch queued",
+      launchStatusQueued: "Queued for ops",
+      launchSummaryFallback:
+        "The first managed outreach request is ready and can be picked up by ops.",
     },
     byo: {
       title: "Bring your own inbox",
@@ -1108,6 +1131,7 @@ function getManagedInboxCopy(locale: Locale) {
       invalidEmail: "Enter a valid sender email.",
       saveFailed: "Unable to save the sender mode right now.",
       managedFailed: "Unable to activate the managed inbox right now.",
+      launchFailed: "Unable to queue the first outreach batch right now.",
     },
   };
 }
@@ -1144,7 +1168,7 @@ export default function ProductDetail({
     managedInboxRecord.bringYourOwn?.senderEmail || user.email || ""
   );
   const [managedInboxAction, setManagedInboxAction] = useState<
-    "save_byo" | "activate_managed" | null
+    "save_byo" | "activate_managed" | "launch_batch" | null
   >(null);
   const [managedInboxError, setManagedInboxError] = useState("");
   const sourcePreview = outreachLibrary.sources.slice(0, 6);
@@ -1198,6 +1222,7 @@ export default function ProductDetail({
     payload:
       | { action: "save_byo"; senderEmail: string }
       | { action: "activate_managed" }
+      | { action: "launch_batch" }
   ) {
     setManagedInboxAction(payload.action);
     setManagedInboxError("");
@@ -1233,7 +1258,9 @@ export default function ProductDetail({
           ? error.message
           : payload.action === "activate_managed"
             ? managedInboxCopy.errors.managedFailed
-            : managedInboxCopy.errors.saveFailed
+            : payload.action === "launch_batch"
+              ? managedInboxCopy.errors.launchFailed
+              : managedInboxCopy.errors.saveFailed
       );
     } finally {
       setManagedInboxAction(null);
@@ -1254,6 +1281,10 @@ export default function ProductDetail({
 
   async function activateManagedSender() {
     await updateManagedInbox({ action: "activate_managed" });
+  }
+
+  async function queueManagedBatch() {
+    await updateManagedInbox({ action: "launch_batch" });
   }
 
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
@@ -1342,6 +1373,7 @@ export default function ProductDetail({
     managedInbox.senderMode === "managed" && Boolean(managedInbox.mailboxIdentity);
   const managedInboxReserved =
     managedInbox.senderMode !== "managed" && Boolean(managedInbox.mailboxIdentity);
+  const managedLaunchRequest = managedInbox.launchRequest;
   const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
@@ -2081,11 +2113,60 @@ export default function ProductDetail({
                   </div>
                 ) : null}
 
+                <div className="mt-4 rounded-[1.25rem] border border-black/15 bg-black/10 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {managedInboxCopy.managed.launchLabel}
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-stone-300">
+                    {managedInboxCopy.managed.launchBody}
+                  </p>
+
+                  {managedLaunchRequest ? (
+                    <div className="mt-4 rounded-[1rem] border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-100">
+                          {managedInboxCopy.managed.launchStatusQueued}
+                        </span>
+                        <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-stone-300">
+                          {managedLaunchRequest.referenceId}
+                        </span>
+                      </div>
+                      <div className="mt-3 text-sm leading-7 text-stone-300">
+                        {managedLaunchRequest.summary ||
+                          managedInboxCopy.managed.launchSummaryFallback}
+                      </div>
+                      <div className="mt-3 text-xs text-stone-500">
+                        {formatSubmissionDate(managedLaunchRequest.createdAt, locale)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-[1rem] border border-dashed border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-stone-400">
+                      {managedInboxActive
+                        ? managedInboxCopy.managed.launchReady
+                        : managedInboxCopy.managed.launchActivateHint}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-6 flex flex-wrap gap-3">
                   {managedInboxActive ? (
-                    <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
-                      {managedInboxCopy.managed.active}
-                    </div>
+                    <>
+                      <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
+                        {managedInboxCopy.managed.active}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={queueManagedBatch}
+                        disabled={managedInboxAction === "launch_batch"}
+                        className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
+                      >
+                        {managedInboxAction === "launch_batch"
+                          ? copy.channels.starting
+                          : managedLaunchRequest
+                            ? managedInboxCopy.managed.launchRefresh
+                            : managedInboxCopy.managed.launchCta}
+                      </button>
+                    </>
                   ) : managedInboxEligible ? (
                     <button
                       type="button"

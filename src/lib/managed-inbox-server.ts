@@ -6,6 +6,7 @@ import { runtimeConfig } from "@/lib/runtime-config";
 import type {
   BringYourOwnSender,
   ManagedInboxEventState,
+  ManagedInboxLaunchRequest,
   ManagedInboxRecord,
   ManagedInboxTimelineEvent,
 } from "@/lib/managed-inbox-types";
@@ -28,6 +29,8 @@ const STORAGE_DIR = path.join(
 );
 const PRODUCT_DIR = path.join(STORAGE_DIR, "products");
 const BRIEF_DIR = path.join(STORAGE_DIR, "briefs");
+const LAUNCH_REQUEST_DIR = path.join(STORAGE_DIR, "launch-requests");
+const LAUNCH_QUEUE_DIR = path.join(STORAGE_DIR, "launch-queue");
 const PRIMARY_EMAIL_CONFIG = "/root/.config/backlink_sender/email_sender.json";
 
 function nowIso() {
@@ -61,6 +64,7 @@ function defaultRecord(productId: string, userId: string): ManagedInboxRecord {
     mailboxIdentity: null,
     bringYourOwn: null,
     opsBrief: null,
+    launchRequest: null,
     timeline: [],
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -70,6 +74,8 @@ function defaultRecord(productId: string, userId: string): ManagedInboxRecord {
 async function ensureStorage() {
   await mkdir(PRODUCT_DIR, { recursive: true });
   await mkdir(BRIEF_DIR, { recursive: true });
+  await mkdir(LAUNCH_REQUEST_DIR, { recursive: true });
+  await mkdir(LAUNCH_QUEUE_DIR, { recursive: true });
 }
 
 async function readManagedInboxDomainFromConfig() {
@@ -110,10 +116,31 @@ async function writeRecord(record: ManagedInboxRecord) {
 async function readRecord(productId: string) {
   try {
     const content = await readFile(recordPath(productId), "utf8");
-    return JSON.parse(content) as ManagedInboxRecord;
+    return JSON.parse(content) as Partial<ManagedInboxRecord>;
   } catch {
     return null;
   }
+}
+
+function normalizeRecord(
+  input: Partial<ManagedInboxRecord>,
+  productId: string,
+  userId: string
+): ManagedInboxRecord {
+  const base = defaultRecord(productId, userId);
+  return {
+    ...base,
+    ...input,
+    productId,
+    userId,
+    mailboxIdentity: input.mailboxIdentity || null,
+    bringYourOwn: input.bringYourOwn || null,
+    opsBrief: input.opsBrief || null,
+    launchRequest: input.launchRequest || null,
+    timeline: Array.isArray(input.timeline) ? input.timeline : [],
+    createdAt: input.createdAt || base.createdAt,
+    updatedAt: input.updatedAt || base.updatedAt,
+  };
 }
 
 function buildManagedIdentity(product: ProductSnapshot, domain: string) {
@@ -134,6 +161,7 @@ async function writeOpsBrief(args: {
   actor: ActorSnapshot;
   mailboxEmail: string;
   plan: string;
+  status?: "queued" | "updated";
 }) {
   await ensureStorage();
   const filename = `${args.referenceId}.md`;
@@ -176,8 +204,126 @@ async function writeOpsBrief(args: {
     path: absolutePath,
     relativePath: path.relative(STORAGE_DIR, absolutePath),
     createdAt: nowIso(),
-    status: "queued" as const,
+    status: args.status || ("queued" as const),
   };
+}
+
+async function writeLaunchRequest(args: {
+  referenceId: string;
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  mailboxEmail: string;
+  plan: string;
+  opsBriefReferenceId: string;
+  opsBriefRelativePath: string;
+  liveActivity?: {
+    outboundCount: number;
+    replyCount: number;
+    awaitingReplyCount: number;
+    lastActivityAt: string | null;
+  };
+  previousStatus?: "queued" | "updated";
+}) {
+  await ensureStorage();
+  const markdownPath = path.join(LAUNCH_REQUEST_DIR, `${args.referenceId}.md`);
+  const queuePath = path.join(LAUNCH_QUEUE_DIR, `${args.product.id}.json`);
+  const summary = `Prepare the first deterministic managed outreach batch for ${args.product.name} using ${args.mailboxEmail}.`;
+  const liveActivitySnapshot = {
+    outboundCount: args.liveActivity?.outboundCount || 0,
+    replyCount: args.liveActivity?.replyCount || 0,
+    awaitingReplyCount: args.liveActivity?.awaitingReplyCount || 0,
+    lastActivityAt: args.liveActivity?.lastActivityAt || null,
+  };
+
+  const markdown = `# Managed Outreach Launch Request
+
+- reference_id: ${args.referenceId}
+- created_at: ${nowIso()}
+- request_status: ${args.previousStatus ? "updated" : "queued"}
+- plan: ${args.plan}
+- customer_user_id: ${args.actor.userId}
+- customer_email: ${args.actor.userEmail || "unknown"}
+- product_id: ${args.product.id}
+- product_name: ${args.product.name}
+- product_url: ${args.product.url}
+- assigned_sender_identity: ${args.mailboxEmail}
+- ops_brief_reference: ${args.opsBriefReferenceId}
+- ops_brief_path: ${args.opsBriefRelativePath}
+
+## Launch objective
+
+Queue the first managed outreach batch for this product through the email/manual lane.
+
+## Product snapshot
+
+- name: ${args.product.name}
+- url: ${args.product.url}
+- description: ${args.product.description || "No description saved yet."}
+
+## Live activity snapshot
+
+- live_outbound_count: ${liveActivitySnapshot.outboundCount}
+- live_reply_count: ${liveActivitySnapshot.replyCount}
+- live_awaiting_reply_count: ${liveActivitySnapshot.awaitingReplyCount}
+- last_live_activity_at: ${liveActivitySnapshot.lastActivityAt || "none"}
+
+## Required next steps
+
+1. Review the product snapshot and confirm the dedicated sender identity.
+2. Build the first qualified email/manual target batch for this product.
+3. Prepare deterministic packs for the approved targets.
+4. Send the first batch through \`operations/backlinks/scripts/send_email_submission.py\`.
+5. Monitor replies and write activity back into BacklinkPilot.
+
+## Workflow references
+
+- queue builder: \`operations/backlinks/scripts/build_email_submission_queue.py\`
+- send entrypoint: \`operations/backlinks/scripts/send_email_submission.py\`
+- reply monitor: \`operations/backlinks/scripts/monitor_email_replies.py\`
+- workflow: \`operations/backlinks/runbooks/email-submission-workflow.md\`
+`;
+
+  const queuePayload = {
+    type: "managed_outreach_launch",
+    referenceId: args.referenceId,
+    status: args.previousStatus || "queued",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    product: {
+      id: args.product.id,
+      name: args.product.name,
+      url: args.product.url,
+      description: args.product.description,
+    },
+    customer: {
+      userId: args.actor.userId,
+      userEmail: args.actor.userEmail,
+    },
+    senderIdentity: args.mailboxEmail,
+    plan: args.plan,
+    objective: "first_managed_outreach_batch",
+    opsBrief: {
+      referenceId: args.opsBriefReferenceId,
+      relativePath: args.opsBriefRelativePath,
+    },
+    liveActivity: liveActivitySnapshot,
+    nextStep:
+      "Ops should prepare the first deterministic email/manual outreach batch and write send/reply activity back into BacklinkPilot.",
+  };
+
+  await writeFile(markdownPath, markdown);
+  await writeFile(queuePath, JSON.stringify(queuePayload, null, 2));
+
+  return {
+    referenceId: args.referenceId,
+    path: markdownPath,
+    relativePath: path.relative(STORAGE_DIR, markdownPath),
+    queuePath,
+    queueRelativePath: path.relative(STORAGE_DIR, queuePath),
+    createdAt: nowIso(),
+    status: args.previousStatus || ("queued" as const),
+    summary,
+  } satisfies ManagedInboxLaunchRequest;
 }
 
 export async function getManagedInboxRecord(args: {
@@ -186,7 +332,7 @@ export async function getManagedInboxRecord(args: {
 }) {
   const record = await readRecord(args.productId);
   if (record && record.userId === args.userId) {
-    return record;
+    return normalizeRecord(record, args.productId, args.userId);
   }
   return defaultRecord(args.productId, args.userId);
 }
@@ -250,6 +396,7 @@ export async function activateManagedInbox(args: {
     actor: args.actor,
     mailboxEmail: identity.email,
     plan: args.plan,
+    status: record.opsBrief ? "updated" : "queued",
   });
 
   const timeline = [
@@ -278,6 +425,75 @@ export async function activateManagedInbox(args: {
     status: "pilot_assigned",
     mailboxIdentity: identity,
     opsBrief,
+    launchRequest: record.launchRequest || null,
+    timeline,
+    updatedAt: nowIso(),
+  };
+
+  await writeRecord(nextRecord);
+  return nextRecord;
+}
+
+export async function queueManagedOutreachBatch(args: {
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  plan: string;
+  liveActivity?: {
+    outboundCount: number;
+    replyCount: number;
+    awaitingReplyCount: number;
+    lastActivityAt: string | null;
+  };
+}) {
+  const record = await getManagedInboxRecord({
+    productId: args.product.id,
+    userId: args.actor.userId,
+  });
+
+  if (record.senderMode !== "managed" || !record.mailboxIdentity) {
+    throw new Error("Activate the managed inbox before launching the first batch.");
+  }
+
+  const opsBriefReferenceId = record.opsBrief?.referenceId || briefReferenceId(args.product.id);
+  const opsBrief = await writeOpsBrief({
+    referenceId: opsBriefReferenceId,
+    product: args.product,
+    actor: args.actor,
+    mailboxEmail: record.mailboxIdentity.email,
+    plan: args.plan,
+    status: record.opsBrief ? "updated" : "queued",
+  });
+
+  const launchRequest = await writeLaunchRequest({
+    referenceId: `ml-${args.product.id.slice(0, 8)}-${Date.now().toString().slice(-6)}`,
+    product: args.product,
+    actor: args.actor,
+    mailboxEmail: record.mailboxIdentity.email,
+    plan: args.plan,
+    opsBriefReferenceId: opsBrief.referenceId,
+    opsBriefRelativePath: opsBrief.relativePath,
+    liveActivity: args.liveActivity,
+    previousStatus: record.launchRequest ? "updated" : "queued",
+  });
+
+  const timeline = [
+    createTimelineEvent({
+      kind: "brief",
+      state: "queued",
+      direction: "internal",
+      actor: "customer",
+      title: record.launchRequest
+        ? "Managed outreach request refreshed"
+        : "First managed outreach batch queued",
+      body: `${launchRequest.summary}\nReference: ${launchRequest.referenceId}\nQueue: ${launchRequest.queueRelativePath}`,
+    }),
+    ...record.timeline,
+  ].slice(0, 40);
+
+  const nextRecord: ManagedInboxRecord = {
+    ...record,
+    opsBrief,
+    launchRequest,
     timeline,
     updatedAt: nowIso(),
   };
@@ -299,6 +515,7 @@ export async function appendManagedInboxTimelineEvent(args: {
   if (!record) {
     throw new Error("Managed inbox record not found");
   }
+  const normalizedRecord = normalizeRecord(record, record.productId || args.productId, record.userId || "");
 
   const timeline = [
     createTimelineEvent({
@@ -309,11 +526,11 @@ export async function appendManagedInboxTimelineEvent(args: {
       body: args.body.trim(),
       actor: args.actor || "ops",
     }),
-    ...record.timeline,
+    ...normalizedRecord.timeline,
   ].slice(0, 40);
 
   const nextRecord: ManagedInboxRecord = {
-    ...record,
+    ...normalizedRecord,
     timeline,
     updatedAt: nowIso(),
   };

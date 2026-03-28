@@ -4,6 +4,7 @@ import {
   activateManagedInbox,
   configureBringYourOwnSender,
   getManagedInboxRecord,
+  queueManagedOutreachBatch,
 } from "@/lib/managed-inbox-server";
 import { createClient } from "@/lib/supabase-server";
 
@@ -138,6 +139,43 @@ export async function POST(
     const liveActivity = await getManagedInboxLiveActivity({
       name: product.name || "",
       url: product.url || "",
+    });
+
+    return NextResponse.json({ record, liveActivity });
+  }
+
+  if (body.action === "launch_batch") {
+    if (!MANAGED_INBOX_PLAN_SET.has(plan)) {
+      return NextResponse.json(
+        { error: "Managed inbox is unlocked on Growth and Scale." },
+        { status: 403 }
+      );
+    }
+
+    const existingRecord = await getManagedInboxRecord({
+      productId: product.id,
+      userId: user.id,
+    });
+
+    if (existingRecord.senderMode !== "managed" || !existingRecord.mailboxIdentity) {
+      return NextResponse.json(
+        { error: "Activate the managed inbox before queueing the first batch." },
+        { status: 409 }
+      );
+    }
+
+    const liveActivity = await getManagedInboxLiveActivity({
+      name: product.name || "",
+      url: product.url || "",
+    });
+    const record = await queueManagedOutreachBatch({
+      product,
+      actor: {
+        userId: user.id,
+        userEmail: user.email || null,
+      },
+      plan,
+      liveActivity,
     });
 
     return NextResponse.json({ record, liveActivity });
