@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from supabase import create_client
@@ -24,20 +25,30 @@ from supabase import create_client
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://pckxauowzpnaicqyxafo.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-
-POPWL_DIR = Path(os.environ.get(
-    "POPWL_DIR",
-    "/root/openclaw-stack/workspaces/seo-strategy/operations/backlinks/automation/popWL"
-))
-BACKLINKS_ROOT = Path(os.environ.get(
-    "BACKLINKS_ROOT",
-    "/root/openclaw-stack/workspaces/seo-strategy/operations/backlinks"
-))
+BACKLINKPILOT_ROOT = Path(os.environ.get("BACKLINKPILOT_ROOT", "/root/backlinkpilot"))
+BACKLINK_WORKSPACE_ROOT = Path(
+    os.environ.get("BACKLINK_WORKSPACE_ROOT", "/root/backlink_sender")
+)
+POPWL_DIR = Path(
+    os.environ.get(
+        "POPWL_DIR",
+        str(BACKLINK_WORKSPACE_ROOT / "operations/backlinks/automation/popWL"),
+    )
+)
+BACKLINKS_ROOT = Path(
+    os.environ.get(
+        "BACKLINKS_ROOT",
+        str(BACKLINK_WORKSPACE_ROOT / "operations/backlinks"),
+    )
+)
 EXECUTION_CONTRACT_PATH = Path(
     os.environ.get(
         "EXECUTION_CONTRACT_PATH",
-        "/root/backlinkpilot/src/lib/execution-contract.json",
+        str(BACKLINKPILOT_ROOT / "src/lib/execution-contract.json"),
     )
+)
+WORKER_HEARTBEAT_PATH = Path(
+    os.environ.get("WORKER_HEARTBEAT_PATH", "/tmp/backlinkpilot-worker-heartbeat.json")
 )
 
 def load_channel_site_configs():
@@ -64,6 +75,45 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("backlinkpilot-worker")
+
+
+def validate_runtime_config():
+    errors = []
+
+    if not SUPABASE_URL:
+        errors.append("SUPABASE_URL is not set")
+    if not SUPABASE_KEY:
+        errors.append("SUPABASE_SERVICE_KEY is not set")
+    if not EXECUTION_CONTRACT_PATH.exists():
+        errors.append(f"Execution contract missing: {EXECUTION_CONTRACT_PATH}")
+    if not (POPWL_DIR / "runner.py").exists():
+        errors.append(f"popWL runner missing: {POPWL_DIR / 'runner.py'}")
+    if not BACKLINKS_ROOT.exists():
+        errors.append(f"Backlinks root missing: {BACKLINKS_ROOT}")
+
+    if errors:
+        raise RuntimeError("; ".join(errors))
+
+
+def write_heartbeat(status, **extra):
+    payload = {
+        "status": status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "pid": os.getpid(),
+        "workspace_root": str(BACKLINK_WORKSPACE_ROOT),
+        "popwl_dir": str(POPWL_DIR),
+        "backlinks_root": str(BACKLINKS_ROOT),
+    }
+    payload.update(extra)
+
+    try:
+        WORKER_HEARTBEAT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        WORKER_HEARTBEAT_PATH.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception as exc:
+        logger.warning("Failed to write heartbeat: %s", exc)
 
 
 def get_supabase():
@@ -275,18 +325,42 @@ def main():
     parser.add_argument("--interval", type=int, default=30, help="Poll interval in seconds")
     args = parser.parse_args()
 
+    validate_runtime_config()
+    logger.info(
+        "Worker runtime: workspace=%s popwl=%s backlinks=%s heartbeat=%s",
+        BACKLINK_WORKSPACE_ROOT,
+        POPWL_DIR,
+        BACKLINKS_ROOT,
+        WORKER_HEARTBEAT_PATH,
+    )
+    write_heartbeat("starting", interval_seconds=args.interval)
     sb = get_supabase()
 
     if args.loop:
         logger.info("Starting worker loop (interval=%ds)", args.interval)
         while True:
             try:
-                run_once(sb)
+                queued_jobs = run_once(sb)
+                write_heartbeat(
+                    "idle" if queued_jobs == 0 else "processed",
+                    interval_seconds=args.interval,
+                    queued_jobs=queued_jobs,
+                )
             except Exception as e:
                 logger.error("Loop error: %s", e)
+                write_heartbeat(
+                    "error",
+                    interval_seconds=args.interval,
+                    error=str(e)[:500],
+                )
             time.sleep(args.interval)
     else:
-        run_once(sb)
+        queued_jobs = run_once(sb)
+        write_heartbeat(
+            "completed",
+            interval_seconds=args.interval,
+            queued_jobs=queued_jobs,
+        )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+[Unit]
+Description=BacklinkPilot runtime state retention cleanup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/backlinkpilot
+EnvironmentFile=/root/backlinkpilot/ops/backlinkpilot.env
+ExecStart=/bin/bash -lc 'exec /root/backlinkpilot/scripts/prune-runtime-state.sh'

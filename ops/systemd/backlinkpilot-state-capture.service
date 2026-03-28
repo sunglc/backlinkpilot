@@ -1,0 +1,11 @@
+[Unit]
+Description=BacklinkPilot recovery state capture
+After=network-online.target backlinkpilot-web.service backlinkpilot-worker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/backlinkpilot
+EnvironmentFile=/root/backlinkpilot/ops/backlinkpilot.env
+EnvironmentFile=/root/backlinkpilot/.env.local
+ExecStart=/bin/bash -lc 'exec /root/backlinkpilot/scripts/capture-runtime-state.sh'

@@ -1,0 +1,16 @@
+[Unit]
+Description=BacklinkPilot localhost status page
+After=network-online.target backlinkpilot-state-capture.timer
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/backlinkpilot
+EnvironmentFile=/root/backlinkpilot/ops/backlinkpilot.env
+ExecStartPre=/bin/bash -lc 'mkdir -p "$BACKLINKPILOT_DASHBOARD_ROOT" && test -f "$BACKLINKPILOT_DASHBOARD_ROOT/index.html" || /root/backlinkpilot/scripts/capture-runtime-state.sh >/dev/null'
+ExecStart=/bin/bash -lc 'exec python3 -m http.server "$BACKLINKPILOT_DASHBOARD_PORT" --bind "$BACKLINKPILOT_DASHBOARD_HOST" --directory "$BACKLINKPILOT_DASHBOARD_ROOT"'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

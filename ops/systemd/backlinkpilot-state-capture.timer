@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodic BacklinkPilot recovery state capture
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+Persistent=true
+Unit=backlinkpilot-state-capture.service
+
+[Install]
+WantedBy=timers.target

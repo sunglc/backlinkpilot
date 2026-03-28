@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily BacklinkPilot runtime state retention cleanup
+
+[Timer]
+OnBootSec=20min
+OnUnitActiveSec=24h
+Persistent=true
+Unit=backlinkpilot-state-prune.service
+
+[Install]
+WantedBy=timers.target
