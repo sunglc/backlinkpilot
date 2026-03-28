@@ -1,5 +1,16 @@
 import type { Metadata } from "next";
+import { Newsreader, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "BacklinkPilot — Autopilot for Your Backlinks",
@@ -22,7 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased bg-slate-950 text-slate-100">
+      <body
+        className={`${spaceGrotesk.variable} ${newsreader.variable} antialiased bg-stone-950 text-stone-100`}
+      >
         {children}
       </body>
     </html>

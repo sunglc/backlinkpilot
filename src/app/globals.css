@@ -1,1 +1,80 @@
 @import "tailwindcss";
+
+:root {
+  --surface-950: #171411;
+  --surface-900: #201c18;
+  --surface-800: #2b2621;
+  --line-soft: rgba(246, 236, 221, 0.12);
+  --line-strong: rgba(246, 236, 221, 0.2);
+  --accent-500: #d0a65a;
+  --accent-300: #f6d494;
+  --mint-300: #9fe0cf;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(159, 224, 207, 0.08), transparent 28rem),
+    radial-gradient(circle at top right, rgba(208, 166, 90, 0.12), transparent 26rem),
+    linear-gradient(180deg, #171411 0%, #110f0d 100%);
+  color: #f7f2ea;
+  font-family: var(--font-sans), sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), serif;
+}
+
+.bp-grid {
+  background-image:
+    linear-gradient(to right, rgba(246, 236, 221, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(246, 236, 221, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.bp-fade-up {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: bp-fade-up 0.8s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+}
+
+.bp-fade-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.bp-fade-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.bp-fade-delay-3 {
+  animation-delay: 0.24s;
+}
+
+.bp-float {
+  animation: bp-float 8s ease-in-out infinite;
+}
+
+.bp-float-delay {
+  animation-delay: -3s;
+}
+
+@keyframes bp-fade-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bp-float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}

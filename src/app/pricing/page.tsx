@@ -1,226 +1,259 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 
 export const metadata: Metadata = {
   title: "Pricing — BacklinkPilot",
   description:
-    "Simple pricing for automated backlink building. Starter $29/mo, Growth $79/mo, Scale $199/mo. No contracts, cancel anytime.",
+    "Consumer-friendly pricing for backlink automation. Set up your first product for free, then unlock live directory and stealth submission plans from $29/month.",
 };
 
 const plans = [
   {
     name: "Starter",
     price: 29,
-    desc: "For indie makers just getting started with SEO.",
+    accent: "border-[var(--line-soft)] bg-white/[0.03]",
+    eyebrow: "For first launches",
+    desc: "A clean first paid step for one product that needs real directory momentum.",
     features: [
       "1 product",
-      "100 submissions/month",
-      "Directory submission channel",
-      "Basic reporting dashboard",
-      "Email support",
+      "100 submissions / month",
+      "Directory Submission",
+      "Stealth Browser Submission",
+      "Basic reporting",
     ],
-    limits: ["No stealth browser", "No outreach emails", "No API access"],
-    popular: false,
+    note: "Best when you already know what product you want to push.",
+    cta: "Unlock Starter",
+    href: "/api/stripe/checkout?plan=starter",
   },
   {
     name: "Growth",
     price: 79,
-    desc: "For growing products that need serious backlink firepower.",
+    accent:
+      "border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.16),rgba(208,166,90,0.05))]",
+    eyebrow: "For serious distribution",
+    desc: "The main plan for teams that want enough volume to actually feel the product compounding.",
     features: [
       "3 products",
-      "500 submissions/month",
+      "500 submissions / month",
       `${LIVE_CHANNEL_COUNT} live channels today`,
       `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
-      "Stealth browser technology",
-      "Resource page outreach",
-      "Community submissions",
-      "Social distribution",
       "Priority support",
     ],
-    limits: ["No custom directory list", "No API access"],
-    popular: true,
+    note: "This is the default plan if backlink distribution is an active growth lane.",
+    cta: "Unlock Growth",
+    href: "/api/stripe/checkout?plan=growth",
   },
   {
     name: "Scale",
     price: 199,
-    desc: "For agencies and teams managing multiple products.",
+    accent: "border-[var(--line-soft)] bg-white/[0.03]",
+    eyebrow: "For multi-product teams",
+    desc: "For agencies, operators, and product groups managing a broader portfolio.",
     features: [
       "10 products",
       "Unlimited submissions",
       `${LIVE_CHANNEL_COUNT} live channels today`,
-      `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
-      "Stealth browser technology",
-      "Custom directory list",
+      "Custom directory handling",
       "API access",
-      "White-label reports",
-      "Dedicated support",
     ],
-    limits: [],
-    popular: false,
+    note: "Use this when the bottleneck is not onboarding, but throughput and control.",
+    cta: "Unlock Scale",
+    href: "/api/stripe/checkout?plan=scale",
+  },
+];
+
+const comparisonRows = [
+  ["Free setup before paying", "Yes", "Yes", "Yes"],
+  ["Live submission channels", "2", "2", "2"],
+  ["Products included", "1", "3", "10"],
+  ["Monthly submission capacity", "100", "500", "Unlimited"],
+  ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
+];
+
+const pricingFaq = [
+  {
+    q: "Can I try the workflow before paying?",
+    a: "Yes. You can now add your first product for free, auto-detect its basic profile, and understand the flow before you buy a plan.",
+  },
+  {
+    q: "What actually changes when I upgrade?",
+    a: "Upgrade turns your saved product profile into a live submission source. Directory and stealth routes can then run from the product you already configured.",
+  },
+  {
+    q: "Why not make everything free until first submission?",
+    a: "The free tier is meant to reduce onboarding friction, not subsidize execution cost. Paid plans start when the system begins doing real distribution work on your behalf.",
   },
 ];
 
 export default function Pricing() {
   return (
-    <main>
-      <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur border-b border-slate-800">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-white">
-            Backlink<span className="text-blue-400">Pilot</span>
+    <main className="overflow-x-hidden">
+      <nav className="fixed inset-x-0 top-0 z-50">
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 md:px-8">
+          <Link
+            href="/"
+            className="text-sm font-medium uppercase tracking-[0.28em] text-stone-200"
+          >
+            BacklinkPilot
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
-            <Link href="/#features" className="hover:text-white transition">
-              Features
-            </Link>
-            <Link href="/pricing" className="text-white">
+          <div className="hidden items-center gap-8 text-sm text-stone-400 md:flex">
+            <Link href="/#product">Product</Link>
+            <Link href="/pricing" className="text-stone-100">
               Pricing
             </Link>
-            <Link href="/#faq" className="hover:text-white transition">
-              FAQ
+            <Link href="/#faq">FAQ</Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm text-stone-400 transition hover:text-white"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-[var(--line-strong)] bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Try Free Setup
             </Link>
           </div>
         </div>
       </nav>
 
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-4xl font-bold text-center text-white mb-4">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="text-slate-400 text-center mb-4 max-w-xl mx-auto">
-            No contracts. No hidden fees. Cancel anytime. Start with a 7-day
-            free trial on any plan.
+      <section className="relative overflow-hidden px-5 pb-16 pt-30 md:px-8 md:pt-34">
+        <div className="bp-grid absolute inset-0 opacity-35" />
+        <div className="absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,rgba(246,212,148,0.16),transparent_58%)]" />
+        <div className="relative mx-auto max-w-7xl">
+          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+            Pricing
           </p>
-          <p className="text-blue-400 text-center text-sm mb-12">
-            Cheaper than a VA. More reliable than an agency.
-          </p>
+          <div className="mt-5 grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
+            <div>
+              <h1 className="font-display text-5xl leading-[0.95] text-stone-50 md:text-7xl">
+                Set up first.
+                <br />
+                Pay for execution.
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-stone-400 md:text-lg">
+                Pricing should feel like a clear unlock, not a wall. The product now lets
+                you add your first product for free, then choose the plan that matches the
+                amount of real submission work you want to run.
+              </p>
+            </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-xl p-8 border flex flex-col ${
-                  plan.popular
-                    ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/20"
-                    : "border-slate-700 bg-slate-800/50"
-                }`}
-              >
-                {plan.popular && (
-                  <div className="text-blue-400 text-xs font-semibold uppercase tracking-wider mb-4">
-                    Most Popular
+            <div className="rounded-[2rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  { label: "Free setup", value: "1 product" },
+                  { label: "Live today", value: `${LIVE_CHANNEL_COUNT} channels` },
+                  { label: "Starts at", value: "$29 / month" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.35rem] border border-[var(--line-soft)] bg-stone-950/60 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                      {item.label}
+                    </p>
+                    <p className="mt-3 text-2xl font-medium text-stone-100">
+                      {item.value}
+                    </p>
                   </div>
-                )}
-                <h2 className="text-xl font-bold text-white">{plan.name}</h2>
-                <p className="text-slate-400 text-sm mt-1 mb-4">{plan.desc}</p>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">
-                    ${plan.price}
-                  </span>
-                  <span className="text-slate-400">/month</span>
-                </div>
-
-                <div className="flex-1">
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">
-                    Includes
-                  </p>
-                  <ul className="space-y-2.5 mb-6">
-                    {plan.features.map((f) => (
-                      <li
-                        key={f}
-                        className="flex items-start gap-2 text-sm text-slate-300"
-                      >
-                        <svg
-                          className="w-4 h-4 text-green-400 shrink-0 mt-0.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {plan.limits.length > 0 && (
-                    <>
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">
-                        Not included
-                      </p>
-                      <ul className="space-y-2 mb-6">
-                        {plan.limits.map((l) => (
-                          <li
-                            key={l}
-                            className="flex items-start gap-2 text-sm text-slate-500"
-                          >
-                            <svg
-                              className="w-4 h-4 text-slate-600 shrink-0 mt-0.5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                            {l}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </div>
-
-                <button
-                  className={`w-full py-3 rounded-lg font-medium transition ${
-                    plan.popular
-                      ? "bg-blue-500 hover:bg-blue-600 text-white"
-                      : "bg-slate-700 hover:bg-slate-600 text-white"
-                  }`}
-                >
-                  Start 7-Day Free Trial
-                </button>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
+        </div>
+      </section>
 
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              Frequently Asked Pricing Questions
-            </h2>
-            <div className="space-y-4 text-left">
-              {[
-                {
-                  q: "Is there a free trial?",
-                  a: "Yes! Every plan includes a 7-day free trial. No credit card required to start.",
-                },
-                {
-                  q: "What counts as a 'submission'?",
-                  a: "Each directory, resource page, or community submission counts as one. Social distribution and email outreach have separate limits based on your plan.",
-                },
-                {
-                  q: "Can I upgrade or downgrade anytime?",
-                  a: "Yes. Changes take effect immediately. If you upgrade mid-cycle, you'll be prorated. If you downgrade, the change applies at your next billing date.",
-                },
-                {
-                  q: "Do you offer annual pricing?",
-                  a: "Yes — save 20% with annual billing. Contact us for details.",
-                },
-              ].map((item) => (
+      <section className="px-5 py-14 md:px-8 md:py-18">
+        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <article
+              key={plan.name}
+              className={`rounded-[2rem] border p-7 ${plan.accent}`}
+            >
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {plan.eyebrow}
+              </p>
+              <div className="mt-6 flex items-end justify-between gap-5">
+                <div>
+                  <h2 className="text-3xl font-medium text-stone-100">
+                    {plan.name}
+                  </h2>
+                  <p className="mt-3 max-w-sm text-sm leading-6 text-stone-400">
+                    {plan.desc}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-6xl leading-none text-stone-50">
+                    ${plan.price}
+                  </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.24em] text-stone-500">
+                    per month
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 border-t border-[var(--line-soft)] pt-6">
+                <ul className="space-y-3 text-sm leading-6 text-stone-300">
+                  {plan.features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-start gap-3"
+                    >
+                      <span className="mt-1 h-2 w-2 rounded-full bg-[var(--accent-300)]" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="mt-8 text-sm leading-6 text-stone-500">
+                {plan.note}
+              </p>
+
+              <a
+                href={plan.href}
+                className="mt-8 inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+              >
+                {plan.cta}
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-[var(--line-soft)] bg-white/[0.02] px-5 py-18 md:px-8 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                Comparison
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+                A plain-language comparison, not a pricing maze.
+              </h2>
+            </div>
+
+            <div className="overflow-hidden rounded-[2rem] border border-[var(--line-soft)]">
+              <div className="grid grid-cols-[1.2fr_repeat(3,minmax(0,1fr))] bg-stone-950/60 px-5 py-4 text-xs uppercase tracking-[0.24em] text-stone-500">
+                <span>What changes</span>
+                <span className="text-center">Starter</span>
+                <span className="text-center">Growth</span>
+                <span className="text-center">Scale</span>
+              </div>
+              {comparisonRows.map(([label, starter, growth, scale]) => (
                 <div
-                  key={item.q}
-                  className="border border-slate-700/50 rounded-xl p-5"
+                  key={label}
+                  className="grid grid-cols-[1.2fr_repeat(3,minmax(0,1fr))] border-t border-[var(--line-soft)] px-5 py-4 text-sm text-stone-300"
                 >
-                  <h3 className="text-white font-semibold mb-1">{item.q}</h3>
-                  <p className="text-slate-400 text-sm">{item.a}</p>
+                  <span className="pr-4 text-stone-400">{label}</span>
+                  <span className="text-center">{starter}</span>
+                  <span className="text-center">{growth}</span>
+                  <span className="text-center">{scale}</span>
                 </div>
               ))}
             </div>
@@ -228,16 +261,55 @@ export default function Pricing() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-800 py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <Link href="/" className="text-lg font-bold text-white">
-            Backlink<span className="text-blue-400">Pilot</span>
-          </Link>
-          <span className="text-sm text-slate-600">
-            &copy; {new Date().getFullYear()} BacklinkPilot
-          </span>
+      <section className="px-5 py-18 md:px-8 md:py-24">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.75fr_1.25fr]">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              FAQ
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              Pricing answers without the usual fine-print fog.
+            </h2>
+          </div>
+          <div className="space-y-4">
+            {pricingFaq.map((item) => (
+              <details
+                key={item.q}
+                className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.03] p-6"
+              >
+                <summary className="cursor-pointer list-none text-lg font-medium text-stone-100">
+                  {item.q}
+                </summary>
+                <p className="mt-4 text-sm leading-7 text-stone-400 md:text-base">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
         </div>
-      </footer>
+
+        <div className="mx-auto mt-16 max-w-7xl rounded-[2rem] border border-[var(--line-soft)] bg-[linear-gradient(135deg,rgba(159,224,207,0.09),rgba(208,166,90,0.08))] px-6 py-8 md:px-8 md:py-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                Next step
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-none text-stone-50 md:text-5xl">
+                Start with the free setup flow.
+              </h2>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-stone-400">
+                If the product understands your homepage and the workflow feels right, upgrade when you are ready to run live submissions.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex rounded-full bg-[var(--accent-500)] px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+            >
+              Open Dashboard
+            </Link>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
