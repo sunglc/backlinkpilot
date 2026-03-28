@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCanonicalAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase-server";
 import { getStripe } from "@/lib/stripe";
 
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   const plan = PLANS[planKey];
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getCanonicalAppUrl();
 
   const session = await getStripe().checkout.sessions.create({
     customer_email: user.email,

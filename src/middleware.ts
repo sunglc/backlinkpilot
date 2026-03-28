@@ -1,7 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getCanonicalAppUrl } from "@/lib/app-url";
 
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get("host")?.toLowerCase() ?? "";
+  const canonicalAppUrl = getCanonicalAppUrl();
+
+  if (
+    host.endsWith("backlinkpilot.vercel.app") &&
+    !canonicalAppUrl.includes("backlinkpilot.vercel.app")
+  ) {
+    const redirectUrl = new URL(
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      canonicalAppUrl
+    );
+    return NextResponse.redirect(redirectUrl);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -47,5 +62,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: [
+    "/",
+    "/pricing",
+    "/login",
+    "/signup",
+    "/dashboard/:path*",
+    "/backlink-automation-tool",
+    "/directory-submission-tool",
+  ],
 };

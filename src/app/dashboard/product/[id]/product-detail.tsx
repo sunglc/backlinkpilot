@@ -11,9 +11,7 @@ import {
   TOTAL_CHANNEL_COUNT,
   type ChannelContract,
 } from "@/lib/execution-contract";
-import { HIGH_QUALITY_OUTREACH_LIBRARY } from "@/lib/high-quality-outreach-sources";
 import type { Locale } from "@/lib/locale-config";
-import OPERATIONAL_INSIGHTS from "@/lib/operational-insights.json";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -40,6 +38,31 @@ interface Product {
   url: string;
   description: string;
   status: string;
+}
+
+interface HighQualityOutreachSource {
+  source_id: string;
+  root_domain: string;
+  fit_score: number;
+  article_title: string;
+  source_type: string;
+  reuse_segment: string;
+  article_url: string;
+}
+
+interface HighQualityOutreachLibrary {
+  root_domain_count: number;
+  source_count: number;
+  sources: HighQualityOutreachSource[];
+}
+
+interface OperationalInsights {
+  reply_action_count: number;
+  host_public_verified_count: number;
+  today_action_count: number;
+  today_action_root_domain_count: number;
+  today_quality_result_count: number;
+  source_library_root_domain_count: number;
 }
 
 const PLAN_ORDER = ["free", "starter", "growth", "scale"] as const;
@@ -402,18 +425,22 @@ export default function ProductDetail({
   product,
   submissions,
   plan,
+  outreachLibrary,
+  operationalInsights,
 }: {
   locale: Locale;
   user: User;
   product: Product;
   submissions: Submission[];
   plan: string;
+  outreachLibrary: HighQualityOutreachLibrary;
+  operationalInsights: OperationalInsights;
 }) {
   const copy = getProductDetailCopy(locale);
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
-  const sourcePreview = HIGH_QUALITY_OUTREACH_LIBRARY.sources.slice(0, 6);
+  const sourcePreview = outreachLibrary.sources.slice(0, 6);
 
   const hasActive = submissions.some(
     (submission) => submission.status === "queued" || submission.status === "running"
@@ -1024,48 +1051,56 @@ export default function ProductDetail({
                 </div>
                 <div className="text-right text-xs text-stone-500">
                   <div>
-                    {HIGH_QUALITY_OUTREACH_LIBRARY.root_domain_count}{" "}
+                    {outreachLibrary.root_domain_count}{" "}
                     {copy.intelligence.rootDomains}
                   </div>
                   <div>
-                    {HIGH_QUALITY_OUTREACH_LIBRARY.source_count}{" "}
+                    {outreachLibrary.source_count}{" "}
                     {copy.intelligence.reusableSources}
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {sourcePreview.map((source) => (
-                  <div
-                    key={source.source_id}
-                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white">
-                        {source.root_domain}
-                      </span>
-                      <span className="text-[10px] uppercase tracking-[0.22em] text-amber-200">
-                        {copy.intelligence.fit} {source.fit_score}/10
-                      </span>
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-xs leading-6 text-stone-400">
-                      {source.article_title}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.22em] text-stone-500">
-                      <span>{source.source_type}</span>
-                      <span>{source.reuse_segment}</span>
-                    </div>
-                    <a
-                      href={source.article_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex text-xs text-amber-200 transition hover:text-amber-100"
+              {sourcePreview.length > 0 ? (
+                <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {sourcePreview.map((source) => (
+                    <div
+                      key={source.source_id}
+                      className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
                     >
-                      {copy.intelligence.openSource}
-                    </a>
-                  </div>
-                ))}
-              </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-white">
+                          {source.root_domain}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.22em] text-amber-200">
+                          {copy.intelligence.fit} {source.fit_score}/10
+                        </span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-xs leading-6 text-stone-400">
+                        {source.article_title}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        <span>{source.source_type}</span>
+                        <span>{source.reuse_segment}</span>
+                      </div>
+                      <a
+                        href={source.article_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-4 inline-flex text-xs text-amber-200 transition hover:text-amber-100"
+                      >
+                        {copy.intelligence.openSource}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5 text-sm text-stone-400">
+                  {locale === "zh"
+                    ? "当前还没有同步到可复用的高质量外联源。后续执行积累后，这里会开始出现真正可参考的目标。"
+                    : "No reusable high-quality outreach sources are synced yet. This section fills in as real execution data accumulates."}
+                </div>
+              )}
             </div>
 
             <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
@@ -1080,11 +1115,11 @@ export default function ProductDetail({
                 </div>
                 <div className="text-right text-xs text-stone-500">
                   <div>
-                    {OPERATIONAL_INSIGHTS.reply_action_count}{" "}
+                    {operationalInsights.reply_action_count}{" "}
                     {copy.intelligence.replyActions}
                   </div>
                   <div>
-                    {OPERATIONAL_INSIGHTS.host_public_verified_count}{" "}
+                    {operationalInsights.host_public_verified_count}{" "}
                     {copy.intelligence.publicVerified}
                   </div>
                 </div>
@@ -1094,13 +1129,13 @@ export default function ProductDetail({
                 <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
                   <div className="text-stone-500">{copy.intelligence.todayActions}</div>
                   <div className="mt-2 text-2xl font-semibold text-white">
-                    {OPERATIONAL_INSIGHTS.today_action_count}
+                    {operationalInsights.today_action_count}
                   </div>
                 </div>
                 <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
                   <div className="text-stone-500">{copy.intelligence.todayRootDomains}</div>
                   <div className="mt-2 text-2xl font-semibold text-white">
-                    {OPERATIONAL_INSIGHTS.today_action_root_domain_count}
+                    {operationalInsights.today_action_root_domain_count}
                   </div>
                 </div>
                 <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
@@ -1108,13 +1143,13 @@ export default function ProductDetail({
                     {copy.intelligence.qualityResultsToday}
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-white">
-                    {OPERATIONAL_INSIGHTS.today_quality_result_count}
+                    {operationalInsights.today_quality_result_count}
                   </div>
                 </div>
                 <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
                   <div className="text-stone-500">{copy.intelligence.reusableToday}</div>
                   <div className="mt-2 text-2xl font-semibold text-white">
-                    {OPERATIONAL_INSIGHTS.source_library_root_domain_count}
+                    {operationalInsights.source_library_root_domain_count}
                   </div>
                 </div>
               </div>

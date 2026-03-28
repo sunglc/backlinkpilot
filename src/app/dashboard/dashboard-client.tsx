@@ -45,7 +45,7 @@ function getDashboardCopy(locale: Locale) {
         logout: "退出登录",
       },
       header: {
-        title: "Dashboard",
+        title: "工作台",
         addFirstProduct: "添加第一个产品",
         addProduct: "+ 添加产品",
         upgradePlan: "升级计划",
@@ -133,7 +133,7 @@ function getDashboardCopy(locale: Locale) {
       logout: "Log out",
     },
     header: {
-      title: "工作台",
+      title: "Dashboard",
       addFirstProduct: "Add Your First Product",
       addProduct: "+ Add Product",
       upgradePlan: "Upgrade Plan",
