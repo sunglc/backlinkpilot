@@ -182,6 +182,16 @@ function getProductDetailCopy(locale: Locale) {
         seenSignals: "已看到的站点信号",
         noSignals:
           "当前还没有足够的成功站点样本。随着执行继续推进，这里会开始出现更具体的结果信号。",
+        proofTitle: "结果证明",
+        proofBody:
+          "这里展示的是最近一轮真实执行留下来的站点回执和阻塞项，不是抽象统计。",
+        receiptsTitle: "最近成功回执",
+        blockersTitle: "需要复盘的阻塞项",
+        successBadge: "成功",
+        blockedBadge: "阻塞",
+        noReceipts:
+          "这轮还没有留下清晰的成功回执。继续执行后，这里会开始沉淀更具体的结果证明。",
+        noBlockers: "最近一轮没有明显的阻塞项需要复盘。",
         openHistory: "查看执行历史",
         openDashboard: "回到工作台",
         launchNext: "启动推荐渠道",
@@ -333,6 +343,16 @@ function getProductDetailCopy(locale: Locale) {
       seenSignals: "Visible site signals",
       noSignals:
         "There are not enough successful site samples yet. As execution accumulates, more concrete result signals will appear here.",
+      proofTitle: "Result proof",
+      proofBody:
+        "These are receipts and blockers captured from the latest real run, not abstract metrics.",
+      receiptsTitle: "Latest success receipts",
+      blockersTitle: "Blockers to review",
+      successBadge: "success",
+      blockedBadge: "blocked",
+      noReceipts:
+        "This run has not left behind clear success receipts yet. As execution continues, more concrete proof should appear here.",
+      noBlockers: "There are no obvious blockers from the latest run that need review.",
       openHistory: "View Submission History",
       openDashboard: "Back to Dashboard",
       launchNext: "Launch Recommended Lane",
@@ -515,6 +535,23 @@ function formatPercent(value: number) {
   return `${Math.round(value)}%`;
 }
 
+function summarizeResultOutput(output: string, locale: Locale) {
+  const cleaned = output
+    .replace(/\u001b\[[0-9;]*m/g, "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .find((line) => line.length > 6);
+
+  if (!cleaned) {
+    return locale === "zh"
+      ? "执行已记录，但当前没有可展示的文本回执。"
+      : "The run was recorded, but there is no readable receipt text to show yet.";
+  }
+
+  return cleaned.length > 160 ? `${cleaned.slice(0, 157)}...` : cleaned;
+}
+
 export default function ProductDetail({
   locale,
   user,
@@ -616,6 +653,10 @@ export default function ProductDetail({
       : 0;
   const visibleSuccessfulSites =
     latestResolvedSubmission?.results.filter((result) => result.success).slice(0, 5) || [];
+  const latestSuccessReceipts =
+    latestResolvedSubmission?.results.filter((result) => result.success).slice(0, 4) || [];
+  const latestBlockers =
+    latestResolvedSubmission?.results.filter((result) => !result.success).slice(0, 4) || [];
 
   let recapEyebrow = copy.recap.prelaunchEyebrow;
   let recapTitle = copy.recap.prelaunchTitle;
@@ -1112,6 +1153,86 @@ export default function ProductDetail({
             </div>
           </div>
         </section>
+
+        {latestResolvedSubmission ? (
+          <section className="mt-12">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.recap.proofTitle}
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {copy.recap.proofTitle}
+              </h2>
+              <p className="mt-4 text-base leading-7 text-stone-400">
+                {copy.recap.proofBody}
+              </p>
+            </div>
+
+            <div className="mt-8 grid gap-6 xl:grid-cols-2">
+              <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                <h3 className="text-xl font-semibold text-white">
+                  {copy.recap.receiptsTitle}
+                </h3>
+
+                {latestSuccessReceipts.length > 0 ? (
+                  <div className="mt-5 space-y-3">
+                    {latestSuccessReceipts.map((result, index) => (
+                      <div
+                        key={`${result.site}-${index}`}
+                        className="rounded-[1.25rem] border border-emerald-300/15 bg-emerald-300/5 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-medium text-white">{result.site}</div>
+                          <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald-200">
+                            {copy.recap.successBadge}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {summarizeResultOutput(result.output, locale)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm leading-7 text-stone-400">
+                    {copy.recap.noReceipts}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                <h3 className="text-xl font-semibold text-white">
+                  {copy.recap.blockersTitle}
+                </h3>
+
+                {latestBlockers.length > 0 ? (
+                  <div className="mt-5 space-y-3">
+                    {latestBlockers.map((result, index) => (
+                      <div
+                        key={`${result.site}-${index}`}
+                        className="rounded-[1.25rem] border border-red-300/15 bg-red-300/5 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-medium text-white">{result.site}</div>
+                          <span className="rounded-full bg-red-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-red-200">
+                            {copy.recap.blockedBadge}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {summarizeResultOutput(result.output, locale)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm leading-7 text-stone-400">
+                    {copy.recap.noBlockers}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-12">
           <div className="max-w-3xl">
