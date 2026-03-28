@@ -197,6 +197,24 @@ function getProductDetailCopy(locale: Locale) {
         launchNext: "启动推荐渠道",
         retryLane: "重跑这一条渠道",
       },
+      launchMap: {
+        title: "Launch 路线图",
+        body: "这里把每条 live 渠道在这个产品上的状态串成一条推进路径，让你一眼知道已经完成了什么、下一步该跑什么。",
+        status: {
+          locked: "未解锁",
+          ready: "待启动",
+          recommended: "推荐下一条",
+          running: "执行中",
+          completed: "已完成",
+          failed: "需复盘",
+        },
+        lockedBody: "先升级计划后，才能把这条渠道加入真实执行。",
+        readyBody: "这条 live 渠道已经就绪，可以直接启动。",
+        recommendedBody: "这是当前最值得先跑的下一条渠道。",
+        runningBody: "worker 正在处理这条渠道，先看进度。",
+        completedBody: "这条渠道已经跑过，当前有结果可复盘。",
+        failedBody: "这条渠道最近一轮没有顺利完成，值得优先复盘。",
+      },
       intelligence: {
         title: "执行智能",
         body:
@@ -357,6 +375,25 @@ function getProductDetailCopy(locale: Locale) {
       openDashboard: "Back to Dashboard",
       launchNext: "Launch Recommended Lane",
       retryLane: "Retry This Lane",
+    },
+    launchMap: {
+      title: "Launch map",
+      body:
+        "This turns the live lanes into a single progression path, so you can see what is done, what is running, and what should run next.",
+      status: {
+        locked: "Locked",
+        ready: "Ready",
+        recommended: "Recommended",
+        running: "Running",
+        completed: "Completed",
+        failed: "Review needed",
+      },
+      lockedBody: "Upgrade the plan before this lane can join live execution.",
+      readyBody: "This live lane is ready and can be launched immediately.",
+      recommendedBody: "This is the best next lane to run right now.",
+      runningBody: "The worker is already processing this lane, so watch progress first.",
+      completedBody: "This lane has already run and now has outcomes to review.",
+      failedBody: "The latest run for this lane did not finish cleanly and should be reviewed first.",
     },
     intelligence: {
       title: "Execution intelligence",
@@ -552,6 +589,21 @@ function summarizeResultOutput(output: string, locale: Locale) {
   return cleaned.length > 160 ? `${cleaned.slice(0, 157)}...` : cleaned;
 }
 
+function launchMapStatusClasses(
+  status: "locked" | "ready" | "recommended" | "running" | "completed" | "failed"
+) {
+  const classes = {
+    locked: "border-white/8 bg-white/[0.03] text-stone-300",
+    ready: "border-white/8 bg-white/[0.05] text-stone-100",
+    recommended: "border-amber-300/15 bg-amber-300/8 text-amber-100",
+    running: "border-sky-300/15 bg-sky-300/8 text-sky-200",
+    completed: "border-emerald-300/15 bg-emerald-300/8 text-emerald-200",
+    failed: "border-red-300/15 bg-red-300/8 text-red-200",
+  } as const;
+
+  return classes[status];
+}
+
 export default function ProductDetail({
   locale,
   user,
@@ -657,6 +709,9 @@ export default function ProductDetail({
     latestResolvedSubmission?.results.filter((result) => result.success).slice(0, 4) || [];
   const latestBlockers =
     latestResolvedSubmission?.results.filter((result) => !result.success).slice(0, 4) || [];
+  const latestSubmissionByChannel = new Map(
+    submissions.map((submission) => [submission.channel, submission])
+  );
 
   let recapEyebrow = copy.recap.prelaunchEyebrow;
   let recapTitle = copy.recap.prelaunchTitle;
@@ -1233,6 +1288,92 @@ export default function ProductDetail({
             </div>
           </section>
         ) : null}
+
+        <section className="mt-12">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.launchMap.title}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {copy.launchMap.title}
+            </h2>
+            <p className="mt-4 text-base leading-7 text-stone-400">
+              {copy.launchMap.body}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {liveChannels.map((channel) => {
+              const localizedChannel = getLocalizedChannel(channel, locale);
+              const available = channel.plans.includes(plan);
+              const channelSubmission = latestSubmissionByChannel.get(channel.id) || null;
+              const channelIsActive =
+                channelSubmission?.status === "queued" ||
+                channelSubmission?.status === "running";
+
+              let launchMapStatus:
+                | "locked"
+                | "ready"
+                | "recommended"
+                | "running"
+                | "completed"
+                | "failed" = "locked";
+              let launchMapBody = copy.launchMap.lockedBody;
+
+              if (!available) {
+                launchMapStatus = "locked";
+                launchMapBody = copy.launchMap.lockedBody;
+              } else if (channelIsActive) {
+                launchMapStatus = "running";
+                launchMapBody = copy.launchMap.runningBody;
+              } else if (channelSubmission?.status === "failed") {
+                launchMapStatus = "failed";
+                launchMapBody = copy.launchMap.failedBody;
+              } else if (channelSubmission?.status === "completed") {
+                launchMapStatus = "completed";
+                launchMapBody = copy.launchMap.completedBody;
+              } else if (recommendedNextLiveChannel?.id === channel.id) {
+                launchMapStatus = "recommended";
+                launchMapBody = copy.launchMap.recommendedBody;
+              } else {
+                launchMapStatus = "ready";
+                launchMapBody = copy.launchMap.readyBody;
+              }
+
+              return (
+                <div
+                  key={channel.id}
+                  className={`rounded-[1.5rem] border p-5 ${launchMapStatusClasses(
+                    launchMapStatus
+                  )}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-2xl">{channel.icon}</div>
+                    <span className="rounded-full bg-black/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em]">
+                      {copy.launchMap.status[launchMapStatus]}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-white">
+                    {localizedChannel.name}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-stone-300">
+                    {launchMapBody}
+                  </p>
+                  {channelSubmission ? (
+                    <div className="mt-4 text-xs text-stone-400">
+                      {localizedSubmissionStatus(channelSubmission.status, locale)} ·{" "}
+                      {formatSubmissionDate(channelSubmission.created_at, locale)}
+                    </div>
+                  ) : (
+                    <div className="mt-4 text-xs text-stone-500">
+                      {localizedChannel.desc}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         <section className="mt-12">
           <div className="max-w-3xl">
