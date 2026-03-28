@@ -142,6 +142,51 @@ function getProductDetailCopy(locale: Locale) {
         pending: "等待中...",
         waitingWorker: "等待 worker 接手这个任务...",
       },
+      recap: {
+        title: "Launch 回顾",
+        body: "这一块先把最近一轮执行翻译成正常人能看懂的结论，再告诉你下一步最合理的动作。",
+        prelaunchEyebrow: "首轮启动前",
+        prelaunchTitle: "还没有真实提交，先跑第一条 live 渠道。",
+        prelaunchBody:
+          "产品档案已经在位。先启动推荐渠道，让这个产品正式进入真实分发。",
+        activeEyebrow: "正在执行",
+        activeTitle: "当前任务还在处理中。",
+        activeBody:
+          "worker 正在跑这条渠道。等这轮结束后，这里会自动切成结果摘要和下一步建议。",
+        completedEyebrow: "最新结果",
+        completedTitle: "最近一轮已经跑完了。",
+        completedBody:
+          "先看这轮跑出来了多少有效动作，再决定是否继续扩展下一条渠道。",
+        failedEyebrow: "最新结果",
+        failedTitle: "最近一轮没有顺利完成。",
+        failedBody:
+          "先复盘这条渠道的结果，再决定是重跑同一条路线，还是切到下一条 live 渠道。",
+        nextMoveTitle: "下一步建议",
+        nextMoveUnlockTitle: "先解锁真实渠道",
+        nextMoveUnlockBody:
+          "你已经完成了配置。升级后，目录和 stealth 两条 live 渠道会直接用这份产品档案开始执行。",
+        nextMoveWatchTitle: "先盯住当前这轮进度",
+        nextMoveWatchBody:
+          "现在最有价值的不是再点更多按钮，而是等这轮跑完，再基于结果做下一步判断。",
+        nextMoveLaunchTitle: "启动下一条推荐渠道",
+        nextMoveLaunchBody:
+          "这条渠道是当前最值得先跑的下一步，可以把分发继续往外扩。",
+        nextMoveReviewTitle: "先复盘结果，再决定要不要扩展",
+        nextMoveReviewBody:
+          "当前 live 渠道已经有结果可看，先看执行历史和站点结果，再决定是重跑还是加新产品。",
+        attemptedSites: "尝试站点",
+        successfulActions: "成功动作",
+        conversionRate: "动作成功率",
+        latestLane: "最近渠道",
+        nextLane: "推荐下一条",
+        seenSignals: "已看到的站点信号",
+        noSignals:
+          "当前还没有足够的成功站点样本。随着执行继续推进，这里会开始出现更具体的结果信号。",
+        openHistory: "查看执行历史",
+        openDashboard: "回到工作台",
+        launchNext: "启动推荐渠道",
+        retryLane: "重跑这一条渠道",
+      },
       intelligence: {
         title: "执行智能",
         body:
@@ -246,6 +291,52 @@ function getProductDetailCopy(locale: Locale) {
       progress: "Submitting",
       pending: "Pending...",
       waitingWorker: "Waiting for worker to pick up this job...",
+    },
+    recap: {
+      title: "Launch recap",
+      body:
+        "This section translates the latest run into normal product language first, then tells the user what the next sensible move is.",
+      prelaunchEyebrow: "Before first launch",
+      prelaunchTitle: "No live run yet. Start the first live lane.",
+      prelaunchBody:
+        "The product profile is already staged. Launch the recommended lane first so this product enters real distribution.",
+      activeEyebrow: "Currently running",
+      activeTitle: "The current run is still in progress.",
+      activeBody:
+        "The worker is still processing this lane. When it finishes, this area should turn into a result recap and next-step recommendation automatically.",
+      completedEyebrow: "Latest result",
+      completedTitle: "The latest run has finished.",
+      completedBody:
+        "First look at how many useful actions this lane produced, then decide whether to expand into the next lane.",
+      failedEyebrow: "Latest result",
+      failedTitle: "The latest run did not finish cleanly.",
+      failedBody:
+        "Review this lane first, then decide whether to retry the same route or switch to the next live lane.",
+      nextMoveTitle: "Recommended next move",
+      nextMoveUnlockTitle: "Unlock live lanes first",
+      nextMoveUnlockBody:
+        "You already did the setup work. Upgrade and Directory Submission plus Stealth can execute directly from this profile.",
+      nextMoveWatchTitle: "Watch this run finish first",
+      nextMoveWatchBody:
+        "The valuable move right now is not clicking more buttons. Let this run finish, then act on the result.",
+      nextMoveLaunchTitle: "Launch the recommended next lane",
+      nextMoveLaunchBody:
+        "This is the best next lane to expand distribution while the current product context is still fresh.",
+      nextMoveReviewTitle: "Review the outcome before expanding",
+      nextMoveReviewBody:
+        "You already have something to learn from the live lanes. Review the result history first, then decide whether to relaunch or add another product.",
+      attemptedSites: "Attempted sites",
+      successfulActions: "Successful actions",
+      conversionRate: "Action success rate",
+      latestLane: "Latest lane",
+      nextLane: "Recommended next lane",
+      seenSignals: "Visible site signals",
+      noSignals:
+        "There are not enough successful site samples yet. As execution accumulates, more concrete result signals will appear here.",
+      openHistory: "View Submission History",
+      openDashboard: "Back to Dashboard",
+      launchNext: "Launch Recommended Lane",
+      retryLane: "Retry This Lane",
     },
     intelligence: {
       title: "Execution intelligence",
@@ -419,6 +510,11 @@ function formatSubmissionDate(date: string, locale: Locale) {
   });
 }
 
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) return "0%";
+  return `${Math.round(value)}%`;
+}
+
 export default function ProductDetail({
   locale,
   user,
@@ -480,15 +576,52 @@ export default function ProductDetail({
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
   const plannedChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
   const availableLiveChannels = liveChannels.filter((channel) => channel.plans.includes(plan));
+  const usedLiveChannelIds = new Set(
+    submissions
+      .filter((submission) =>
+        liveChannels.some((channel) => channel.id === submission.channel)
+      )
+      .map((submission) => submission.channel)
+  );
   const primaryLiveChannel = availableLiveChannels[0];
   const secondaryLiveChannel = availableLiveChannels[1];
+  const nextUnusedLiveChannel =
+    availableLiveChannels.find((channel) => !usedLiveChannelIds.has(channel.id)) || null;
+  const recommendedNextLiveChannel =
+    submissions.length === 0 ? primaryLiveChannel || null : nextUnusedLiveChannel;
   const totalSuccessfulActions = submissions.reduce(
     (sum, submission) => sum + submission.success_sites,
     0
   );
+  const latestSubmission = submissions[0] || null;
   const activeSubmission = submissions.find(
     (submission) => submission.status === "queued" || submission.status === "running"
   );
+  const latestResolvedSubmission =
+    submissions.find(
+      (submission) =>
+        submission.status === "completed" || submission.status === "failed"
+    ) || null;
+  const recapSubmission = activeSubmission || latestResolvedSubmission || latestSubmission;
+  const recapChannel = recapSubmission
+    ? CHANNELS.find((channel) => channel.id === recapSubmission.channel) || null
+    : null;
+  const recapProgress =
+    activeSubmission && activeSubmission.total_sites > 0
+      ? (activeSubmission.completed_sites / activeSubmission.total_sites) * 100
+      : 0;
+  const recapSuccessRate =
+    latestResolvedSubmission && latestResolvedSubmission.total_sites > 0
+      ? (latestResolvedSubmission.success_sites / latestResolvedSubmission.total_sites) * 100
+      : 0;
+  const visibleSuccessfulSites =
+    latestResolvedSubmission?.results.filter((result) => result.success).slice(0, 5) || [];
+
+  let recapEyebrow = copy.recap.prelaunchEyebrow;
+  let recapTitle = copy.recap.prelaunchTitle;
+  let recapBody = copy.recap.prelaunchBody;
+  let nextMoveTitle = copy.recap.nextMoveUnlockTitle;
+  let nextMoveBody = copy.recap.nextMoveUnlockBody;
 
   let heroTitle = copy.hero.readyTitle;
   let heroBody = copy.hero.readyBody;
@@ -499,6 +632,46 @@ export default function ProductDetail({
   } else if (activeSubmission) {
     heroTitle = copy.hero.activeTitle;
     heroBody = copy.hero.activeBody;
+  }
+
+  if (plan === "free") {
+    recapEyebrow = copy.recap.prelaunchEyebrow;
+    recapTitle = copy.recap.prelaunchTitle;
+    recapBody = copy.recap.prelaunchBody;
+    nextMoveTitle = copy.recap.nextMoveUnlockTitle;
+    nextMoveBody = copy.recap.nextMoveUnlockBody;
+  } else if (activeSubmission) {
+    recapEyebrow = copy.recap.activeEyebrow;
+    recapTitle = copy.recap.activeTitle;
+    recapBody = copy.recap.activeBody;
+    nextMoveTitle = copy.recap.nextMoveWatchTitle;
+    nextMoveBody = copy.recap.nextMoveWatchBody;
+  } else if (!latestResolvedSubmission) {
+    recapEyebrow = copy.recap.prelaunchEyebrow;
+    recapTitle = copy.recap.prelaunchTitle;
+    recapBody = copy.recap.prelaunchBody;
+    nextMoveTitle = copy.recap.nextMoveLaunchTitle;
+    nextMoveBody = copy.recap.nextMoveLaunchBody;
+  } else if (latestResolvedSubmission.status === "failed") {
+    recapEyebrow = copy.recap.failedEyebrow;
+    recapTitle = copy.recap.failedTitle;
+    recapBody = copy.recap.failedBody;
+    nextMoveTitle = recommendedNextLiveChannel
+      ? copy.recap.nextMoveLaunchTitle
+      : copy.recap.nextMoveReviewTitle;
+    nextMoveBody = recommendedNextLiveChannel
+      ? copy.recap.nextMoveLaunchBody
+      : copy.recap.nextMoveReviewBody;
+  } else {
+    recapEyebrow = copy.recap.completedEyebrow;
+    recapTitle = copy.recap.completedTitle;
+    recapBody = copy.recap.completedBody;
+    nextMoveTitle = recommendedNextLiveChannel
+      ? copy.recap.nextMoveLaunchTitle
+      : copy.recap.nextMoveReviewTitle;
+    nextMoveBody = recommendedNextLiveChannel
+      ? copy.recap.nextMoveLaunchBody
+      : copy.recap.nextMoveReviewBody;
   }
 
   return (
@@ -717,6 +890,225 @@ export default function ProductDetail({
                   ) : null}
                 </div>
               ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {recapEyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {copy.recap.title}
+            </h2>
+            <h3 className="mt-4 text-xl font-semibold text-white">{recapTitle}</h3>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-400 md:text-base">
+              {recapBody}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.recap.latestLane}
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {recapChannel ? getLocalizedChannel(recapChannel, locale).name : "—"}
+                </div>
+              </div>
+              <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.recap.attemptedSites}
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {recapSubmission?.total_sites ?? 0}
+                </div>
+              </div>
+              <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {activeSubmission
+                    ? copy.history.progress
+                    : copy.recap.conversionRate}
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {activeSubmission
+                    ? formatPercent(recapProgress)
+                    : formatPercent(recapSuccessRate)}
+                </div>
+              </div>
+            </div>
+
+            {latestResolvedSubmission ? (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.recap.successfulActions}
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {latestResolvedSubmission.success_sites}
+                  </div>
+                  <div className="mt-2 text-xs text-stone-500">
+                    {formatSubmissionDate(latestResolvedSubmission.created_at, locale)}
+                  </div>
+                </div>
+                <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.recap.nextLane}
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-white">
+                    {recommendedNextLiveChannel
+                      ? getLocalizedChannel(recommendedNextLiveChannel, locale).name
+                      : "—"}
+                  </div>
+                  <div className="mt-2 text-xs text-stone-500">
+                    {recommendedNextLiveChannel
+                      ? getLocalizedChannel(recommendedNextLiveChannel, locale).desc
+                      : copy.recap.nextMoveReviewBody}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.recap.seenSignals}
+              </div>
+              {visibleSuccessfulSites.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {visibleSuccessfulSites.map((result, index) => (
+                    <span
+                      key={`${result.site}-${index}`}
+                      className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1.5 text-xs text-emerald-200"
+                      title={result.output}
+                    >
+                      {result.site}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-7 text-stone-400">
+                  {copy.recap.noSignals}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.recap.nextMoveTitle}
+            </p>
+            <h3 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {nextMoveTitle}
+            </h3>
+            <p className="mt-4 text-base leading-7 text-stone-400">
+              {nextMoveBody}
+            </p>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.recap.nextLane}
+              </div>
+              <div className="mt-2 text-lg font-semibold text-white">
+                {recommendedNextLiveChannel
+                  ? getLocalizedChannel(recommendedNextLiveChannel, locale).name
+                  : recapChannel
+                    ? getLocalizedChannel(recapChannel, locale).name
+                    : "—"}
+              </div>
+              <p className="mt-2 text-sm leading-7 text-stone-400">
+                {recommendedNextLiveChannel
+                  ? getLocalizedChannel(recommendedNextLiveChannel, locale).desc
+                  : recapChannel
+                    ? getLocalizedChannel(recapChannel, locale).desc
+                    : nextMoveBody}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              {plan === "free" ? (
+                <>
+                  <a
+                    href={checkoutHref("starter")}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.unlockStarter}
+                  </a>
+                  <a
+                    href={checkoutHref("growth")}
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.unlockGrowth}
+                  </a>
+                </>
+              ) : activeSubmission ? (
+                <>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openDashboard}
+                  </Link>
+                </>
+              ) : latestResolvedSubmission?.status === "failed" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startSubmission(latestResolvedSubmission.channel)}
+                    disabled={submitting === latestResolvedSubmission.channel}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {submitting === latestResolvedSubmission.channel
+                      ? copy.channels.starting
+                      : copy.recap.retryLane}
+                  </button>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                </>
+              ) : recommendedNextLiveChannel ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startSubmission(recommendedNextLiveChannel.id)}
+                    disabled={submitting === recommendedNextLiveChannel.id}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {submitting === recommendedNextLiveChannel.id
+                      ? copy.channels.starting
+                      : copy.recap.launchNext}
+                  </button>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openDashboard}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </section>
