@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { getLocale } from "@/lib/locale";
 import ProductDetail from "./product-detail";
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const locale = await getLocale();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -36,6 +38,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <ProductDetail
+      locale={locale}
       user={user}
       product={product}
       submissions={submissions || []}

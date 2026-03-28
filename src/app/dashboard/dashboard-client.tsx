@@ -133,7 +133,7 @@ function getDashboardCopy(locale: Locale) {
       logout: "Log out",
     },
     header: {
-      title: "Dashboard",
+      title: "工作台",
       addFirstProduct: "Add Your First Product",
       addProduct: "+ Add Product",
       upgradePlan: "Upgrade Plan",
