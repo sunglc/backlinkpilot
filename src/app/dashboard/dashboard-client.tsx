@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
-import { LIVE_CHANNEL_COUNT } from "@/lib/execution-contract";
+import {
+  CHANNELS,
+  LIVE_CHANNEL_COUNT,
+  TOTAL_CHANNEL_COUNT,
+  type ChannelContract,
+} from "@/lib/execution-contract";
 import { type Locale } from "@/lib/locale-config";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
@@ -25,6 +30,17 @@ interface Product {
   created_at: string;
 }
 
+interface Submission {
+  id: string;
+  product_id: string;
+  channel: string;
+  status: string;
+  total_sites: number;
+  completed_sites: number;
+  success_sites: number;
+  created_at: string;
+}
+
 interface SitePreview {
   normalizedUrl: string;
   hostname: string;
@@ -36,7 +52,24 @@ interface SitePreview {
   };
 }
 
+type LaunchStage = "unlock" | "running" | "ready" | "momentum" | "setup";
+
+interface ProductSummary {
+  product: Product;
+  submissions: Submission[];
+  latestSubmission: Submission | null;
+  activeSubmission: Submission | null;
+  recommendedChannel: ChannelContract | null;
+  launchCount: number;
+  totalSuccessfulActions: number;
+  stage: LaunchStage;
+  nextStep: string;
+  primaryHref: string;
+  primaryLabel: string;
+}
+
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
+const PLAN_ORDER = ["free", "starter", "growth", "scale"] as const;
 
 function getDashboardCopy(locale: Locale) {
   if (locale === "zh") {
@@ -45,22 +78,97 @@ function getDashboardCopy(locale: Locale) {
         logout: "退出登录",
       },
       header: {
-        title: "工作台",
+        title: "Launch 工作台",
         addFirstProduct: "添加第一个产品",
         addProduct: "+ 添加产品",
         upgradePlan: "升级计划",
       },
+      hero: {
+        eyebrow: "消费级外链工作台",
+        noProductTitle: "先配置第一个产品，再开始真实分发。",
+        noProductBody:
+          "贴上你的首页，系统会自动补齐产品文案，并把最适合先跑的渠道排出来。",
+        freeTitle: "第一个产品已经就绪，下一步是解锁真实渠道。",
+        freeBody:
+          "Starter 立刻解锁目录提交和 stealth 两条 live 渠道，直接从你现在的产品档案开始执行。",
+        activeTitle: "现在有一条外链任务正在跑。",
+        activeBody:
+          "运行中的产品会持续刷新进度。你只需要盯住结果，不需要自己追每一个站点。",
+        readyTitle: "Launch board 已经准备好，下一步是把最合适的渠道跑起来。",
+        readyBody:
+          "我们会优先推荐还没跑过的 live 渠道，让使用路径更像消费级产品，而不是后台操作台。",
+        primaryNoProduct: "添加第一个产品",
+        primaryUnlock: "解锁入门版",
+        secondaryGrowth: "直接看增长版",
+        primaryWatch: "查看运行中产品",
+        primaryLaunch: "进入推荐产品",
+        secondaryPricing: "查看计划",
+        secondaryAdd: "再添加一个产品",
+        summaryTitle: "这一屏先回答三件事",
+        summaryItems: [
+          "当前是否已经有 live 渠道可跑",
+          "哪个产品应该先推进",
+          "下一步应该升级、启动还是盯进度",
+        ],
+      },
       stats: {
         plan: "当前计划",
         products: "产品数",
-        submissions: "提交数",
-        successRate: "成功率",
-        active: "已激活",
+        launches: "启动次数",
+        liveRuns: "运行中",
+        successfulActions: "成功动作",
+        configuredProducts: "进入执行链",
         freeSlot: "还有 1 个免费配置名额",
         upgradeToUnlock: "升级后解锁真实提交",
-        added: "已添加",
-        thisMonth: "本月",
-        noDataYet: "还没有数据",
+        active: "已激活",
+      },
+      board: {
+        eyebrow: "Launch Board",
+        title: "每个产品都应该有明确的下一步。",
+        body: "这里不只是列产品，而是直接告诉你该升级、该启动，还是该去看运行中的结果。",
+      },
+      productCard: {
+        nextStep: "下一步",
+        latestRun: "最近一次",
+        noRunsYet: "还没有执行记录",
+        launchCount: "启动次数",
+        successfulActions: "成功动作",
+        channelsReady: "当前可跑渠道",
+        progress: "当前进度",
+        latestLane: "最近渠道",
+        recommendationPrefix: "推荐先跑",
+        open: "打开产品",
+        unlock: "解锁真实渠道",
+        watch: "查看运行中进度",
+        launchFirst: "启动首条渠道",
+        launchNext: "继续下一条渠道",
+        review: "查看结果",
+        continueSetup: "继续配置",
+        stage: {
+          unlock: "待解锁",
+          running: "运行中",
+          ready: "待启动",
+          momentum: "已有进展",
+          setup: "配置中",
+        },
+        stageBody: {
+          unlock: "产品档案已经在位，升级后就能进入真实提交。",
+          running: "有一条渠道正在处理，详情页会自动刷新进度。",
+          ready: "最适合先跑的 live 渠道已经标出来，可以直接启动。",
+          momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条渠道。",
+          setup: "先进入产品页确认档案，再启动第一条渠道。",
+        },
+      },
+      lanes: {
+        liveTitle: "今天可执行",
+        liveBody: "已上线渠道会直接执行，推进中渠道会清楚标明需要哪个计划。",
+        roadmapTitle: "后续路线",
+        roadmapBody: `当前共 ${LIVE_CHANNEL_COUNT} 个 live 渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个 roadmap 渠道。`,
+        included: "已包含",
+        locked: "需升级",
+        availableNow: "今天可跑",
+        whenRolledOut: "rollout 完成后可跑",
+        requires: "需要",
       },
       modal: {
         title: "添加产品",
@@ -72,8 +180,7 @@ function getDashboardCopy(locale: Locale) {
         websiteUrlPlaceholder: "https://example.com",
         detect: "自动识别",
         detecting: "识别中...",
-        detectHint:
-          "贴上你的首页，BacklinkPilot 会自动拉取标题和描述。",
+        detectHint: "贴上你的首页，BacklinkPilot 会自动拉取标题和描述。",
         detectedFrom: "识别来源",
         nameSource: "名称来源",
         descriptionSource: "描述来源",
@@ -89,10 +196,10 @@ function getDashboardCopy(locale: Locale) {
         upgradeRequired: "升级计划后才能继续添加更多产品。",
         saveFailed: "暂时无法保存这个产品。",
       },
-      freeState: {
+      onboarding: {
         title: "免费配置你的第一个产品",
         body:
-          "贴上你的首页，自动识别产品名称和描述，在付费前先看到 BacklinkPilot 将如何安排真实提交流程。",
+          "先贴首页，自动补齐产品文案。你会先看到 launch board 的推荐，再决定什么时候进入真实提交。",
         primary: "添加第一个产品",
         secondary: "查看计划",
         steps: [
@@ -110,18 +217,9 @@ function getDashboardCopy(locale: Locale) {
           },
         ],
       },
-      upgradeState: {
-        eyebrow: "产品配置已完成",
-        title: "你的产品已经保存，升级后即可启动真实提交。",
-        body:
-          "首个产品已经在 Dashboard 中。升级后，目录和 stealth 渠道可以直接从这份档案开始跑。",
-        starter: "解锁入门版",
-        growth: "解锁增长版",
-      },
       emptyState: {
         title: "添加你的第一个产品",
-        body:
-          "先补齐产品信息，我们就可以开始把它自动提交到 500+ 个目录。",
+        body: "先补齐产品信息，我们就可以开始把它送进真正的外链执行链。",
         cta: "+ 添加产品",
       },
       detectedLabel: "识别自",
@@ -133,22 +231,99 @@ function getDashboardCopy(locale: Locale) {
       logout: "Log out",
     },
     header: {
-      title: "Dashboard",
+      title: "Launch Workspace",
       addFirstProduct: "Add Your First Product",
       addProduct: "+ Add Product",
       upgradePlan: "Upgrade Plan",
     },
+    hero: {
+      eyebrow: "Consumer-grade backlink workspace",
+      noProductTitle: "Set up the first product, then start real distribution.",
+      noProductBody:
+        "Paste your homepage, let the app fill the basics, and we will line up the best first lane automatically.",
+      freeTitle: "Your first product is staged. The next step is unlocking live lanes.",
+      freeBody:
+        "Starter unlocks Directory Submission and Stealth immediately, both running from the product profile you already saved.",
+      activeTitle: "A backlink launch is running right now.",
+      activeBody:
+        "Live products keep refreshing progress here. You should be watching outcomes, not manually tracking every site.",
+      readyTitle: "The launch board is ready. Now run the best next lane.",
+      readyBody:
+        "We prioritize the next live lane that has not been used yet, so the flow feels like a consumer product instead of an operations console.",
+      primaryNoProduct: "Add First Product",
+      primaryUnlock: "Unlock Starter",
+      secondaryGrowth: "See Growth",
+      primaryWatch: "Open Active Product",
+      primaryLaunch: "Open Recommended Product",
+      secondaryPricing: "See Plans",
+      secondaryAdd: "Add Another Product",
+      summaryTitle: "This screen answers three things first",
+      summaryItems: [
+        "whether you have a live lane available today",
+        "which product should move next",
+        "whether to upgrade, launch, or watch progress",
+      ],
+    },
     stats: {
       plan: "Plan",
       products: "Products",
-      submissions: "Submissions",
-      successRate: "Success Rate",
-      active: "Active",
+      launches: "Launches",
+      liveRuns: "Running now",
+      successfulActions: "Successful actions",
+      configuredProducts: "In execution flow",
       freeSlot: "1 free setup slot available",
       upgradeToUnlock: "Upgrade to unlock live submissions",
-      added: "added",
-      thisMonth: "this month",
-      noDataYet: "no data yet",
+      active: "Active",
+    },
+    board: {
+      eyebrow: "Launch Board",
+      title: "Every product should have a clear next step.",
+      body:
+        "This is not just a product list. It should tell you whether to upgrade, launch, or review a run already in motion.",
+    },
+    productCard: {
+      nextStep: "Next step",
+      latestRun: "Latest run",
+      noRunsYet: "No runs yet",
+      launchCount: "Launches",
+      successfulActions: "Successful actions",
+      channelsReady: "Live lanes today",
+      progress: "Progress",
+      latestLane: "Latest lane",
+      recommendationPrefix: "Recommended lane",
+      open: "Open Product",
+      unlock: "Unlock Live Lanes",
+      watch: "Watch Live Progress",
+      launchFirst: "Launch First Lane",
+      launchNext: "Launch Next Lane",
+      review: "Review Results",
+      continueSetup: "Continue Setup",
+      stage: {
+        unlock: "Upgrade needed",
+        running: "Running",
+        ready: "Ready to launch",
+        momentum: "Momentum",
+        setup: "Setup",
+      },
+      stageBody: {
+        unlock: "The product profile is already staged. Upgrade and it can enter live execution.",
+        running: "A live lane is already processing and the detail page will keep updating.",
+        ready: "The best live lane is identified and can be launched now.",
+        momentum: "This product has already started moving. The next lane should expand the distribution.",
+        setup: "Open the product page, confirm the profile, and launch the first lane after that.",
+      },
+    },
+    lanes: {
+      liveTitle: "Runnable today",
+      liveBody:
+        "Live lanes can execute immediately. Planned lanes stay visible so the upgrade path is obvious.",
+      roadmapTitle: "Roadmap lanes",
+      roadmapBody: `There are ${LIVE_CHANNEL_COUNT} live lanes today and ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} roadmap lanes behind rollout.`,
+      included: "Included",
+      locked: "Upgrade",
+      availableNow: "Runnable now",
+      whenRolledOut: "Runnable when rollout lands",
+      requires: "Requires",
     },
     modal: {
       title: "Add Product",
@@ -175,47 +350,73 @@ function getDashboardCopy(locale: Locale) {
       enterUrl: "Enter your website URL first.",
       previewFailed: "Could not preview that website.",
       upgradeRequired: "Upgrade your plan to add more products.",
-      saveFailed: "Could not save your product.",
+      saveFailed: "Could not save that product.",
     },
-    freeState: {
+    onboarding: {
       title: "Set up your first product for free",
       body:
-        "Paste your homepage, auto-detect your product name and description, and preview how BacklinkPilot will route submissions before you pay.",
+        "Paste your homepage, auto-detect the product copy, then let the launch board show the next move before you pay.",
       primary: "Add First Product",
       secondary: "See Plans",
       steps: [
         {
           title: "1. Paste your homepage",
           copy:
-            "Use your main product URL. BacklinkPilot will normalize the URL and read your public metadata.",
+            "Use your main product URL. BacklinkPilot will normalize it and read your public metadata.",
         },
         {
           title: "2. Auto-fill the basics",
           copy:
-            "We pull the product title and description from the site so setup feels like a consumer app, not a backend form.",
+            "We pull the title and description from the site so setup feels like a consumer app, not a backend form.",
         },
         {
           title: "3. Upgrade when ready",
-          copy: `Unlock ${LIVE_CHANNEL_COUNT} live channels when you want to start real submissions.`,
+          copy: `Unlock ${LIVE_CHANNEL_COUNT} live lanes when you want real submissions to begin.`,
         },
       ],
     },
-    upgradeState: {
-      eyebrow: "Product setup complete",
-      title: "Your product is saved. Upgrade to start live submissions.",
-      body:
-        "Your first product is already in the dashboard. When you upgrade, directory and stealth channels can start from that saved profile immediately.",
-      starter: "Unlock Starter",
-      growth: "Unlock Growth",
-    },
     emptyState: {
       title: "Add your first product",
-      body:
-        "Add your product details and we'll start submitting it to 500+ directories automatically.",
+      body: "Add the product details and we can move it into live backlink execution.",
       cta: "+ Add Product",
     },
     detectedLabel: "Detected from",
   };
+}
+
+function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
+  if (locale === "zh") {
+    const mapping: Record<string, { name: string; desc: string }> = {
+      directory: {
+        name: "目录提交",
+        desc: "提交到经过筛选的 AI 工具目录，自动完成表单填写。",
+      },
+      stealth: {
+        name: "Stealth 浏览器提交",
+        desc: "使用同一套目录网络，但带上 stealth 防护去通过更难的站点。",
+      },
+      community: {
+        name: "社区提交",
+        desc: "GitHub、Product Hunt 和开发者社区处于受控 rollout 中。",
+      },
+      resource_page: {
+        name: "资源页外联",
+        desc: "编辑类资源页外联仍在受控 rollout 中。",
+      },
+      social: {
+        name: "社交分发",
+        desc: "X 和 Pinterest 分发目前仍在客户 worker 之外执行。",
+      },
+      editorial: {
+        name: "编辑外联",
+        desc: "编辑外联渠道仍在受控 rollout 中。",
+      },
+    };
+
+    return mapping[channel.id] || { name: channel.name, desc: channel.desc };
+  }
+
+  return { name: channel.name, desc: channel.desc };
 }
 
 function productStatusLabel(status: string, locale: Locale) {
@@ -247,6 +448,18 @@ function productStatusClasses(status: string) {
   return classes[status] || "bg-amber-300/10 text-amber-200";
 }
 
+function launchStageClasses(stage: LaunchStage) {
+  const classes: Record<LaunchStage, string> = {
+    unlock: "border-amber-300/15 bg-amber-300/10 text-amber-100",
+    running: "border-sky-300/15 bg-sky-300/10 text-sky-200",
+    ready: "border-emerald-300/15 bg-emerald-300/10 text-emerald-200",
+    momentum: "border-white/10 bg-white/8 text-stone-100",
+    setup: "border-white/10 bg-white/6 text-stone-300",
+  };
+
+  return classes[stage];
+}
+
 function formatPlanName(plan: string | null | undefined, locale: Locale) {
   const labels =
     locale === "zh"
@@ -270,16 +483,37 @@ function formatPlanName(plan: string | null | undefined, locale: Locale) {
   return labels[plan as keyof typeof labels] || plan;
 }
 
+function formatDashboardDate(date: string, locale: Locale) {
+  return new Date(date).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function minimumPlanForChannel(channel: ChannelContract) {
+  return (
+    [...channel.plans].sort(
+      (a, b) =>
+        PLAN_ORDER.indexOf(a as (typeof PLAN_ORDER)[number]) -
+        PLAN_ORDER.indexOf(b as (typeof PLAN_ORDER)[number])
+    )[0] || "starter"
+  );
+}
+
 export default function DashboardClient({
   locale,
   user,
   subscription,
   products,
+  submissions,
 }: {
   locale: Locale;
   user: User;
   subscription: Subscription | null;
   products: Product[];
+  submissions: Submission[];
 }) {
   const copy = getDashboardCopy(locale);
   const router = useRouter();
@@ -294,9 +528,159 @@ export default function DashboardClient({
   const [preview, setPreview] = useState<SitePreview | null>(null);
 
   const isPaid = subscription?.status === "active";
-  const planName = formatPlanName(subscription?.plan, locale);
+  const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
+  const planName = formatPlanName(currentPlan, locale);
   const canAddProduct = isPaid || products.length < FREE_PREVIEW_PRODUCT_LIMIT;
-  const showFreeSetup = !isPaid && products.length === 0;
+  const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
+  const roadmapChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
+  const liveChannelsForPlan = isPaid
+    ? liveChannels.filter((channel) => channel.plans.includes(currentPlan))
+    : [];
+  const launchedProductIds = new Set(submissions.map((submission) => submission.product_id));
+  const totalSuccessfulActions = submissions.reduce(
+    (sum, submission) => sum + submission.success_sites,
+    0
+  );
+  const activeLaunches = submissions.filter(
+    (submission) => submission.status === "queued" || submission.status === "running"
+  ).length;
+
+  const productSummaries: ProductSummary[] = products.map((product) => {
+    const productSubmissions = submissions.filter(
+      (submission) => submission.product_id === product.id
+    );
+    const latestSubmission = productSubmissions[0] || null;
+    const activeSubmission =
+      productSubmissions.find(
+        (submission) =>
+          submission.status === "queued" || submission.status === "running"
+      ) || null;
+    const totalProductSuccessfulActions = productSubmissions.reduce(
+      (sum, submission) => sum + submission.success_sites,
+      0
+    );
+    const submittedChannelIds = new Set(
+      productSubmissions.map((submission) => submission.channel)
+    );
+    const recommendedChannel =
+      liveChannelsForPlan.find((channel) => !submittedChannelIds.has(channel.id)) ||
+      liveChannelsForPlan[0] ||
+      null;
+
+    let stage: LaunchStage = "setup";
+    let primaryLabel = copy.productCard.continueSetup;
+    let primaryHref = `/dashboard/product/${product.id}`;
+    let nextStep = copy.productCard.stageBody.setup;
+
+    if (!isPaid) {
+      const laneNames = liveChannels
+        .slice(0, 2)
+        .map((channel) => getLocalizedChannel(channel, locale).name)
+        .join(locale === "zh" ? "、" : " and ");
+
+      stage = "unlock";
+      primaryLabel = copy.productCard.unlock;
+      primaryHref = "/api/stripe/checkout?plan=starter";
+      nextStep =
+        locale === "zh"
+          ? `升级 Starter 后，先跑 ${laneNames}。`
+          : `Unlock Starter and run ${laneNames} first.`;
+    } else if (activeSubmission) {
+      const activeChannel =
+        liveChannels.find((channel) => channel.id === activeSubmission.channel) ||
+        CHANNELS.find((channel) => channel.id === activeSubmission.channel) ||
+        null;
+      const activeChannelName = activeChannel
+        ? getLocalizedChannel(activeChannel, locale).name
+        : activeSubmission.channel;
+
+      stage = "running";
+      primaryLabel = copy.productCard.watch;
+      primaryHref = `/dashboard/product/${product.id}#submission-history`;
+      nextStep =
+        locale === "zh"
+          ? `继续盯住 ${activeChannelName} 的实时进度，等 worker 完成这一轮。`
+          : `Keep watching ${activeChannelName} while the worker finishes this run.`;
+    } else if (product.status === "draft" && productSubmissions.length === 0) {
+      stage = "setup";
+      primaryLabel = copy.productCard.continueSetup;
+      primaryHref = `/dashboard/product/${product.id}`;
+      nextStep =
+        locale === "zh"
+          ? "先进入产品页确认档案，再启动第一条 live 渠道。"
+          : "Open the product page, confirm the profile, then launch the first live lane.";
+    } else if (productSubmissions.length === 0) {
+      const recommendedName = recommendedChannel
+        ? getLocalizedChannel(recommendedChannel, locale).name
+        : locale === "zh"
+          ? "目录提交"
+          : "Directory Submission";
+
+      stage = "ready";
+      primaryLabel = copy.productCard.launchFirst;
+      primaryHref = `/dashboard/product/${product.id}`;
+      nextStep =
+        locale === "zh"
+          ? `先启动 ${recommendedName}，让这个产品正式进入真实分发。`
+          : `Launch ${recommendedName} first to move this product into live distribution.`;
+    } else if (
+      recommendedChannel &&
+      !submittedChannelIds.has(recommendedChannel.id)
+    ) {
+      const recommendedName = getLocalizedChannel(recommendedChannel, locale).name;
+
+      stage = "momentum";
+      primaryLabel = copy.productCard.launchNext;
+      primaryHref = `/dashboard/product/${product.id}`;
+      nextStep =
+        locale === "zh"
+          ? `下一条建议是 ${recommendedName}，用它把首轮结果继续扩开。`
+          : `Run ${recommendedName} next to expand beyond the first live result set.`;
+    } else {
+      stage = "momentum";
+      primaryLabel = copy.productCard.review;
+      primaryHref = `/dashboard/product/${product.id}`;
+      nextStep =
+        locale === "zh"
+          ? "打开产品页复盘最近一轮结果，再决定是否加新产品或重跑。"
+          : "Open the product page, review the latest run, then decide whether to relaunch or add another product.";
+    }
+
+    return {
+      product,
+      submissions: productSubmissions,
+      latestSubmission,
+      activeSubmission,
+      recommendedChannel,
+      launchCount: productSubmissions.length,
+      totalSuccessfulActions: totalProductSuccessfulActions,
+      stage,
+      nextStep,
+      primaryHref,
+      primaryLabel,
+    };
+  });
+
+  const featuredProduct =
+    productSummaries.find((summary) => summary.activeSubmission) ||
+    productSummaries.find((summary) => summary.stage === "ready") ||
+    productSummaries.find((summary) => summary.stage === "unlock") ||
+    productSummaries[0] ||
+    null;
+
+  let heroTitle = copy.hero.readyTitle;
+  let heroBody = copy.hero.readyBody;
+
+  if (products.length === 0) {
+    heroTitle = copy.hero.noProductTitle;
+    heroBody = copy.hero.noProductBody;
+  } else if (!isPaid) {
+    heroTitle = copy.hero.freeTitle;
+    heroBody = copy.hero.freeBody;
+  } else if (activeLaunches > 0) {
+    heroTitle = copy.hero.activeTitle;
+    heroBody = copy.hero.activeBody;
+  }
 
   async function handleLogout() {
     const supabase = createClient();
@@ -364,6 +748,7 @@ export default function DashboardClient({
 
   async function handleAddProduct(e: React.FormEvent) {
     e.preventDefault();
+
     if (!canAddProduct) {
       setSaveError(copy.errors.upgradeRequired);
       return;
@@ -373,13 +758,25 @@ export default function DashboardClient({
     setSaveError("");
 
     const supabase = createClient();
-    const { error } = await supabase.from("products").insert({
-      user_id: user.id,
-      name,
-      url,
-      description,
-      status: isPaid ? "pending" : "draft",
-    });
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        user_id: user.id,
+        name,
+        url,
+        description,
+        status: isPaid ? "pending" : "draft",
+      })
+      .select("id")
+      .single();
+
+    if (!error && data?.id) {
+      closeAddProduct();
+      router.push(`/dashboard/product/${data.id}`);
+      router.refresh();
+      setSaving(false);
+      return;
+    }
 
     if (!error) {
       closeAddProduct();
@@ -387,19 +784,20 @@ export default function DashboardClient({
     } else {
       setSaveError(error.message || copy.errors.saveFailed);
     }
+
     setSaving(false);
   }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-stone-950 text-stone-100">
       <div className="bp-grid absolute inset-0 opacity-30" />
-      <div className="absolute inset-x-0 top-0 h-[22rem] bg-[radial-gradient(circle_at_top,rgba(246,212,148,0.14),transparent_58%)]" />
+      <div className="absolute inset-x-0 top-0 h-[24rem] bg-[radial-gradient(circle_at_top,rgba(246,212,148,0.16),transparent_58%)]" />
       <div className="absolute -left-12 top-56 h-64 w-64 rounded-full bg-amber-300/8 blur-3xl" />
       <div className="absolute -right-16 top-32 h-72 w-72 rounded-full bg-emerald-300/7 blur-3xl" />
 
       <nav className="relative border-b border-[var(--line-soft)] bg-black/10 px-6 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <span className="text-xl font-bold text-white">BacklinkPilot</span>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <span className="text-xl font-semibold text-white">BacklinkPilot</span>
           <div className="flex items-center gap-3">
             <LocaleToggle locale={locale} />
             <span className="hidden text-sm text-stone-400 md:inline">
@@ -415,18 +813,27 @@ export default function DashboardClient({
         </div>
       </nav>
 
-      <div className="relative mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-8 flex items-center justify-between gap-4">
+      <div className="relative mx-auto max-w-7xl px-6 py-12">
+        <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">{copy.header.title}</h1>
-            <p className="mt-2 text-sm text-stone-400">{user.email}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.32em] text-amber-200/80">
+              {copy.hero.eyebrow}
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">
+              {copy.header.title}
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-400">
+              {heroBody}
+            </p>
           </div>
           {canAddProduct ? (
             <button
               onClick={openAddProduct}
               className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
             >
-              {isPaid ? copy.header.addProduct : copy.header.addFirstProduct}
+              {products.length === 0
+                ? copy.header.addFirstProduct
+                : copy.header.addProduct}
             </button>
           ) : (
             <a
@@ -438,34 +845,131 @@ export default function DashboardClient({
           )}
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5">
-            <p className="text-sm text-stone-400">{copy.stats.plan}</p>
-            <p className="mt-1 text-2xl font-bold text-white">{planName}</p>
-            <p className="mt-1 text-xs text-stone-500">
-              {isPaid
-                ? copy.stats.active
-                : showFreeSetup
-                  ? copy.stats.freeSlot
-                  : copy.stats.upgradeToUnlock}
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[2rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.3)] backdrop-blur">
+            <h2 className="font-display max-w-4xl text-4xl leading-[0.95] text-stone-50 md:text-6xl">
+              {heroTitle}
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-stone-300">
+              {heroBody}
             </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              {products.length === 0 ? (
+                <>
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryNoProduct}
+                  </button>
+                  <Link
+                    href="/pricing"
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryPricing}
+                  </Link>
+                </>
+              ) : !isPaid ? (
+                <>
+                  <a
+                    href="/api/stripe/checkout?plan=starter"
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryUnlock}
+                  </a>
+                  <a
+                    href="/api/stripe/checkout?plan=growth"
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryGrowth}
+                  </a>
+                </>
+              ) : featuredProduct?.activeSubmission ? (
+                <>
+                  <Link
+                    href={`/dashboard/product/${featuredProduct.product.id}#submission-history`}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryWatch}
+                  </Link>
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryAdd}
+                  </button>
+                </>
+              ) : featuredProduct ? (
+                <>
+                  <Link
+                    href={`/dashboard/product/${featuredProduct.product.id}`}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryLaunch}
+                  </Link>
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryAdd}
+                  </button>
+                </>
+              ) : null}
+            </div>
+
+            <div className="mt-8 grid gap-3 md:grid-cols-3">
+              {copy.hero.summaryItems.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-4 text-sm leading-6 text-stone-300"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5">
-            <p className="text-sm text-stone-400">{copy.stats.products}</p>
-            <p className="mt-1 text-2xl font-bold text-white">{products.length}</p>
-            <p className="mt-1 text-xs text-stone-500">{copy.stats.added}</p>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+            {[
+              {
+                label: copy.stats.plan,
+                value: planName,
+                note: isPaid ? copy.stats.active : copy.stats.upgradeToUnlock,
+                tone: "text-amber-100",
+              },
+              {
+                label: copy.stats.products,
+                value: `${products.length}`,
+                note: !isPaid && products.length === 0 ? copy.stats.freeSlot : `${products.length}`,
+                tone: "text-stone-50",
+              },
+              {
+                label: copy.stats.launches,
+                value: `${submissions.length}`,
+                note: `${launchedProductIds.size}/${products.length || 0} ${copy.stats.configuredProducts}`,
+                tone: "text-emerald-200",
+              },
+              {
+                label: copy.stats.liveRuns,
+                value: `${activeLaunches}`,
+                note: `${totalSuccessfulActions} ${copy.stats.successfulActions}`,
+                tone: "text-sky-200",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5"
+              >
+                <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                  {item.label}
+                </p>
+                <p className={`mt-3 text-3xl font-semibold ${item.tone}`}>{item.value}</p>
+                <p className="mt-2 text-xs leading-6 text-stone-500">{item.note}</p>
+              </div>
+            ))}
           </div>
-          <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5">
-            <p className="text-sm text-stone-400">{copy.stats.submissions}</p>
-            <p className="mt-1 text-2xl font-bold text-white">0</p>
-            <p className="mt-1 text-xs text-stone-500">{copy.stats.thisMonth}</p>
-          </div>
-          <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5">
-            <p className="text-sm text-stone-400">{copy.stats.successRate}</p>
-            <p className="mt-1 text-2xl font-bold text-white">—</p>
-            <p className="mt-1 text-xs text-stone-500">{copy.stats.noDataYet}</p>
-          </div>
-        </div>
+        </section>
 
         {showAddProduct ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -477,6 +981,7 @@ export default function DashboardClient({
                     {copy.modal.freeBanner}
                   </div>
                 ) : null}
+
                 <div>
                   <label className="mb-1 block text-sm text-stone-400">
                     {copy.modal.productName}
@@ -490,6 +995,7 @@ export default function DashboardClient({
                     className="w-full rounded-2xl border border-[var(--line-soft)] bg-stone-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent-500)]"
                   />
                 </div>
+
                 <div>
                   <label className="mb-1 block text-sm text-stone-400">
                     {copy.modal.websiteUrl}
@@ -523,12 +1029,12 @@ export default function DashboardClient({
                       </p>
                       <p className="mt-1 text-stone-500">
                         {copy.modal.nameSource}: {preview.detectedFrom.name} ·{" "}
-                        {copy.modal.descriptionSource}:{" "}
-                        {preview.detectedFrom.description}
+                        {copy.modal.descriptionSource}: {preview.detectedFrom.description}
                       </p>
                     </div>
                   ) : null}
                 </div>
+
                 <div>
                   <label className="mb-1 block text-sm text-stone-400">
                     {copy.modal.description}
@@ -542,7 +1048,9 @@ export default function DashboardClient({
                     className="w-full resize-none rounded-2xl border border-[var(--line-soft)] bg-stone-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent-500)]"
                   />
                 </div>
+
                 {saveError ? <p className="text-xs text-red-300">{saveError}</p> : null}
+
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
@@ -564,149 +1072,360 @@ export default function DashboardClient({
           </div>
         ) : null}
 
-        {showFreeSetup ? (
-          <div className="rounded-[2rem] border border-[var(--line-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-12 text-center">
-            <div className="mb-4 text-4xl">🧭</div>
-            <h2 className="mb-2 text-lg font-semibold text-white">
-              {copy.freeState.title}
-            </h2>
-            <p className="mx-auto mb-6 max-w-xl text-sm text-stone-400">
-              {copy.freeState.body}
-            </p>
-            <div className="mb-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <button
-                onClick={openAddProduct}
-                className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-              >
-                {copy.freeState.primary}
-              </button>
-              <Link
-                href="/pricing"
-                className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-              >
-                {copy.freeState.secondary}
-              </Link>
+        <section
+          id="launch-board"
+          className="mt-12 grid gap-8 xl:grid-cols-[1.12fr_0.88fr]"
+        >
+          <div>
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.board.eyebrow}
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {copy.board.title}
+              </h2>
+              <p className="mt-4 text-base leading-7 text-stone-400">
+                {copy.board.body}
+              </p>
             </div>
-            <div className="mx-auto grid max-w-3xl gap-4 text-left md:grid-cols-3">
-              {copy.freeState.steps.map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-[1.5rem] border border-[var(--line-soft)] bg-black/15 p-4"
-                >
-                  <h3 className="text-sm font-semibold text-white">{item.title}</h3>
-                  <p className="mt-2 text-xs text-stone-400">{item.copy}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : !isPaid && products.length > 0 ? (
-          <div className="space-y-6">
-            <div className="rounded-[2rem] border border-[var(--line-soft)] bg-white/[0.04] p-8">
-              <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
-                <div>
-                  <p className="text-sm font-medium text-amber-200">
-                    {copy.upgradeState.eyebrow}
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold text-white">
-                    {copy.upgradeState.title}
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-sm text-stone-400">
-                    {copy.upgradeState.body}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href="/api/stripe/checkout?plan=starter"
-                    className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                  >
-                    {copy.upgradeState.starter}
-                  </a>
-                  <a
-                    href="/api/stripe/checkout?plan=growth"
+
+            {products.length === 0 ? (
+              <div className="mt-8 rounded-[2rem] border border-[var(--line-soft)] bg-white/[0.04] p-10">
+                <div className="mb-4 text-4xl">🧭</div>
+                <h3 className="text-lg font-semibold text-white">
+                  {copy.onboarding.title}
+                </h3>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400">
+                  {copy.onboarding.body}
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <button
+                    onClick={openAddProduct}
                     className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                   >
-                    {copy.upgradeState.growth}
-                  </a>
+                    {copy.onboarding.primary}
+                  </button>
+                  <Link
+                    href="/pricing"
+                    className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                  >
+                    {copy.onboarding.secondary}
+                  </Link>
                 </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              {products.map((product) => (
-                <a
-                  key={product.id}
-                  href={`/dashboard/product/${product.id}`}
-                  className="block rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6 transition hover:border-[var(--line-strong)]"
-                >
-                  <div className="flex items-center justify-between gap-6">
-                    <div>
-                      <h3 className="font-semibold text-white">{product.name}</h3>
-                      <p className="mt-1 text-sm text-amber-200">{product.url}</p>
-                      <p className="mt-1 text-sm text-stone-400">
-                        {product.description}
+                <div className="mt-8 grid gap-4 md:grid-cols-3">
+                  {copy.onboarding.steps.map((item) => (
+                    <div
+                      key={item.title}
+                      className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                    >
+                      <h4 className="text-sm font-semibold text-white">{item.title}</h4>
+                      <p className="mt-2 text-xs leading-6 text-stone-400">
+                        {item.copy}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${productStatusClasses(
-                          product.status
-                        )}`}
-                      >
-                        {productStatusLabel(product.status, locale)}
-                      </span>
-                      <span className="text-sm text-stone-500">→</span>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="rounded-[2rem] border border-[var(--line-soft)] bg-white/[0.04] p-12 text-center">
-            <div className="mb-4 text-4xl">📦</div>
-            <h2 className="mb-2 text-lg font-semibold text-white">
-              {copy.emptyState.title}
-            </h2>
-            <p className="mx-auto mb-6 max-w-md text-sm text-stone-400">
-              {copy.emptyState.body}
-            </p>
-            <button
-              onClick={openAddProduct}
-              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-            >
-              {copy.emptyState.cta}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {products.map((product) => (
-              <a
-                key={product.id}
-                href={`/dashboard/product/${product.id}`}
-                className="block rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6 transition hover:border-[var(--line-strong)]"
-              >
-                <div className="flex items-center justify-between gap-6">
-                  <div>
-                    <h3 className="font-semibold text-white">{product.name}</h3>
-                    <p className="mt-1 text-sm text-amber-200">{product.url}</p>
-                    <p className="mt-1 text-sm text-stone-400">
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${productStatusClasses(
-                        product.status
-                      )}`}
-                    >
-                      {productStatusLabel(product.status, locale)}
-                    </span>
-                    <span className="text-sm text-stone-500">→</span>
-                  </div>
+                  ))}
                 </div>
-              </a>
-            ))}
+              </div>
+            ) : (
+              <div className="mt-8 space-y-4">
+                {productSummaries.map((summary) => {
+                  const latestChannel = summary.latestSubmission
+                    ? CHANNELS.find(
+                        (channel) => channel.id === summary.latestSubmission?.channel
+                      ) || null
+                    : null;
+                  const recommendedChannelName = summary.recommendedChannel
+                    ? getLocalizedChannel(summary.recommendedChannel, locale).name
+                    : null;
+                  const progress = summary.activeSubmission
+                    ? summary.activeSubmission.total_sites > 0
+                      ? Math.round(
+                          (summary.activeSubmission.completed_sites /
+                            summary.activeSubmission.total_sites) *
+                            100
+                        )
+                      : 0
+                    : 0;
+
+                  return (
+                    <article
+                      key={summary.product.id}
+                      className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6 transition hover:border-[var(--line-strong)] hover:bg-white/[0.055]"
+                    >
+                      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="max-w-3xl">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-medium ${launchStageClasses(
+                                summary.stage
+                              )}`}
+                            >
+                              {copy.productCard.stage[summary.stage]}
+                            </span>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-medium ${productStatusClasses(
+                                summary.product.status
+                              )}`}
+                            >
+                              {productStatusLabel(summary.product.status, locale)}
+                            </span>
+                            {latestChannel ? (
+                              <span className="text-xs text-stone-500">
+                                {copy.productCard.latestLane}:{" "}
+                                {getLocalizedChannel(latestChannel, locale).name}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <h3 className="mt-4 text-2xl font-semibold text-white">
+                            {summary.product.name}
+                          </h3>
+                          <a
+                            href={summary.product.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex text-sm text-amber-200 transition hover:text-amber-100"
+                          >
+                            {summary.product.url}
+                          </a>
+                          <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400">
+                            {summary.product.description}
+                          </p>
+                          <p className="mt-4 text-sm leading-7 text-stone-300">
+                            <span className="mr-2 text-xs uppercase tracking-[0.24em] text-stone-500">
+                              {copy.productCard.nextStep}
+                            </span>
+                            {summary.nextStep}
+                          </p>
+                          <p className="mt-3 text-sm text-stone-500">
+                            {copy.productCard.stageBody[summary.stage]}
+                          </p>
+
+                          {summary.activeSubmission ? (
+                            <div className="mt-5">
+                              <div className="mb-2 flex items-center justify-between text-xs text-stone-400">
+                                <span>
+                                  {copy.productCard.progress}{" "}
+                                  {summary.activeSubmission.completed_sites}/
+                                  {summary.activeSubmission.total_sites}
+                                </span>
+                                <span>{progress}%</span>
+                              </div>
+                              <div className="h-2 w-full rounded-full bg-stone-800">
+                                <div
+                                  className="h-2 rounded-full bg-sky-300 transition-all duration-500"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="w-full max-w-sm">
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {copy.productCard.launchCount}
+                              </div>
+                              <div className="mt-2 text-2xl font-semibold text-white">
+                                {summary.launchCount}
+                              </div>
+                            </div>
+                            <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {copy.productCard.successfulActions}
+                              </div>
+                              <div className="mt-2 text-2xl font-semibold text-white">
+                                {summary.totalSuccessfulActions}
+                              </div>
+                            </div>
+                            <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {copy.productCard.channelsReady}
+                              </div>
+                              <div className="mt-2 text-2xl font-semibold text-white">
+                                {liveChannelsForPlan.length}/{LIVE_CHANNEL_COUNT}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4 text-sm leading-7 text-stone-300">
+                            <div className="text-xs uppercase tracking-[0.22em] text-stone-500">
+                              {summary.latestSubmission
+                                ? copy.productCard.latestRun
+                                : copy.productCard.recommendationPrefix}
+                            </div>
+                            <div className="mt-2">
+                              {summary.latestSubmission ? (
+                                <>
+                                  {latestChannel
+                                    ? getLocalizedChannel(latestChannel, locale).name
+                                    : summary.latestSubmission.channel}{" "}
+                                  ·{" "}
+                                  {formatDashboardDate(
+                                    summary.latestSubmission.created_at,
+                                    locale
+                                  )}
+                                </>
+                              ) : recommendedChannelName ? (
+                                recommendedChannelName
+                              ) : (
+                                copy.productCard.noRunsYet
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            {summary.primaryHref.startsWith("/api/") ? (
+                              <a
+                                href={summary.primaryHref}
+                                className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                              >
+                                {summary.primaryLabel}
+                              </a>
+                            ) : (
+                              <Link
+                                href={summary.primaryHref}
+                                className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                              >
+                                {summary.primaryLabel}
+                              </Link>
+                            )}
+                            <Link
+                              href={`/dashboard/product/${summary.product.id}`}
+                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                            >
+                              {copy.productCard.open}
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+
+          <aside className="space-y-4">
+            <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.lanes.liveTitle}
+              </p>
+              <h3 className="mt-3 text-xl font-semibold text-white">
+                {copy.lanes.liveTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-stone-400">
+                {copy.lanes.liveBody}
+              </p>
+
+              <div className="mt-5 space-y-3">
+                {liveChannels.map((channel) => {
+                  const localizedChannel = getLocalizedChannel(channel, locale);
+                  const available = isPaid && channel.plans.includes(currentPlan);
+                  const minimumPlan = minimumPlanForChannel(channel);
+
+                  return (
+                    <div
+                      key={channel.id}
+                      className="flex items-start justify-between gap-4 rounded-[1.15rem] border border-[var(--line-soft)] bg-black/15 px-4 py-3"
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-white">
+                          {channel.icon} {localizedChannel.name}
+                        </div>
+                        <div className="mt-1 text-xs leading-6 text-stone-500">
+                          {available
+                            ? copy.lanes.availableNow
+                            : `${copy.lanes.requires} ${formatPlanName(
+                                minimumPlan,
+                                locale
+                              )}`}
+                        </div>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+                          available
+                            ? "bg-emerald-300/10 text-emerald-200"
+                            : "bg-white/6 text-stone-300"
+                        }`}
+                      >
+                        {available ? copy.lanes.included : copy.lanes.locked}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.lanes.roadmapTitle}
+              </p>
+              <h3 className="mt-3 text-xl font-semibold text-white">
+                {copy.lanes.roadmapTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-stone-400">
+                {copy.lanes.roadmapBody}
+              </p>
+
+              <div className="mt-5 space-y-3">
+                {roadmapChannels.map((channel) => {
+                  const localizedChannel = getLocalizedChannel(channel, locale);
+                  const includedWhenLive = isPaid && channel.plans.includes(currentPlan);
+                  const minimumPlan = minimumPlanForChannel(channel);
+
+                  return (
+                    <div
+                      key={channel.id}
+                      className="flex items-start justify-between gap-4 rounded-[1.15rem] border border-[var(--line-soft)] bg-black/15 px-4 py-3"
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-white">
+                          {channel.icon} {localizedChannel.name}
+                        </div>
+                        <div className="mt-1 text-xs leading-6 text-stone-500">
+                          {includedWhenLive
+                            ? copy.lanes.whenRolledOut
+                            : `${copy.lanes.requires} ${formatPlanName(
+                                minimumPlan,
+                                locale
+                              )}`}
+                        </div>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+                          includedWhenLive
+                            ? "bg-emerald-300/10 text-emerald-200"
+                            : "bg-white/6 text-stone-300"
+                        }`}
+                      >
+                        {includedWhenLive ? copy.lanes.included : copy.lanes.locked}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {products.length === 0 && !canAddProduct ? (
+              <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                <h3 className="text-xl font-semibold text-white">
+                  {copy.emptyState.title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-400">
+                  {copy.emptyState.body}
+                </p>
+                <button
+                  onClick={openAddProduct}
+                  className="mt-5 rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                >
+                  {copy.emptyState.cta}
+                </button>
+              </div>
+            ) : null}
+          </aside>
+        </section>
       </div>
     </main>
   );

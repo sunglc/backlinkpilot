@@ -24,12 +24,24 @@ export default async function Dashboard() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
+  const productIds = (products || []).map((product) => product.id);
+  const { data: submissions } = productIds.length
+    ? await supabase
+        .from("submissions")
+        .select(
+          "id, product_id, channel, status, total_sites, completed_sites, success_sites, created_at"
+        )
+        .in("product_id", productIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
   return (
     <DashboardClient
       locale={locale}
       user={user}
       subscription={subscription}
       products={products || []}
+      submissions={submissions || []}
     />
   );
 }
