@@ -3,11 +3,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCanonicalAppUrl } from "@/lib/app-url";
 
 export async function middleware(request: NextRequest) {
-  const host = request.headers.get("host")?.toLowerCase() ?? "";
   const canonicalAppUrl = getCanonicalAppUrl();
+  const requestHosts = [
+    request.headers.get("x-forwarded-host"),
+    request.headers.get("host"),
+    request.nextUrl.hostname,
+  ]
+    .filter(Boolean)
+    .map((value) => value!.toLowerCase());
+  const isLegacyVercelRequest = requestHosts.some((value) =>
+    value.includes("vercel.app")
+  );
 
   if (
-    host.endsWith("backlinkpilot.vercel.app") &&
+    isLegacyVercelRequest &&
     !canonicalAppUrl.includes("backlinkpilot.vercel.app")
   ) {
     const redirectUrl = new URL(
