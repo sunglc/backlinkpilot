@@ -98,6 +98,31 @@ function getPricingCopy(locale: Locale) {
           },
         ],
       },
+      sending: {
+        eyebrow: "代发价值",
+        title: "更深的外联层，真正卖的是发送基础设施。",
+        body:
+          "如果 BacklinkPilot 往资源页和编辑外联继续走，用户愿意付费的关键，不是“平台里多了一个邮箱输入框”，而是平台代他把最麻烦的发送层补齐。",
+        cards: [
+          {
+            title: "托管发件箱",
+            body:
+              "用户不需要先搭域名、邮箱和预热流程，才能开始外联。产品应该把这层基础设施接住。",
+          },
+          {
+            title: "送达率与节奏控制",
+            body:
+              "真正的产品价值是把消息送达、控制发送节奏、降低域名被打坏的风险，而不是只提供一个发送按钮。",
+          },
+          {
+            title: "回复与跟进闭环",
+            body:
+              "发送、回复、补跟进和公开验证应该回到产品页，而不是让用户在邮箱和表格之间来回切换。",
+          },
+        ],
+        note:
+          "这条能力应该以 pilot / rollout 的方式诚实上线，不应该提前伪装成今天已 fully live。",
+      },
       plans: [
         {
           name: "入门版",
@@ -128,6 +153,7 @@ function getPricingCopy(locale: Locale) {
             "500 次提交 / 月",
             `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
             `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个渠道推进中`,
+            "托管外联代发（pilot）",
             "优先支持",
           ],
           note: "如果外链分发已经是你的活跃增长通道，这通常是最合适的计划。",
@@ -145,6 +171,7 @@ function getPricingCopy(locale: Locale) {
             "不限提交量",
             `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
             "自定义目录处理",
+            "托管发件层与回复流（pilot）",
             "API 访问",
           ],
           note: "当瓶颈已经不是 onboarding，而是吞吐与控制力时，就该上这个计划。",
@@ -161,6 +188,7 @@ function getPricingCopy(locale: Locale) {
           ["已上线提交渠道", "2", "2", "2"],
           ["包含产品数", "1", "3", "10"],
           ["月度提交容量", "100", "500", "不限"],
+          ["托管外联代发", "—", "pilot", "priority pilot"],
           ["适合谁", "单产品启动", "活跃增长", "团队与代理"],
         ],
       },
@@ -175,6 +203,10 @@ function getPricingCopy(locale: Locale) {
           {
             q: "升级之后到底会发生什么？",
             a: "升级会把你保存的产品档案变成真实提交的执行源，目录和 stealth 渠道都可以从它直接开始跑。",
+          },
+          {
+            q: "为什么“平台代发”会是一个价值点？",
+            a: "因为对普通用户来说，难的不是写一封外联邮件，而是准备可用邮箱、控制送达率、接住回复、继续跟进。真正有价值的是平台代他承接这层执行基础设施。",
           },
           {
             q: "为什么不做到首条提交前都免费？",
@@ -283,6 +315,31 @@ function getPricingCopy(locale: Locale) {
         },
       ],
     },
+    sending: {
+      eyebrow: "Sending value",
+      title: "The deeper outreach layer is really selling execution infrastructure.",
+      body:
+        "If BacklinkPilot keeps moving into resource-page and editorial outreach, the thing users will pay for is not a mailbox field in the UI. It is the platform taking over the hardest part of the sending stack.",
+      cards: [
+        {
+          title: "Managed outreach mailbox",
+          body:
+            "The user should not need to assemble domains, inboxes, and warmup workflows before the first serious outreach push.",
+        },
+        {
+          title: "Deliverability and pacing control",
+          body:
+            "The product becomes valuable when messages land, pacing stays controlled, and the domain does not get burned, not when there is just a send button.",
+        },
+        {
+          title: "Reply and follow-up loop",
+          body:
+            "Sends, replies, follow-up, and public verification should come back into the product instead of scattering across inboxes and spreadsheets.",
+        },
+      ],
+      note:
+        "This capability should ship honestly in pilots and rollout phases, not be marketed as fully live before it is real.",
+    },
     plans: [
       {
         name: "Starter",
@@ -313,6 +370,7 @@ function getPricingCopy(locale: Locale) {
           "500 submissions / month",
           `${LIVE_CHANNEL_COUNT} live channels today`,
           `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
+          "Managed outreach sending (pilot)",
           "Priority support",
         ],
         note: "This is the default plan if backlink distribution is an active growth lane.",
@@ -330,6 +388,7 @@ function getPricingCopy(locale: Locale) {
           "Unlimited submissions",
           `${LIVE_CHANNEL_COUNT} live channels today`,
           "Custom directory handling",
+          "Managed sending layer + reply flow (pilot)",
           "API access",
         ],
         note: "Use this when the bottleneck is not onboarding, but throughput and control.",
@@ -346,6 +405,7 @@ function getPricingCopy(locale: Locale) {
         ["Live submission channels", "2", "2", "2"],
         ["Products included", "1", "3", "10"],
         ["Monthly submission capacity", "100", "500", "Unlimited"],
+        ["Managed outreach sending", "—", "pilot", "priority pilot"],
         ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
       ],
     },
@@ -360,6 +420,10 @@ function getPricingCopy(locale: Locale) {
         {
           q: "What actually changes when I upgrade?",
           a: "Upgrade turns your saved product profile into a live submission source. Directory and stealth routes can then run from the product you already configured.",
+        },
+        {
+          q: "Why is platform-managed sending a value point?",
+          a: "Because the hard part for normal users is not writing one outreach email. It is having usable inboxes, protecting deliverability, catching replies, and staying on follow-up. The real value is the platform taking over that execution layer.",
         },
         {
           q: "Why not make everything free until first submission?",
@@ -540,6 +604,36 @@ export default async function Pricing() {
               >
                 <h3 className="text-lg font-medium text-stone-100">{card.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-stone-400">{card.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 py-14 md:px-8 md:py-18">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.78fr_1.22fr]">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.sending.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {copy.sending.title}
+            </h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-stone-400">
+              {copy.sending.body}
+            </p>
+            <p className="mt-6 max-w-xl text-sm leading-7 text-stone-500">
+              {copy.sending.note}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {copy.sending.cards.map((card) => (
+              <div
+                key={card.title}
+                className="rounded-[1.75rem] border border-[var(--line-soft)] bg-black/15 p-6"
+              >
+                <h3 className="text-xl font-medium text-stone-100">{card.title}</h3>
+                <p className="mt-4 text-sm leading-7 text-stone-400">{card.body}</p>
               </div>
             ))}
           </div>

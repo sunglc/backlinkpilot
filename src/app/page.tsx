@@ -76,7 +76,37 @@ function getHomeCopy(locale: Locale) {
             detail:
               "你不需要 VA、外链代理或一整套复杂 SOP，才能让第一波外链分发真正动起来。",
           },
+          {
+            title: "下一层价值是代发，而不只是模板",
+            detail:
+              "当产品往资源页和编辑外联扩展时，真正有价值的不是再给你一封模板，而是平台提供可用发件层、送达率保护和回复回流。",
+          },
         ],
+      },
+      sendingSection: {
+        eyebrow: "代发层",
+        title: "真正难的不是写邮件，而是有一套能发出去的发送层。",
+        body:
+          "如果产品后面要进入资源页和编辑外联，用户买的不是“再多一个 compose box”，而是平台帮他补上最难的执行基础设施。",
+        cards: [
+          {
+            title: "托管发件身份",
+            detail:
+              "用户不需要先搭邮箱、域名、预热和发件规则，才能开始第一波高质量外联。",
+          },
+          {
+            title: "送达率与节奏保护",
+            detail:
+              "真正的产品价值在于发得出去、不会立刻把域名打坏，而且能持续地推进行动。",
+          },
+          {
+            title: "回复与证据回流",
+            detail:
+              "发送、回复、审核和公开验证都应该回到同一个产品页，而不是散落在邮箱和表格里。",
+          },
+        ],
+        note:
+          "这类能力应该按 rollout / pilot 诚实上线，而不是提前包装成“今天已经 fully live”。",
       },
       workflowSection: {
         eyebrow: "流程",
@@ -252,7 +282,37 @@ function getHomeCopy(locale: Locale) {
           detail:
             "You do not need a VA, a link agency, or a giant playbook just to get your first wave of backlinks moving.",
         },
+        {
+          title: "The next layer of value is managed sending, not more templates",
+          detail:
+            "As the product expands into resource-page and editorial outreach, the real value is not another canned email. It is the platform providing sender infrastructure, deliverability protection, and reply flow.",
+        },
       ],
+    },
+    sendingSection: {
+      eyebrow: "Sending layer",
+      title: "The hard part is not writing an email. It is owning a sending layer that actually delivers.",
+      body:
+        "If the product moves deeper into resource-page and editorial outreach, users are not paying for another compose box. They are paying for the platform to handle the execution infrastructure they do not want to build themselves.",
+      cards: [
+        {
+          title: "Managed sender identity",
+          detail:
+            "The user should not need to assemble mailboxes, domains, warmup, and sender rules before the first serious outreach wave.",
+        },
+        {
+          title: "Deliverability and pacing guardrails",
+          detail:
+            "The product becomes valuable when messages land, the sending rhythm stays controlled, and the domain does not get burned immediately.",
+        },
+        {
+          title: "Replies and proof flow back into the product",
+          detail:
+            "Sends, replies, approvals, and public verification should return to the same product view instead of disappearing across inboxes and spreadsheets.",
+        },
+      ],
+      note:
+        "This kind of capability should roll out honestly in pilots and phases, not be oversold as fully live on day one.",
     },
     workflowSection: {
       eyebrow: "Workflow",
@@ -584,6 +644,36 @@ export default async function Home() {
                 <p className="max-w-2xl text-base leading-7 text-stone-400">
                   {point.detail}
                 </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[var(--line-soft)] bg-white/[0.02] px-5 py-18 md:px-8 md:py-24">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.75fr_1.25fr]">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.sendingSection.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {copy.sendingSection.title}
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-stone-400">
+              {copy.sendingSection.body}
+            </p>
+            <p className="mt-6 max-w-xl text-sm leading-7 text-stone-500">
+              {copy.sendingSection.note}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {copy.sendingSection.cards.map((card) => (
+              <div
+                key={card.title}
+                className="rounded-[1.75rem] border border-[var(--line-soft)] bg-black/15 p-6"
+              >
+                <h3 className="text-xl font-medium text-stone-100">{card.title}</h3>
+                <p className="mt-4 text-sm leading-7 text-stone-400">{card.detail}</p>
               </div>
             ))}
           </div>
