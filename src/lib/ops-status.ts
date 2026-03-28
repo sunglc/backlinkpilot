@@ -233,6 +233,60 @@ function statusClass(raw: unknown) {
   return "warning";
 }
 
+function statusText(raw: unknown) {
+  const value = String(raw || "unknown").toLowerCase();
+  switch (value) {
+    case "ok":
+      return "正常";
+    case "active":
+      return "运行中";
+    case "idle":
+      return "空闲";
+    case "warning":
+      return "警告";
+    case "degraded":
+      return "降级";
+    case "critical":
+      return "严重异常";
+    case "error":
+      return "报错";
+    case "failed":
+      return "失败";
+    case "missing":
+      return "缺失";
+    case "unknown":
+      return "未知";
+    default:
+      return value;
+  }
+}
+
+function severityText(raw: unknown) {
+  const value = String(raw || "unknown").toLowerCase();
+  switch (value) {
+    case "critical":
+      return "严重";
+    case "warning":
+      return "警告";
+    case "error":
+      return "错误";
+    default:
+      return statusText(value);
+  }
+}
+
+function boolText(raw: unknown) {
+  if (raw === true) return "是";
+  if (raw === false) return "否";
+  return "未知";
+}
+
+function authModeText(authMode: "token" | "basic" | null) {
+  if (authMode === "basic") return "Basic Auth";
+  if (authMode === "token") return "Token";
+  return "未知";
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -247,9 +301,19 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
   const worker = (health.worker as Record<string, unknown> | undefined) || payload.workerHeartbeat;
   const alertStatus = payload.alertStatus;
   const issues = (alertStatus.issues as Array<Record<string, unknown>> | undefined) || [];
+  const overallRaw = String(alertStatus.status || health.status || "unknown");
+  const overallText = statusText(overallRaw);
+  const webRaw = String(payload.services.web || "unknown");
+  const healthRaw = String(health.status || "unknown");
+  const workerRaw = String(worker.status || "unknown");
+  const captureTimerRaw = String(payload.services.captureTimer || "unknown");
+  const pruneTimerRaw = String(payload.services.pruneTimer || "unknown");
+  const statusPageRaw = String(payload.services.statusPage || "unknown");
+  const queuedJobs = String(worker.queuedJobs ?? worker.queued_jobs ?? "n/a");
+  const staleText = boolText(worker.stale);
   const alertCards =
     payload.recentAlertNotes.length === 0
-      ? '<article class="panel"><h3>No Alert Notes</h3><p class="muted">No recovery alerts are open or archived recently.</p></article>'
+      ? '<article class="panel"><h3>最近告警记录</h3><p class="muted">当前没有新的恢复告警，也没有最近归档的告警说明。</p></article>'
       : payload.recentAlertNotes
           .map(
             (note) => `
@@ -263,11 +327,11 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
 
   const issueList =
     issues.length === 0
-      ? "<li>No active issues</li>"
+      ? "<li>当前没有未解决问题</li>"
       : issues
           .map(
             (item) =>
-              `<li><strong>${escapeHtml(String(item.severity || "unknown"))}</strong> ${escapeHtml(String(item.message || ""))}</li>`
+              `<li><strong>${escapeHtml(severityText(item.severity || "unknown"))}</strong> ${escapeHtml(String(item.message || ""))}</li>`
           )
           .join("");
 
@@ -281,11 +345,11 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
       : payload.routeUrl;
 
   return `<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BacklinkPilot Remote Ops</title>
+  <title>BacklinkPilot 运维总览</title>
   <style>
     :root {
       --bg: #f3efe7;
@@ -344,6 +408,20 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
       gap: 14px;
       margin-top: 18px;
     }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #f8f2e8;
+      color: var(--muted);
+      font-size: 13px;
+    }
     .metric { font-size: 28px; font-weight: 700; margin: 6px 0; }
     .muted { color: var(--muted); font-size: 14px; }
     .section { margin-top: 18px; }
@@ -368,6 +446,14 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
     }
     ul { margin: 0; padding-left: 18px; }
     li { margin-bottom: 8px; }
+    code {
+      padding: 0.1rem 0.35rem;
+      border-radius: 999px;
+      background: #f8f2e8;
+      border: 1px solid #eadfce;
+      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+      font-size: 0.92em;
+    }
     @media (max-width: 900px) {
       .split { grid-template-columns: 1fr; }
       .hero h1 { font-size: 28px; }
@@ -377,68 +463,87 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
 <body>
   <div class="wrap">
     <section class="hero">
-      <span class="badge badge-${statusClass(alertStatus.status || health.status)}">${escapeHtml(String(alertStatus.status || health.status || "unknown"))}</span>
-      <h1>BacklinkPilot Remote Ops</h1>
-      <p>Accessible through the existing public app port with protected auth. Generated at ${escapeHtml(payload.generatedAt)}.</p>
+      <span class="badge badge-${statusClass(overallRaw)}">${escapeHtml(overallText)}</span>
+      <h1>BacklinkPilot 运维总览</h1>
+      <p>这个页面走现有公网 <code>3000</code> 端口并受鉴权保护。生成时间：${escapeHtml(payload.generatedAt)}，当前鉴权方式：${escapeHtml(authModeText(authMode))}。</p>
       <div class="links">
-        <a href="${escapeHtml(jsonHref)}">JSON</a>
-        <a href="${escapeHtml(pageHref)}">Refresh Page</a>
-        <a href="${escapeHtml(payload.healthUrl)}">Public Health JSON</a>
+        <a href="${escapeHtml(jsonHref)}">查看 JSON</a>
+        <a href="${escapeHtml(pageHref)}">刷新页面</a>
+        <a href="${escapeHtml(payload.healthUrl)}">查看健康检查 JSON</a>
       </div>
+      <div class="legend">
+        <span class="chip">ok = 正常</span>
+        <span class="chip">active = 运行中</span>
+        <span class="chip">idle = 空闲</span>
+        <span class="chip">warning / degraded = 警告或降级</span>
+        <span class="chip">critical / failed / error = 严重异常</span>
+      </div>
+    </section>
+
+    <section class="panel section">
+      <h2>怎么看这页</h2>
+      <ul>
+        <li><strong>Web 服务</strong>：主站页面和 API 是否还在正常提供服务。</li>
+        <li><strong>健康总状态</strong>：系统自检结果，综合环境变量、关键目录、worker 心跳后给出的结论。</li>
+        <li><strong>Worker</strong>：任务处理器是否活着。<code>queued_jobs</code> 是待处理任务数，<code>stale</code> 表示心跳是否过期。</li>
+        <li><strong>运维定时器</strong>：<code>capture</code> 负责定时留快照，<code>prune</code> 负责清理旧快照，<code>status_page</code> 是本机 HTML 状态页服务。</li>
+        <li><strong>当前问题</strong>：这里只显示还没解决的异常；如果为空，表示当前快照没发现活跃问题。</li>
+        <li><strong>原始 JSON / 摘要</strong>：下面保留英文原字段名，方便脚本和人工排查时直接对照。</li>
+      </ul>
     </section>
 
     <section class="grid">
       <article class="panel">
-        <h2>Web</h2>
-        <p class="metric">${escapeHtml(payload.services.web)}</p>
-        <p class="muted">worker=${escapeHtml(payload.services.worker)}</p>
+        <h2>Web 服务</h2>
+        <p class="metric">${escapeHtml(statusText(webRaw))}</p>
+        <p class="muted">原始状态：${escapeHtml(webRaw)}，worker：${escapeHtml(payload.services.worker)}</p>
       </article>
       <article class="panel">
-        <h2>Health</h2>
-        <p class="metric">${escapeHtml(String(health.status || "unknown"))}</p>
-        <p class="muted">snapshot=${escapeHtml(payload.snapshotRoot || "missing")}</p>
+        <h2>健康总状态</h2>
+        <p class="metric">${escapeHtml(statusText(healthRaw))}</p>
+        <p class="muted">原始状态：${escapeHtml(healthRaw)}，快照目录：${escapeHtml(payload.snapshotRoot || "missing")}</p>
       </article>
       <article class="panel">
         <h2>Worker</h2>
-        <p class="metric">${escapeHtml(String(worker.status || "unknown"))}</p>
-        <p class="muted">queued_jobs=${escapeHtml(String(worker.queuedJobs ?? worker.queued_jobs ?? "n/a"))} stale=${escapeHtml(String(worker.stale ?? "unknown"))}</p>
+        <p class="metric">${escapeHtml(statusText(workerRaw))}</p>
+        <p class="muted">原始状态：${escapeHtml(workerRaw)}，queued_jobs=${escapeHtml(queuedJobs)}，stale=${escapeHtml(staleText)}</p>
       </article>
       <article class="panel">
-        <h2>Ops Timers</h2>
-        <p class="metric">${escapeHtml(payload.services.captureTimer)}</p>
-        <p class="muted">prune=${escapeHtml(payload.services.pruneTimer)} status_page=${escapeHtml(payload.services.statusPage)}</p>
+        <h2>运维定时器</h2>
+        <p class="metric">${escapeHtml(statusText(captureTimerRaw))}</p>
+        <p class="muted">capture=${escapeHtml(captureTimerRaw)}，prune=${escapeHtml(pruneTimerRaw)}，status_page=${escapeHtml(statusPageRaw)}</p>
       </article>
     </section>
 
     <section class="panel section">
-      <h2>Open Issues</h2>
+      <h2>当前问题</h2>
       <ul>${issueList}</ul>
     </section>
 
     <section class="split section">
       <section class="panel">
-        <h2>Latest Health Snapshot</h2>
+        <h2>最新健康检查原始 JSON</h2>
         <pre>${escapeHtml(JSON.stringify(payload.health, null, 2))}</pre>
       </section>
       <section class="panel">
-        <h2>Latest Worker Heartbeat</h2>
+        <h2>最新 Worker 心跳原始 JSON</h2>
         <pre>${escapeHtml(JSON.stringify(payload.workerHeartbeat, null, 2))}</pre>
       </section>
     </section>
 
     <section class="split section">
       <section class="panel">
-        <h2>Latest Recovery Summary</h2>
+        <h2>最新恢复摘要</h2>
         <pre>${escapeHtml(payload.latestRecoverySummary.slice(0, 12000))}</pre>
       </section>
       <section class="panel">
-        <h2>Latest System Summary</h2>
+        <h2>最新系统摘要</h2>
         <pre>${escapeHtml(payload.latestSystemSummary)}</pre>
       </section>
     </section>
 
     <section class="panel section">
-      <h2>Recent Recovery Alert Notes</h2>
+      <h2>最近恢复告警说明</h2>
       <div class="grid">
         ${alertCards}
       </div>

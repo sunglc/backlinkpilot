@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   if (!isOpsStatusAuthorized(request)) {
-    return new NextResponse("Unauthorized", {
+    return new NextResponse("未授权访问", {
       status: 401,
       headers: {
         "Content-Type": "text/plain; charset=utf-8",

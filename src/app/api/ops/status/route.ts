@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   if (!isOpsStatusAuthorized(request)) {
     return NextResponse.json(
-      { error: "Unauthorized" },
+      { error: "未授权访问" },
       {
         status: 401,
         headers: { "WWW-Authenticate": 'Basic realm="BacklinkPilot Ops"' },
