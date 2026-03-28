@@ -968,6 +968,16 @@ function managedEventStateClasses(state: ManagedInboxEventState) {
   return classes[state];
 }
 
+function managedLaunchLaneLabel(
+  lane: "resource_page" | "editorial_contact",
+  locale: Locale
+) {
+  if (locale === "zh") {
+    return lane === "resource_page" ? "资源页外联" : "编辑联系面";
+  }
+  return lane === "resource_page" ? "Resource outreach" : "Editorial surface";
+}
+
 function getManagedInboxCopy(locale: Locale) {
   if (locale === "zh") {
     return {
@@ -999,6 +1009,9 @@ function getManagedInboxCopy(locale: Locale) {
         launchQueued: "首批外联请求已排队",
         launchStatusQueued: "已排队给运营",
         launchSummaryFallback: "首批托管外联请求已经生成，运营可以直接接手。",
+        shortlistLabel: "首批候选目标",
+        shortlistEmpty: "当前还没有自动 shortlist，运营会按现有队列手动补第一批目标。",
+        openTarget: "打开目标",
       },
       byo: {
         title: "使用你的邮箱",
@@ -1083,6 +1096,10 @@ function getManagedInboxCopy(locale: Locale) {
       launchStatusQueued: "Queued for ops",
       launchSummaryFallback:
         "The first managed outreach request is ready and can be picked up by ops.",
+      shortlistLabel: "First-batch shortlist",
+      shortlistEmpty:
+        "There is no generated shortlist yet, so ops will build the first batch from the current queue.",
+      openTarget: "Open target",
     },
     byo: {
       title: "Bring your own inbox",
@@ -2135,6 +2152,53 @@ export default function ProductDetail({
                         {managedLaunchRequest.summary ||
                           managedInboxCopy.managed.launchSummaryFallback}
                       </div>
+                      {managedLaunchRequest.shortlist.length > 0 ? (
+                        <div className="mt-4 grid gap-3">
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                            {managedInboxCopy.managed.shortlistLabel}
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {managedLaunchRequest.shortlist.slice(0, 4).map((item) => (
+                              <div
+                                key={item.id}
+                                className="rounded-[1rem] border border-white/10 bg-black/15 p-4"
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-stone-300">
+                                    {managedLaunchLaneLabel(item.lane, locale)}
+                                  </span>
+                                  <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald-200">
+                                    {item.contactMethod}
+                                  </span>
+                                </div>
+                                <div className="mt-3 text-sm font-semibold text-white">
+                                  {item.domain}
+                                </div>
+                                <p className="mt-2 text-sm leading-7 text-stone-300">
+                                  {item.title}
+                                </p>
+                                <p className="mt-2 text-xs leading-6 text-stone-500">
+                                  {item.reason}
+                                </p>
+                                {item.url ? (
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-3 inline-flex text-xs font-medium text-amber-100 transition hover:text-white"
+                                  >
+                                    {managedInboxCopy.managed.openTarget}
+                                  </a>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-4 text-sm leading-7 text-stone-500">
+                          {managedInboxCopy.managed.shortlistEmpty}
+                        </div>
+                      )}
                       <div className="mt-3 text-xs text-stone-500">
                         {formatSubmissionDate(managedLaunchRequest.createdAt, locale)}
                       </div>

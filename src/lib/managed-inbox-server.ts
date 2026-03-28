@@ -2,6 +2,7 @@ import "server-only";
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getManagedInboxLaunchShortlist } from "@/lib/managed-inbox-launch-shortlist";
 import { runtimeConfig } from "@/lib/runtime-config";
 import type {
   BringYourOwnSender,
@@ -136,7 +137,14 @@ function normalizeRecord(
     mailboxIdentity: input.mailboxIdentity || null,
     bringYourOwn: input.bringYourOwn || null,
     opsBrief: input.opsBrief || null,
-    launchRequest: input.launchRequest || null,
+    launchRequest: input.launchRequest
+      ? {
+          ...input.launchRequest,
+          shortlist: Array.isArray(input.launchRequest.shortlist)
+            ? input.launchRequest.shortlist
+            : [],
+        }
+      : null,
     timeline: Array.isArray(input.timeline) ? input.timeline : [],
     createdAt: input.createdAt || base.createdAt,
     updatedAt: input.updatedAt || base.updatedAt,
@@ -222,12 +230,19 @@ async function writeLaunchRequest(args: {
     awaitingReplyCount: number;
     lastActivityAt: string | null;
   };
+  shortlist: ManagedInboxLaunchRequest["shortlist"];
   previousStatus?: "queued" | "updated";
 }) {
   await ensureStorage();
   const markdownPath = path.join(LAUNCH_REQUEST_DIR, `${args.referenceId}.md`);
   const queuePath = path.join(LAUNCH_QUEUE_DIR, `${args.product.id}.json`);
-  const summary = `Prepare the first deterministic managed outreach batch for ${args.product.name} using ${args.mailboxEmail}.`;
+  const shortlistSummary = args.shortlist.length
+    ? `${args.shortlist.length} current targets, led by ${args.shortlist
+        .slice(0, 3)
+        .map((item) => item.domain)
+        .join(", ")}`
+    : "no target shortlist yet";
+  const summary = `Prepare the first deterministic managed outreach batch for ${args.product.name} using ${args.mailboxEmail}. Shortlist: ${shortlistSummary}.`;
   const liveActivitySnapshot = {
     outboundCount: args.liveActivity?.outboundCount || 0,
     replyCount: args.liveActivity?.replyCount || 0,
@@ -270,10 +285,21 @@ Queue the first managed outreach batch for this product through the email/manual
 ## Required next steps
 
 1. Review the product snapshot and confirm the dedicated sender identity.
-2. Build the first qualified email/manual target batch for this product.
+2. Start with the first-batch shortlist below and confirm the best immediate targets.
 3. Prepare deterministic packs for the approved targets.
 4. Send the first batch through \`operations/backlinks/scripts/send_email_submission.py\`.
 5. Monitor replies and write activity back into BacklinkPilot.
+
+## First-batch shortlist
+
+${args.shortlist.length > 0
+    ? args.shortlist
+        .map(
+          (item, index) =>
+            `${index + 1}. [${item.lane}] ${item.domain} - ${item.title}\n   - contact: ${item.contactMethod}${item.contactValue ? ` (${item.contactValue})` : ""}\n   - score: ${item.score}\n   - reason: ${item.reason}`
+        )
+        .join("\n")
+    : "- No deterministic shortlist was available yet. Ops should build the first batch manually from the current queue landscape."}
 
 ## Workflow references
 
@@ -307,6 +333,7 @@ Queue the first managed outreach batch for this product through the email/manual
       relativePath: args.opsBriefRelativePath,
     },
     liveActivity: liveActivitySnapshot,
+    shortlist: args.shortlist,
     nextStep:
       "Ops should prepare the first deterministic email/manual outreach batch and write send/reply activity back into BacklinkPilot.",
   };
@@ -323,6 +350,7 @@ Queue the first managed outreach batch for this product through the email/manual
     createdAt: nowIso(),
     status: args.previousStatus || ("queued" as const),
     summary,
+    shortlist: args.shortlist,
   } satisfies ManagedInboxLaunchRequest;
 }
 
@@ -463,6 +491,11 @@ export async function queueManagedOutreachBatch(args: {
     plan: args.plan,
     status: record.opsBrief ? "updated" : "queued",
   });
+  const shortlist = await getManagedInboxLaunchShortlist({
+    name: args.product.name,
+    url: args.product.url,
+    description: args.product.description,
+  });
 
   const launchRequest = await writeLaunchRequest({
     referenceId: `ml-${args.product.id.slice(0, 8)}-${Date.now().toString().slice(-6)}`,
@@ -473,6 +506,7 @@ export async function queueManagedOutreachBatch(args: {
     opsBriefReferenceId: opsBrief.referenceId,
     opsBriefRelativePath: opsBrief.relativePath,
     liveActivity: args.liveActivity,
+    shortlist,
     previousStatus: record.launchRequest ? "updated" : "queued",
   });
 

@@ -39,6 +39,19 @@ export interface ManagedInboxOpsBrief {
   status: "queued" | "updated";
 }
 
+export interface ManagedInboxLaunchTarget {
+  id: string;
+  lane: "resource_page" | "editorial_contact";
+  title: string;
+  domain: string;
+  url: string;
+  contactMethod: string;
+  contactValue: string | null;
+  score: number;
+  status: string;
+  reason: string;
+}
+
 export interface ManagedInboxLaunchRequest {
   referenceId: string;
   path: string;
@@ -48,6 +61,7 @@ export interface ManagedInboxLaunchRequest {
   createdAt: string;
   status: "queued" | "updated";
   summary: string;
+  shortlist: ManagedInboxLaunchTarget[];
 }
 
 export interface ManagedInboxTimelineEvent {
