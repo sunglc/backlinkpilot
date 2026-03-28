@@ -12,6 +12,7 @@ import {
   type ChannelContract,
 } from "@/lib/execution-contract";
 import type {
+  ManagedInboxLiveActivity,
   ManagedInboxEventState,
   ManagedInboxRecord,
 } from "@/lib/managed-inbox-types";
@@ -1004,6 +1005,12 @@ function getManagedInboxCopy(locale: Locale) {
           "托管模式激活后，运营会把首轮发送、回信和补跟进事件回写到这里，让客户看到真正发生了什么。",
         empty:
           "当前还没有发送或回信事件。托管模式一启用，brief 和后续动作就会出现在这里。",
+        stats: {
+          outbound: "真实外发",
+          replies: "真实回复",
+          awaiting: "待回复",
+          lastActivity: "最近动作",
+        },
         state: {
           ready: "就绪",
           queued: "排队中",
@@ -1069,6 +1076,12 @@ function getManagedInboxCopy(locale: Locale) {
         "Once managed mode is activated, ops writes the first send, reply, and follow-up milestones back here so the customer can see real movement.",
       empty:
         "There are no send or reply events yet. Once managed mode starts, the brief and later thread activity will appear here.",
+      stats: {
+        outbound: "Live sends",
+        replies: "Replies",
+        awaiting: "Awaiting",
+        lastActivity: "Last activity",
+      },
       state: {
         ready: "Ready",
         queued: "Queued",
@@ -1106,6 +1119,7 @@ export default function ProductDetail({
   submissions,
   plan,
   managedInboxRecord,
+  managedInboxLiveActivity,
   outreachLibrary,
   operationalInsights,
 }: {
@@ -1115,6 +1129,7 @@ export default function ProductDetail({
   submissions: Submission[];
   plan: string;
   managedInboxRecord: ManagedInboxRecord;
+  managedInboxLiveActivity: ManagedInboxLiveActivity;
   outreachLibrary: HighQualityOutreachLibrary;
   operationalInsights: OperationalInsights;
 }) {
@@ -1124,6 +1139,7 @@ export default function ProductDetail({
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [managedInbox, setManagedInbox] = useState(managedInboxRecord);
+  const [managedInboxLive, setManagedInboxLive] = useState(managedInboxLiveActivity);
   const [senderEmail, setSenderEmail] = useState(
     managedInboxRecord.bringYourOwn?.senderEmail || user.email || ""
   );
@@ -1152,8 +1168,9 @@ export default function ProductDetail({
 
   useEffect(() => {
     setManagedInbox(managedInboxRecord);
+    setManagedInboxLive(managedInboxLiveActivity);
     setSenderEmail(managedInboxRecord.bringYourOwn?.senderEmail || user.email || "");
-  }, [managedInboxRecord, user.email]);
+  }, [managedInboxRecord, managedInboxLiveActivity, user.email]);
 
   async function startSubmission(channelId: string) {
     setSubmitting(channelId);
@@ -1192,7 +1209,11 @@ export default function ProductDetail({
         body: JSON.stringify(payload),
       });
       const data = (await response.json()) as
-        | { record?: ManagedInboxRecord; error?: string }
+        | {
+            record?: ManagedInboxRecord;
+            liveActivity?: ManagedInboxLiveActivity;
+            error?: string;
+          }
         | null;
 
       if (!response.ok || !data?.record) {
@@ -1200,6 +1221,9 @@ export default function ProductDetail({
       }
 
       setManagedInbox(data.record);
+      if (data.liveActivity) {
+        setManagedInboxLive(data.liveActivity);
+      }
       if (data.record.bringYourOwn?.senderEmail) {
         setSenderEmail(data.record.bringYourOwn.senderEmail);
       }
@@ -1318,7 +1342,9 @@ export default function ProductDetail({
     managedInbox.senderMode === "managed" && Boolean(managedInbox.mailboxIdentity);
   const managedInboxReserved =
     managedInbox.senderMode !== "managed" && Boolean(managedInbox.mailboxIdentity);
-  const managedInboxTimeline = managedInbox.timeline.slice(0, 6);
+  const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .slice(0, 10);
   const currentLayerItems = availableLiveChannels.map((channel) => {
     const latestChannelSubmission = latestSubmissionByChannel.get(channel.id) || null;
     const channelName = getLocalizedChannel(channel, locale).name;
@@ -2158,6 +2184,39 @@ export default function ProductDetail({
               <p className="mt-4 text-sm leading-7 text-stone-400">
                 {managedInboxCopy.timeline.body}
               </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  {
+                    label: managedInboxCopy.timeline.stats.outbound,
+                    value: `${managedInboxLive.outboundCount}`,
+                  },
+                  {
+                    label: managedInboxCopy.timeline.stats.replies,
+                    value: `${managedInboxLive.replyCount}`,
+                  },
+                  {
+                    label: managedInboxCopy.timeline.stats.awaiting,
+                    value: `${managedInboxLive.awaitingReplyCount}`,
+                  },
+                  {
+                    label: managedInboxCopy.timeline.stats.lastActivity,
+                    value: managedInboxLive.lastActivityAt
+                      ? formatSubmissionDate(managedInboxLive.lastActivityAt, locale)
+                      : "—",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                  >
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {item.label}
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-white">{item.value}</div>
+                  </div>
+                ))}
+              </div>
 
               {managedInboxTimeline.length > 0 ? (
                 <div className="mt-6 space-y-3">

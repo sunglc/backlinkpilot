@@ -50,6 +50,14 @@ export interface ManagedInboxTimelineEvent {
   createdAt: string;
 }
 
+export interface ManagedInboxLiveActivity {
+  outboundCount: number;
+  replyCount: number;
+  awaitingReplyCount: number;
+  lastActivityAt: string | null;
+  timeline: ManagedInboxTimelineEvent[];
+}
+
 export interface ManagedInboxRecord {
   version: 1;
   productId: string;

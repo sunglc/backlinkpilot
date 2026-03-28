@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { redirect } from "next/navigation";
+import { getManagedInboxLiveActivity } from "@/lib/managed-inbox-live-activity";
 import { createClient } from "@/lib/supabase-server";
 import { getManagedInboxRecord } from "@/lib/managed-inbox-server";
 import { getLocale } from "@/lib/locale";
@@ -166,6 +167,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     productId: product.id,
     userId: user.id,
   });
+  const managedInboxLiveActivity = await getManagedInboxLiveActivity({
+    name: product.name,
+    url: product.url,
+  });
 
   return (
     <ProductDetail
@@ -175,6 +180,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       submissions={submissions || []}
       plan={subscription?.plan || "free"}
       managedInboxRecord={managedInboxRecord}
+      managedInboxLiveActivity={managedInboxLiveActivity}
       outreachLibrary={outreachLibrary}
       operationalInsights={operationalInsights}
     />

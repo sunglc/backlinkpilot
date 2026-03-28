@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getManagedInboxLiveActivity } from "@/lib/managed-inbox-live-activity";
 import {
   activateManagedInbox,
   configureBringYourOwnSender,
@@ -28,7 +29,7 @@ export async function GET(
 
   const { data: product } = await supabase
     .from("products")
-    .select("id, user_id")
+    .select("id, user_id, name, url")
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
@@ -41,8 +42,12 @@ export async function GET(
     productId: product.id,
     userId: user.id,
   });
+  const liveActivity = await getManagedInboxLiveActivity({
+    name: product.name || "",
+    url: product.url || "",
+  });
 
-  return NextResponse.json({ record });
+  return NextResponse.json({ record, liveActivity });
 }
 
 export async function POST(
@@ -105,7 +110,12 @@ export async function POST(
       senderName: body.senderName || null,
     });
 
-    return NextResponse.json({ record });
+    const liveActivity = await getManagedInboxLiveActivity({
+      name: product.name || "",
+      url: product.url || "",
+    });
+
+    return NextResponse.json({ record, liveActivity });
   }
 
   if (body.action === "activate_managed") {
@@ -125,7 +135,12 @@ export async function POST(
       plan,
     });
 
-    return NextResponse.json({ record });
+    const liveActivity = await getManagedInboxLiveActivity({
+      name: product.name || "",
+      url: product.url || "",
+    });
+
+    return NextResponse.json({ record, liveActivity });
   }
 
   return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
