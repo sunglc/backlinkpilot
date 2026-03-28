@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { getManagedInboxRecord } from "@/lib/managed-inbox-server";
 import { getLocale } from "@/lib/locale";
 import ProductDetail from "./product-detail";
 
@@ -161,6 +162,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       EMPTY_OPERATIONAL_INSIGHTS
     ),
   ]);
+  const managedInboxRecord = await getManagedInboxRecord({
+    productId: product.id,
+    userId: user.id,
+  });
 
   return (
     <ProductDetail
@@ -169,6 +174,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       product={product}
       submissions={submissions || []}
       plan={subscription?.plan || "free"}
+      managedInboxRecord={managedInboxRecord}
       outreachLibrary={outreachLibrary}
       operationalInsights={operationalInsights}
     />

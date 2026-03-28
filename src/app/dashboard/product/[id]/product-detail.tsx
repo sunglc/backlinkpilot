@@ -11,6 +11,10 @@ import {
   TOTAL_CHANNEL_COUNT,
   type ChannelContract,
 } from "@/lib/execution-contract";
+import type {
+  ManagedInboxEventState,
+  ManagedInboxRecord,
+} from "@/lib/managed-inbox-types";
 import type { Locale } from "@/lib/locale-config";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
@@ -950,12 +954,158 @@ function launchMapStatusClasses(
   return classes[status];
 }
 
+function managedEventStateClasses(state: ManagedInboxEventState) {
+  const classes = {
+    ready: "border-emerald-300/15 bg-emerald-300/10 text-emerald-200",
+    queued: "border-amber-300/15 bg-amber-300/10 text-amber-100",
+    sent: "border-sky-300/15 bg-sky-300/10 text-sky-200",
+    replied: "border-emerald-300/15 bg-emerald-300/10 text-emerald-200",
+    needs_followup: "border-red-300/15 bg-red-300/10 text-red-200",
+    logged: "border-white/10 bg-white/[0.05] text-stone-200",
+  } as const;
+
+  return classes[state];
+}
+
+function getManagedInboxCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      eyebrow: "发信模式",
+      title: "把发送层做成产品，不是让客户自己去拼。",
+      body:
+        "这里不是一个模糊的“平台代发”承诺。用户现在可以明确选择托管外联邮箱或自己的邮箱。托管模式会分配专属 sender identity、生成运营 brief，并把后续发送和回信状态回流到这个产品页。",
+      modeLabel: "当前模式",
+      managed: {
+        title: "托管外联邮箱",
+        body:
+          "Growth / Scale 可以启用托管模式。系统先为这个产品保留专属 sender identity，再生成首轮运营 brief，后续外发和回信事件都会继续展示在这里。",
+        assignmentLabel: "专属发件身份",
+        assignmentNote:
+          "当前是 pilot-assigned identity。真正的 live 发信和回信动作会继续由运营执行，并回写到时间线。",
+        briefLabel: "运营 brief",
+        activate: "启用托管邮箱",
+        active: "托管邮箱已启用",
+        upgrade: "升级到增长版解锁",
+        reserved: "这个产品已经保留了专属 sender identity，可随时切回托管模式。",
+        included: "Growth / Scale",
+      },
+      byo: {
+        title: "使用你的邮箱",
+        body:
+          "如果你不买托管发送，就明确走自己的邮箱 / 发件身份。这条路径也应该清楚，不和托管模式混在一起。",
+        placeholder: "name@yourdomain.com",
+        save: "保存我的发件邮箱",
+        saved: "当前使用自己的邮箱",
+        helper: "这会把该邮箱保存为这个产品的自带 sender identity。",
+      },
+      timeline: {
+        title: "发送与回复时间线",
+        body:
+          "托管模式激活后，运营会把首轮发送、回信和补跟进事件回写到这里，让客户看到真正发生了什么。",
+        empty:
+          "当前还没有发送或回信事件。托管模式一启用，brief 和后续动作就会出现在这里。",
+        state: {
+          ready: "就绪",
+          queued: "排队中",
+          sent: "已发送",
+          replied: "已回复",
+          needs_followup: "待跟进",
+          logged: "已记录",
+        },
+        direction: {
+          internal: "系统",
+          outbound: "发出",
+          inbound: "收到",
+        },
+        reference: "参考编号",
+      },
+      badge: {
+        active: "当前启用",
+        locked: "需升级",
+        saved: "已保存",
+        reserved: "已保留",
+        pilot: "pilot",
+      },
+      errors: {
+        invalidEmail: "请输入有效邮箱地址。",
+        saveFailed: "发信模式保存失败，请稍后再试。",
+        managedFailed: "托管邮箱激活失败，请稍后再试。",
+      },
+    };
+  }
+
+  return {
+    eyebrow: "Sender mode",
+    title: "Turn the sending layer into product value, not customer setup work.",
+    body:
+      "This is not a vague promise about platform-managed outreach. The customer can now choose a Managed Outreach Inbox or bring their own sender. Managed mode assigns a dedicated sender identity, generates an ops brief, and routes later send/reply activity back into this product page.",
+    modeLabel: "Current mode",
+    managed: {
+      title: "Managed Outreach Inbox",
+      body:
+        "Growth and Scale can activate the managed mode. The system reserves a dedicated sender identity for this product, queues the first ops brief, and keeps later outbound and reply events visible here.",
+      assignmentLabel: "Dedicated sender identity",
+      assignmentNote:
+        "This is a pilot-assigned identity for the product. Live sends and replies still flow through ops and get written back into the timeline.",
+      briefLabel: "Ops brief",
+      activate: "Activate managed inbox",
+      active: "Managed inbox is active",
+      upgrade: "Upgrade to Growth to unlock",
+      reserved: "A sender identity is already reserved for this product, so you can switch back to managed mode later.",
+      included: "Growth / Scale",
+    },
+    byo: {
+      title: "Bring your own inbox",
+      body:
+        "If the customer does not buy managed sending, the product should clearly route them to their own sender identity instead of blending the two modes together.",
+      placeholder: "name@yourdomain.com",
+      save: "Save my sender email",
+      saved: "Using your own inbox",
+      helper: "This becomes the saved sender identity for this product.",
+    },
+    timeline: {
+      title: "Send and reply timeline",
+      body:
+        "Once managed mode is activated, ops writes the first send, reply, and follow-up milestones back here so the customer can see real movement.",
+      empty:
+        "There are no send or reply events yet. Once managed mode starts, the brief and later thread activity will appear here.",
+      state: {
+        ready: "Ready",
+        queued: "Queued",
+        sent: "Sent",
+        replied: "Replied",
+        needs_followup: "Needs follow-up",
+        logged: "Logged",
+      },
+      direction: {
+        internal: "System",
+        outbound: "Outbound",
+        inbound: "Inbound",
+      },
+      reference: "Reference",
+    },
+    badge: {
+      active: "Active",
+      locked: "Upgrade required",
+      saved: "Saved",
+      reserved: "Reserved",
+      pilot: "pilot",
+    },
+    errors: {
+      invalidEmail: "Enter a valid sender email.",
+      saveFailed: "Unable to save the sender mode right now.",
+      managedFailed: "Unable to activate the managed inbox right now.",
+    },
+  };
+}
+
 export default function ProductDetail({
   locale,
   user,
   product,
   submissions,
   plan,
+  managedInboxRecord,
   outreachLibrary,
   operationalInsights,
 }: {
@@ -964,13 +1114,23 @@ export default function ProductDetail({
   product: Product;
   submissions: Submission[];
   plan: string;
+  managedInboxRecord: ManagedInboxRecord;
   outreachLibrary: HighQualityOutreachLibrary;
   operationalInsights: OperationalInsights;
 }) {
   const copy = getProductDetailCopy(locale);
+  const managedInboxCopy = getManagedInboxCopy(locale);
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [managedInbox, setManagedInbox] = useState(managedInboxRecord);
+  const [senderEmail, setSenderEmail] = useState(
+    managedInboxRecord.bringYourOwn?.senderEmail || user.email || ""
+  );
+  const [managedInboxAction, setManagedInboxAction] = useState<
+    "save_byo" | "activate_managed" | null
+  >(null);
+  const [managedInboxError, setManagedInboxError] = useState("");
   const sourcePreview = outreachLibrary.sources.slice(0, 6);
   const playbook = operationalInsights.playbook || EMPTY_PLAYBOOK;
   const recommendedLaneIds = (playbook.recommended_lane_ids || []).slice(0, 4);
@@ -989,6 +1149,11 @@ export default function ProductDetail({
 
     return () => clearInterval(interval);
   }, [hasActive, router]);
+
+  useEffect(() => {
+    setManagedInbox(managedInboxRecord);
+    setSenderEmail(managedInboxRecord.bringYourOwn?.senderEmail || user.email || "");
+  }, [managedInboxRecord, user.email]);
 
   async function startSubmission(channelId: string) {
     setSubmitting(channelId);
@@ -1012,8 +1177,64 @@ export default function ProductDetail({
     router.refresh();
   }
 
+  async function updateManagedInbox(
+    payload:
+      | { action: "save_byo"; senderEmail: string }
+      | { action: "activate_managed" }
+  ) {
+    setManagedInboxAction(payload.action);
+    setManagedInboxError("");
+
+    try {
+      const response = await fetch(`/api/products/${product.id}/managed-inbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await response.json()) as
+        | { record?: ManagedInboxRecord; error?: string }
+        | null;
+
+      if (!response.ok || !data?.record) {
+        throw new Error(data?.error || managedInboxCopy.errors.saveFailed);
+      }
+
+      setManagedInbox(data.record);
+      if (data.record.bringYourOwn?.senderEmail) {
+        setSenderEmail(data.record.bringYourOwn.senderEmail);
+      }
+    } catch (error) {
+      setManagedInboxError(
+        error instanceof Error
+          ? error.message
+          : payload.action === "activate_managed"
+            ? managedInboxCopy.errors.managedFailed
+            : managedInboxCopy.errors.saveFailed
+      );
+    } finally {
+      setManagedInboxAction(null);
+    }
+  }
+
+  async function saveBringYourOwnSender() {
+    const normalizedEmail = senderEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setManagedInboxError(managedInboxCopy.errors.invalidEmail);
+      return;
+    }
+    await updateManagedInbox({
+      action: "save_byo",
+      senderEmail: normalizedEmail,
+    });
+  }
+
+  async function activateManagedSender() {
+    await updateManagedInbox({ action: "activate_managed" });
+  }
+
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
   const plannedChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
+  const managedInboxEligible = plan === "growth" || plan === "scale";
   const availableLiveChannels = liveChannels.filter((channel) => channel.plans.includes(plan));
   const currentPlanIndex = PLAN_ORDER.indexOf(
     (PLAN_ORDER.includes(plan as (typeof PLAN_ORDER)[number])
@@ -1093,6 +1314,11 @@ export default function ProductDetail({
   const latestSubmissionByChannel = new Map(
     submissions.map((submission) => [submission.channel, submission])
   );
+  const managedInboxActive =
+    managedInbox.senderMode === "managed" && Boolean(managedInbox.mailboxIdentity);
+  const managedInboxReserved =
+    managedInbox.senderMode !== "managed" && Boolean(managedInbox.mailboxIdentity);
+  const managedInboxTimeline = managedInbox.timeline.slice(0, 6);
   const currentLayerItems = availableLiveChannels.map((channel) => {
     const latestChannelSubmission = latestSubmissionByChannel.get(channel.id) || null;
     const channelName = getLocalizedChannel(channel, locale).name;
@@ -1748,6 +1974,241 @@ export default function ProductDetail({
                   </Link>
                 </>
               )}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {managedInboxCopy.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {managedInboxCopy.title}
+            </h2>
+            <p className="mt-4 text-base leading-7 text-stone-400">
+              {managedInboxCopy.body}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+            <div className="grid gap-4">
+              <div className="rounded-[1.75rem] border border-amber-300/15 bg-amber-300/6 p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-amber-100/80">
+                      {managedInboxCopy.modeLabel}
+                    </div>
+                    <h3 className="mt-3 text-2xl font-semibold text-white">
+                      {managedInboxCopy.managed.title}
+                    </h3>
+                  </div>
+                  <span className="rounded-full bg-black/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-100">
+                    {managedInboxActive
+                      ? managedInboxCopy.badge.active
+                      : managedInboxEligible
+                        ? managedInboxCopy.badge.pilot
+                        : managedInboxCopy.badge.locked}
+                  </span>
+                </div>
+
+                <p className="mt-4 text-sm leading-7 text-stone-300">
+                  {managedInboxCopy.managed.body}
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full border border-black/15 bg-black/10 px-3 py-1.5 text-stone-200">
+                    {managedInboxCopy.managed.included}
+                  </span>
+                  {managedInboxReserved ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-stone-200">
+                      {managedInboxCopy.badge.reserved}
+                    </span>
+                  ) : null}
+                </div>
+
+                {managedInbox.mailboxIdentity ? (
+                  <div className="mt-6 rounded-[1.25rem] border border-black/15 bg-black/10 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {managedInboxCopy.managed.assignmentLabel}
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-white">
+                      {managedInbox.mailboxIdentity.email}
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-stone-400">
+                      {managedInboxCopy.managed.assignmentNote}
+                    </p>
+                  </div>
+                ) : null}
+
+                {managedInbox.opsBrief ? (
+                  <div className="mt-4 rounded-[1.25rem] border border-black/15 bg-black/10 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {managedInboxCopy.managed.briefLabel}
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-white">
+                      {managedInbox.opsBrief.referenceId}
+                    </div>
+                    <div className="mt-2 text-xs text-stone-500">
+                      {formatSubmissionDate(managedInbox.opsBrief.createdAt, locale)}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {managedInboxActive ? (
+                    <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
+                      {managedInboxCopy.managed.active}
+                    </div>
+                  ) : managedInboxEligible ? (
+                    <button
+                      type="button"
+                      onClick={activateManagedSender}
+                      disabled={managedInboxAction === "activate_managed"}
+                      className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
+                    >
+                      {managedInboxAction === "activate_managed"
+                        ? copy.channels.starting
+                        : managedInboxCopy.managed.activate}
+                    </button>
+                  ) : (
+                    <a
+                      href={checkoutHref("growth")}
+                      className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+                    >
+                      {managedInboxCopy.managed.upgrade}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {managedInboxCopy.modeLabel}
+                    </div>
+                    <h3 className="mt-3 text-2xl font-semibold text-white">
+                      {managedInboxCopy.byo.title}
+                    </h3>
+                  </div>
+                  {managedInbox.senderMode === "bring_your_own" ? (
+                    <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-stone-200">
+                      {managedInboxCopy.badge.saved}
+                    </span>
+                  ) : null}
+                </div>
+
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {managedInboxCopy.byo.body}
+                </p>
+
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={senderEmail}
+                    onChange={(event) => setSenderEmail(event.target.value)}
+                    placeholder={managedInboxCopy.byo.placeholder}
+                    className="min-w-0 flex-1 rounded-full border border-[var(--line-soft)] bg-black/15 px-4 py-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-[var(--accent-500)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveBringYourOwnSender}
+                    disabled={managedInboxAction === "save_byo"}
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6 disabled:opacity-60"
+                  >
+                    {managedInboxAction === "save_byo"
+                      ? copy.channels.starting
+                      : managedInboxCopy.byo.save}
+                  </button>
+                </div>
+
+                <p className="mt-4 text-sm leading-7 text-stone-500">
+                  {managedInboxCopy.byo.helper}
+                </p>
+
+                {managedInbox.bringYourOwn ? (
+                  <div className="mt-4 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {managedInboxCopy.byo.saved}
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-white">
+                      {managedInbox.bringYourOwn.senderEmail}
+                    </div>
+                    <div className="mt-2 text-xs text-stone-500">
+                      {formatSubmissionDate(managedInbox.bringYourOwn.updatedAt, locale)}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {managedInboxError ? (
+                <div className="rounded-[1.25rem] border border-red-300/15 bg-red-300/6 px-4 py-3 text-sm text-red-200">
+                  {managedInboxError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {managedInboxCopy.timeline.title}
+              </p>
+              <h3 className="mt-4 text-3xl font-semibold text-white">
+                {managedInboxCopy.timeline.title}
+              </h3>
+              <p className="mt-4 text-sm leading-7 text-stone-400">
+                {managedInboxCopy.timeline.body}
+              </p>
+
+              {managedInboxTimeline.length > 0 ? (
+                <div className="mt-6 space-y-3">
+                  {managedInboxTimeline.map((event) => (
+                    <div
+                      key={event.id}
+                      className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedEventStateClasses(
+                            event.state
+                          )}`}
+                        >
+                          {managedInboxCopy.timeline.state[event.state]}
+                        </span>
+                        <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-stone-300">
+                          {managedInboxCopy.timeline.direction[event.direction]}
+                        </span>
+                      </div>
+                      <div className="mt-3 text-sm font-medium text-white">
+                        {event.title}
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-stone-400">
+                        {event.body}
+                      </p>
+                      <div className="mt-3 text-xs text-stone-500">
+                        {formatSubmissionDate(event.createdAt, locale)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5 text-sm leading-7 text-stone-400">
+                  {managedInboxCopy.timeline.empty}
+                </div>
+              )}
+
+              {managedInbox.opsBrief ? (
+                <div className="mt-6 rounded-[1.25rem] border border-sky-300/15 bg-sky-300/6 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-sky-200">
+                    {managedInboxCopy.timeline.reference}
+                  </div>
+                  <div className="mt-2 text-sm font-medium text-white">
+                    {managedInbox.opsBrief.referenceId}
+                  </div>
+                  <div className="mt-2 text-xs text-stone-400">
+                    {formatSubmissionDate(managedInbox.opsBrief.createdAt, locale)}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
