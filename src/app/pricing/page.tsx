@@ -100,24 +100,24 @@ function getPricingCopy(locale: Locale) {
       },
       sending: {
         eyebrow: "代发价值",
-        title: "更深的外联层，真正卖的是发送基础设施。",
+        title: "托管外联邮箱，应该是一个明确可买的功能项。",
         body:
-          "如果 BacklinkPilot 往资源页和编辑外联继续走，用户愿意付费的关键，不是“平台里多了一个邮箱输入框”，而是平台代他把最麻烦的发送层补齐。",
+          "这件事不该藏在一句“平台代发”里，而应该被做成清楚的产品选项。买了之后，我们分配专属邮箱、代你发、代你回，并把邮件线程展示回产品；不买，就明确走你自己的邮箱。",
         cards: [
           {
-            title: "托管发件箱",
+            title: "托管外联邮箱加购项",
             body:
-              "用户不需要先搭域名、邮箱和预热流程，才能开始外联。产品应该把这层基础设施接住。",
+              "给客户一个专属邮箱身份，由平台承接发送层，适合不想自己搭域名、邮箱和预热流程的人。",
           },
           {
-            title: "送达率与节奏控制",
+            title: "平台代发与代回",
             body:
-              "真正的产品价值是把消息送达、控制发送节奏、降低域名被打坏的风险，而不是只提供一个发送按钮。",
+              "真正的产品价值不是多一个发送按钮，而是平台代你处理发送、回复、补跟进和结果回流。",
           },
           {
-            title: "回复与跟进闭环",
+            title: "不买就用自己的邮箱",
             body:
-              "发送、回复、补跟进和公开验证应该回到产品页，而不是让用户在邮箱和表格之间来回切换。",
+              "如果用户不买这项服务，就明确接入自己的邮箱 / 发件身份，不把两种模式混在一起。",
           },
         ],
         note:
@@ -130,13 +130,14 @@ function getPricingCopy(locale: Locale) {
           accent: "border-[var(--line-soft)] bg-white/[0.03]",
           eyebrow: "适合第一次启动",
           desc: "适合一个产品的第一步付费计划，让目录分发正式开始动起来。",
-          features: [
-            "1 个产品",
-            "100 次提交 / 月",
-            "目录提交",
-            "Stealth 浏览器提交",
-            "基础报告",
-          ],
+        features: [
+          "1 个产品",
+          "100 次提交 / 月",
+          "目录提交",
+          "Stealth 浏览器提交",
+          "使用你自己的外联邮箱",
+          "基础报告",
+        ],
           note: "当你已经明确要推哪个产品时，这就是最干净的起点。",
           cta: "解锁入门版",
           href: "/api/stripe/checkout?plan=starter",
@@ -148,14 +149,14 @@ function getPricingCopy(locale: Locale) {
             "border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.16),rgba(208,166,90,0.05))]",
           eyebrow: "适合真正要做分发",
           desc: "这是默认主计划，适合把外链分发当成明确增长动作来跑的团队。",
-          features: [
-            "3 个产品",
-            "500 次提交 / 月",
-            `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
-            `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个渠道推进中`,
-            "托管外联代发（pilot）",
-            "优先支持",
-          ],
+        features: [
+          "3 个产品",
+          "500 次提交 / 月",
+          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+          `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个渠道推进中`,
+          "可加购托管外联邮箱（pilot）",
+          "优先支持",
+        ],
           note: "如果外链分发已经是你的活跃增长通道，这通常是最合适的计划。",
           cta: "解锁增长版",
           href: "/api/stripe/checkout?plan=growth",
@@ -166,14 +167,14 @@ function getPricingCopy(locale: Locale) {
           accent: "border-[var(--line-soft)] bg-white/[0.03]",
           eyebrow: "适合多产品团队",
           desc: "面向代理、运营团队和需要管理更大产品组合的组织。",
-          features: [
-            "10 个产品",
-            "不限提交量",
-            `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
-            "自定义目录处理",
-            "托管发件层与回复流（pilot）",
-            "API 访问",
-          ],
+        features: [
+          "10 个产品",
+          "不限提交量",
+          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+          "自定义目录处理",
+          "托管外联邮箱优先 pilot",
+          "API 访问",
+        ],
           note: "当瓶颈已经不是 onboarding，而是吞吐与控制力时，就该上这个计划。",
           cta: "解锁规模版",
           href: "/api/stripe/checkout?plan=scale",
@@ -188,7 +189,7 @@ function getPricingCopy(locale: Locale) {
           ["已上线提交渠道", "2", "2", "2"],
           ["包含产品数", "1", "3", "10"],
           ["月度提交容量", "100", "500", "不限"],
-          ["托管外联代发", "—", "pilot", "priority pilot"],
+          ["外联发送模式", "自己的邮箱", "自己的邮箱 / 托管加购", "自己的邮箱 / 托管优先"],
           ["适合谁", "单产品启动", "活跃增长", "团队与代理"],
         ],
       },
@@ -207,6 +208,10 @@ function getPricingCopy(locale: Locale) {
           {
             q: "为什么“平台代发”会是一个价值点？",
             a: "因为对普通用户来说，难的不是写一封外联邮件，而是准备可用邮箱、控制送达率、接住回复、继续跟进。真正有价值的是平台代他承接这层执行基础设施。",
+          },
+          {
+            q: "如果我不买托管外联邮箱呢？",
+            a: "那就明确走你自己的邮箱 / 发件身份。产品应该把“平台托管发送”和“用户自带邮箱”做成两条清楚的路径，而不是混成一个模糊状态。",
           },
           {
             q: "为什么不做到首条提交前都免费？",
@@ -317,26 +322,26 @@ function getPricingCopy(locale: Locale) {
     },
     sending: {
       eyebrow: "Sending value",
-      title: "The deeper outreach layer is really selling execution infrastructure.",
+      title: "Managed Outreach Inbox should be a clear purchasable product item.",
       body:
-        "If BacklinkPilot keeps moving into resource-page and editorial outreach, the thing users will pay for is not a mailbox field in the UI. It is the platform taking over the hardest part of the sending stack.",
+        "This should not hide behind a vague line about platform-managed sending. If the customer buys it, we assign a dedicated outreach inbox, send and reply on their behalf, and show the thread in-product. If they do not, they use their own inbox.",
       cards: [
         {
-          title: "Managed outreach mailbox",
+          title: "Managed Outreach Inbox add-on",
           body:
-            "The user should not need to assemble domains, inboxes, and warmup workflows before the first serious outreach push.",
+            "Give the customer a dedicated outreach identity and let the platform own the sender layer for people who do not want to assemble domains, inboxes, and warmup.",
         },
         {
-          title: "Deliverability and pacing control",
+          title: "Platform-handled send + reply",
           body:
-            "The product becomes valuable when messages land, pacing stays controlled, and the domain does not get burned, not when there is just a send button.",
+            "The value is not one outbound email. It is the platform handling send, reply, follow-up, and routing the thread back into the product.",
         },
         {
-          title: "Reply and follow-up loop",
+          title: "No add-on means bring your own inbox",
           body:
-            "Sends, replies, follow-up, and public verification should come back into the product instead of scattering across inboxes and spreadsheets.",
-        },
-      ],
+            "If the customer does not buy this service, the product should clearly route them to their own sender identity instead of mixing the two modes.",
+          },
+        ],
       note:
         "This capability should ship honestly in pilots and rollout phases, not be marketed as fully live before it is real.",
     },
@@ -352,6 +357,7 @@ function getPricingCopy(locale: Locale) {
           "100 submissions / month",
           "Directory Submission",
           "Stealth Browser Submission",
+          "Use your own outreach inbox",
           "Basic reporting",
         ],
         note: "Best when you already know what product you want to push.",
@@ -370,7 +376,7 @@ function getPricingCopy(locale: Locale) {
           "500 submissions / month",
           `${LIVE_CHANNEL_COUNT} live channels today`,
           `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
-          "Managed outreach sending (pilot)",
+          "Optional managed outreach inbox (pilot)",
           "Priority support",
         ],
         note: "This is the default plan if backlink distribution is an active growth lane.",
@@ -388,7 +394,7 @@ function getPricingCopy(locale: Locale) {
           "Unlimited submissions",
           `${LIVE_CHANNEL_COUNT} live channels today`,
           "Custom directory handling",
-          "Managed sending layer + reply flow (pilot)",
+          "Managed outreach inbox priority pilot",
           "API access",
         ],
         note: "Use this when the bottleneck is not onboarding, but throughput and control.",
@@ -400,15 +406,15 @@ function getPricingCopy(locale: Locale) {
       eyebrow: "Comparison",
       title: "A plain-language comparison, not a pricing maze.",
       columns: ["What changes", "Starter", "Growth", "Scale"],
-      rows: [
-        ["Free setup before paying", "Yes", "Yes", "Yes"],
-        ["Live submission channels", "2", "2", "2"],
-        ["Products included", "1", "3", "10"],
-        ["Monthly submission capacity", "100", "500", "Unlimited"],
-        ["Managed outreach sending", "—", "pilot", "priority pilot"],
-        ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
-      ],
-    },
+        rows: [
+          ["Free setup before paying", "Yes", "Yes", "Yes"],
+          ["Live submission channels", "2", "2", "2"],
+          ["Products included", "1", "3", "10"],
+          ["Monthly submission capacity", "100", "500", "Unlimited"],
+          ["Outreach sender mode", "Own inbox", "Own inbox / managed add-on", "Own inbox / priority managed"],
+          ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
+        ],
+      },
     faq: {
       eyebrow: "FAQ",
       title: "Pricing answers without the usual fine-print fog.",
@@ -424,6 +430,10 @@ function getPricingCopy(locale: Locale) {
         {
           q: "Why is platform-managed sending a value point?",
           a: "Because the hard part for normal users is not writing one outreach email. It is having usable inboxes, protecting deliverability, catching replies, and staying on follow-up. The real value is the platform taking over that execution layer.",
+        },
+        {
+          q: "What if I do not buy the managed outreach inbox?",
+          a: "Then you should clearly use your own inbox and sender identity. The product should make platform-managed sending and bring-your-own-inbox two explicit paths instead of one fuzzy state.",
         },
         {
           q: "Why not make everything free until first submission?",
@@ -534,7 +544,10 @@ export default async function Pricing() {
         </div>
       </section>
 
-      <section className="px-5 py-14 md:px-8 md:py-18">
+      <section
+        id="managed-inbox"
+        className="px-5 py-14 md:px-8 md:py-18"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">

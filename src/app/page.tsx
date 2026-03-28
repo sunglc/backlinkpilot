@@ -34,6 +34,7 @@ function getHomeCopy(locale: Locale) {
           "500+ 经过筛选的目录",
           `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
           "首个产品可免费配置",
+          "可选托管外联邮箱",
           "AI 辅助识别文案",
         ],
       },
@@ -85,28 +86,29 @@ function getHomeCopy(locale: Locale) {
       },
       sendingSection: {
         eyebrow: "代发层",
-        title: "真正难的不是写邮件，而是有一套能发出去的发送层。",
+        title: "买托管外联邮箱，或者用你自己的邮箱。",
         body:
-          "如果产品后面要进入资源页和编辑外联，用户买的不是“再多一个 compose box”，而是平台帮他补上最难的执行基础设施。",
+          "这项服务应该是一个明确可买的功能项，而不是藏在一句“平台代发”里。买了之后，我们分配专属邮箱、代你发、代你回，并把线程展示回产品；不买，就接你的邮箱。",
         cards: [
           {
-            title: "托管发件身份",
+            title: "托管外联邮箱加购项",
             detail:
-              "用户不需要先搭邮箱、域名、预热和发件规则，才能开始第一波高质量外联。",
+              "给客户一个专属邮箱身份，由平台托管发送层，适合不想自己搭域名、邮箱和预热流程的人。",
           },
           {
-            title: "送达率与节奏保护",
+            title: "我们代发，也代回",
             detail:
-              "真正的产品价值在于发得出去、不会立刻把域名打坏，而且能持续地推进行动。",
+              "不只是发出一封邮件，而是连回复、补跟进和结果回流一起承接，真正变成一条产品内执行链。",
           },
           {
-            title: "回复与证据回流",
+            title: "不买就用你的邮箱",
             detail:
-              "发送、回复、审核和公开验证都应该回到同一个产品页，而不是散落在邮箱和表格里。",
+              "如果用户不买这项服务，就明确走自己的邮箱/发件身份，不把两种模式混在一起。",
           },
         ],
         note:
           "这类能力应该按 rollout / pilot 诚实上线，而不是提前包装成“今天已经 fully live”。",
+        cta: "查看托管邮箱方案",
       },
       workflowSection: {
         eyebrow: "流程",
@@ -239,6 +241,7 @@ function getHomeCopy(locale: Locale) {
         "500+ vetted directories",
         `${LIVE_CHANNEL_COUNT} live channels today`,
         "Free first-product setup",
+        "Optional managed outreach inbox",
         "AI-assisted copy detection",
       ],
     },
@@ -291,28 +294,29 @@ function getHomeCopy(locale: Locale) {
     },
     sendingSection: {
       eyebrow: "Sending layer",
-      title: "The hard part is not writing an email. It is owning a sending layer that actually delivers.",
+      title: "Buy the managed outreach inbox, or use your own inbox.",
       body:
-        "If the product moves deeper into resource-page and editorial outreach, users are not paying for another compose box. They are paying for the platform to handle the execution infrastructure they do not want to build themselves.",
+        "This should be a clear product item, not a vague promise about outreach. If they buy it, we assign a dedicated sender identity, send and reply on their behalf, and show the thread in-product. If they do not, they use their own inbox.",
       cards: [
         {
-          title: "Managed sender identity",
+          title: "Managed Outreach Inbox add-on",
           detail:
-            "The user should not need to assemble mailboxes, domains, warmup, and sender rules before the first serious outreach wave.",
+            "Assign a dedicated outreach mailbox and let the platform own the sender layer for customers who do not want to assemble domains, inboxes, and warmup.",
         },
         {
-          title: "Deliverability and pacing guardrails",
+          title: "We send and handle replies",
           detail:
-            "The product becomes valuable when messages land, the sending rhythm stays controlled, and the domain does not get burned immediately.",
+            "The value is not one outbound email. It is the platform handling send, reply, follow-up, and routing everything back into the product.",
         },
         {
-          title: "Replies and proof flow back into the product",
+          title: "No add-on means bring your own inbox",
           detail:
-            "Sends, replies, approvals, and public verification should return to the same product view instead of disappearing across inboxes and spreadsheets.",
+            "If the customer does not buy this service, the product should clearly route them to their own sender identity instead of mixing the two modes.",
         },
       ],
       note:
         "This kind of capability should roll out honestly in pilots and phases, not be oversold as fully live on day one.",
+      cta: "See Managed Inbox Option",
     },
     workflowSection: {
       eyebrow: "Workflow",
@@ -665,6 +669,12 @@ export default async function Home() {
             <p className="mt-6 max-w-xl text-sm leading-7 text-stone-500">
               {copy.sendingSection.note}
             </p>
+            <Link
+              href="/pricing#managed-inbox"
+              className="mt-8 inline-flex rounded-full bg-[var(--accent-500)] px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+            >
+              {copy.sendingSection.cta}
+            </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {copy.sendingSection.cards.map((card) => (
