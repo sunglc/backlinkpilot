@@ -24,6 +24,49 @@ export interface OpsStatusPayload {
   recentAlertNotes: Array<{ name: string; body: string }>;
 }
 
+interface OpsStatusSummaryItemZh {
+  label: string;
+  raw: string;
+  text: string;
+  meaning: string;
+}
+
+interface OpsStatusIssueSummaryZh {
+  severityRaw: string;
+  severityText: string;
+  message: string;
+}
+
+export interface OpsStatusSummaryZh {
+  access: {
+    modeRaw: string;
+    modeText: string;
+  };
+  overall: OpsStatusSummaryItemZh & {
+    openIssueCount: number;
+  };
+  web: OpsStatusSummaryItemZh;
+  health: OpsStatusSummaryItemZh & {
+    snapshotRoot: string | null;
+  };
+  worker: OpsStatusSummaryItemZh & {
+    queuedJobs: number | string | null;
+    stale: boolean | null;
+    staleText: string;
+  };
+  timers: {
+    capture: OpsStatusSummaryItemZh;
+    prune: OpsStatusSummaryItemZh;
+    statusPage: OpsStatusSummaryItemZh;
+  };
+  currentIssues: {
+    count: number;
+    text: string;
+    items: OpsStatusIssueSummaryZh[];
+  };
+  guide: string[];
+}
+
 async function pathExists(target: string) {
   try {
     await access(/* turbopackIgnore: true */ target, constants.F_OK);
@@ -233,6 +276,10 @@ function statusClass(raw: unknown) {
   return "warning";
 }
 
+function normalizedStatus(raw: unknown) {
+  return String(raw || "unknown").toLowerCase();
+}
+
 function statusText(raw: unknown) {
   const value = String(raw || "unknown").toLowerCase();
   switch (value) {
@@ -285,6 +332,195 @@ function authModeText(authMode: "token" | "basic" | null) {
   if (authMode === "basic") return "Basic Auth";
   if (authMode === "token") return "Token";
   return "未知";
+}
+
+function webMeaning(raw: unknown) {
+  switch (normalizedStatus(raw)) {
+    case "active":
+      return "主站页面和 API 正在对外提供服务。";
+    case "warning":
+    case "degraded":
+      return "Web 仍可能可访问，但已经出现降级信号。";
+    case "critical":
+    case "error":
+    case "failed":
+      return "Web 服务存在严重异常，需要优先查看 web 日志和 systemd 状态。";
+    default:
+      return "暂时无法确认 Web 服务状态，建议结合健康检查和日志继续判断。";
+  }
+}
+
+function healthMeaning(raw: unknown) {
+  switch (normalizedStatus(raw)) {
+    case "ok":
+      return "环境变量、关键路径和 worker 心跳都通过了系统自检。";
+    case "warning":
+    case "degraded":
+      return "系统还能部分工作，但至少有一项自检没有通过。";
+    case "critical":
+    case "error":
+    case "failed":
+      return "核心自检失败，说明运行链路里至少有一个关键部件已经异常。";
+    default:
+      return "健康状态未知，建议先查看 healthz 原始 JSON。";
+  }
+}
+
+function workerMeaning(raw: unknown, queuedJobs: number | string | null, stale: boolean | null) {
+  if (stale === true) {
+    return "Worker 心跳已经过期，说明进程可能卡住、退出或失联。";
+  }
+
+  switch (normalizedStatus(raw)) {
+    case "idle":
+      if (queuedJobs === 0 || queuedJobs === "0") {
+        return "Worker 在线且当前没有排队任务。";
+      }
+      return "Worker 在线，当前处于空闲态，但队列里还有待处理任务。";
+    case "active":
+      return "Worker 正在运行并处理任务。";
+    case "warning":
+    case "degraded":
+      return "Worker 还能工作，但已经出现异常信号。";
+    case "critical":
+    case "error":
+    case "failed":
+      return "Worker 已报错或失败，需要优先查看 worker 日志。";
+    default:
+      return "Worker 状态未知，建议结合心跳和日志继续判断。";
+  }
+}
+
+function timerMeaning(label: string, raw: unknown) {
+  switch (normalizedStatus(raw)) {
+    case "active":
+      return `${label} 已启用并处于运行状态。`;
+    case "warning":
+    case "degraded":
+      return `${label} 仍可能在工作，但状态已经降级。`;
+    case "critical":
+    case "error":
+    case "failed":
+      return `${label} 已异常或失败，相关自动化链路需要人工接手。`;
+    default:
+      return `${label} 状态未知，建议检查对应 systemd unit。`;
+  }
+}
+
+function overallMeaning(raw: unknown, issueCount: number) {
+  switch (normalizedStatus(raw)) {
+    case "ok":
+      return issueCount === 0
+        ? "当前快照没有发现活跃问题，系统处于可运行状态。"
+        : `系统总体正常，但仍记录到 ${issueCount} 个待关注问题。`;
+    case "warning":
+    case "degraded":
+      return `系统可部分工作，但当前有 ${issueCount} 个问题需要继续跟进。`;
+    case "critical":
+    case "error":
+    case "failed":
+      return `系统存在严重异常，当前有 ${issueCount} 个活跃问题需要立即处理。`;
+    default:
+      return "系统总状态未知，建议先查看当前问题和 healthz 原始结果。";
+  }
+}
+
+export function buildOpsStatusSummaryZh(
+  payload: OpsStatusPayload,
+  authMode: "token" | "basic" | null
+): OpsStatusSummaryZh {
+  const health = payload.health as Record<string, unknown>;
+  const worker = (health.worker as Record<string, unknown> | undefined) || payload.workerHeartbeat;
+  const alertStatus = payload.alertStatus;
+  const issues = (alertStatus.issues as Array<Record<string, unknown>> | undefined) || [];
+
+  const overallRaw = String(alertStatus.status || health.status || "unknown");
+  const webRaw = String(payload.services.web || "unknown");
+  const healthRaw = String(health.status || "unknown");
+  const workerRaw = String(worker.status || "unknown");
+  const captureRaw = String(payload.services.captureTimer || "unknown");
+  const pruneRaw = String(payload.services.pruneTimer || "unknown");
+  const statusPageRaw = String(payload.services.statusPage || "unknown");
+  const queuedJobsRaw = worker.queuedJobs ?? worker.queued_jobs ?? null;
+  const queuedJobs =
+    typeof queuedJobsRaw === "number" || typeof queuedJobsRaw === "string"
+      ? queuedJobsRaw
+      : null;
+  const stale = typeof worker.stale === "boolean" ? worker.stale : null;
+
+  const issueItems: OpsStatusIssueSummaryZh[] = issues.map((item) => ({
+    severityRaw: String(item.severity || "unknown"),
+    severityText: severityText(item.severity || "unknown"),
+    message: String(item.message || ""),
+  }));
+
+  return {
+    access: {
+      modeRaw: authMode || "unknown",
+      modeText: authModeText(authMode),
+    },
+    overall: {
+      label: "总状态",
+      raw: overallRaw,
+      text: statusText(overallRaw),
+      meaning: overallMeaning(overallRaw, issueItems.length),
+      openIssueCount: issueItems.length,
+    },
+    web: {
+      label: "Web 服务",
+      raw: webRaw,
+      text: statusText(webRaw),
+      meaning: webMeaning(webRaw),
+    },
+    health: {
+      label: "健康总状态",
+      raw: healthRaw,
+      text: statusText(healthRaw),
+      meaning: healthMeaning(healthRaw),
+      snapshotRoot: payload.snapshotRoot,
+    },
+    worker: {
+      label: "Worker",
+      raw: workerRaw,
+      text: statusText(workerRaw),
+      meaning: workerMeaning(workerRaw, queuedJobs, stale),
+      queuedJobs,
+      stale,
+      staleText: boolText(stale),
+    },
+    timers: {
+      capture: {
+        label: "快照定时器",
+        raw: captureRaw,
+        text: statusText(captureRaw),
+        meaning: timerMeaning("快照定时器", captureRaw),
+      },
+      prune: {
+        label: "清理定时器",
+        raw: pruneRaw,
+        text: statusText(pruneRaw),
+        meaning: timerMeaning("清理定时器", pruneRaw),
+      },
+      statusPage: {
+        label: "本机状态页服务",
+        raw: statusPageRaw,
+        text: statusText(statusPageRaw),
+        meaning: timerMeaning("本机状态页服务", statusPageRaw),
+      },
+    },
+    currentIssues: {
+      count: issueItems.length,
+      text: issueItems.length === 0 ? "当前没有未解决问题。" : `当前有 ${issueItems.length} 个未解决问题。`,
+      items: issueItems,
+    },
+    guide: [
+      "Web 服务：主站页面和 API 是否还在正常提供服务。",
+      "健康总状态：综合环境变量、关键路径和 worker 心跳后的系统结论。",
+      "Worker：任务处理器是否在线，queuedJobs 表示待处理任务数，stale 表示心跳是否过期。",
+      "运维定时器：capture 负责留快照，prune 负责清理旧快照，statusPage 是本机状态页服务。",
+      "当前问题：这里只列出还没解决的异常，方便快速判断是否需要人工介入。",
+    ],
+  };
 }
 
 function escapeHtml(value: string) {
