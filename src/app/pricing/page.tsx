@@ -1,93 +1,267 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import LocaleToggle from "@/components/locale-toggle";
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
+import { getLocale } from "@/lib/locale";
+import type { Locale } from "@/lib/locale-config";
 
-export const metadata: Metadata = {
-  title: "Pricing — BacklinkPilot",
-  description:
-    "Consumer-friendly pricing for backlink automation. Set up your first product for free, then unlock live directory and stealth submission plans from $29/month.",
-};
+function getPricingCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      metadata: {
+        title: "价格 - BacklinkPilot",
+        description:
+          "BacklinkPilot 的消费级外链自动化定价。先免费配置首个产品，再按真实目录与 stealth 提交执行量升级。",
+      },
+      nav: {
+        product: "产品",
+        pricing: "价格",
+        faq: "常见问题",
+        login: "登录",
+        tryFree: "免费开始配置",
+      },
+      hero: {
+        eyebrow: "价格",
+        titleTop: "先完成配置。",
+        titleBottom: "执行时再付费。",
+        body:
+          "定价应该像一个清晰的解锁点，而不是一道墙。现在你可以先免费添加首个产品，再根据自己想跑的真实提交量选择合适计划。",
+        summary: [
+          { label: "免费配置", value: "1 个产品" },
+          { label: "今天已上线", value: `${LIVE_CHANNEL_COUNT} 个渠道` },
+          { label: "起步价", value: "$29 / 月" },
+        ],
+      },
+      plans: [
+        {
+          name: "入门版",
+          price: 29,
+          accent: "border-[var(--line-soft)] bg-white/[0.03]",
+          eyebrow: "适合第一次启动",
+          desc: "适合一个产品的第一步付费计划，让目录分发正式开始动起来。",
+          features: [
+            "1 个产品",
+            "100 次提交 / 月",
+            "目录提交",
+            "Stealth 浏览器提交",
+            "基础报告",
+          ],
+          note: "当你已经明确要推哪个产品时，这就是最干净的起点。",
+          cta: "解锁入门版",
+          href: "/api/stripe/checkout?plan=starter",
+        },
+        {
+          name: "增长版",
+          price: 79,
+          accent:
+            "border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.16),rgba(208,166,90,0.05))]",
+          eyebrow: "适合真正要做分发",
+          desc: "这是默认主计划，适合把外链分发当成明确增长动作来跑的团队。",
+          features: [
+            "3 个产品",
+            "500 次提交 / 月",
+            `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+            `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个渠道推进中`,
+            "优先支持",
+          ],
+          note: "如果外链分发已经是你的活跃增长通道，这通常是最合适的计划。",
+          cta: "解锁增长版",
+          href: "/api/stripe/checkout?plan=growth",
+        },
+        {
+          name: "规模版",
+          price: 199,
+          accent: "border-[var(--line-soft)] bg-white/[0.03]",
+          eyebrow: "适合多产品团队",
+          desc: "面向代理、运营团队和需要管理更大产品组合的组织。",
+          features: [
+            "10 个产品",
+            "不限提交量",
+            `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+            "自定义目录处理",
+            "API 访问",
+          ],
+          note: "当瓶颈已经不是 onboarding，而是吞吐与控制力时，就该上这个计划。",
+          cta: "解锁规模版",
+          href: "/api/stripe/checkout?plan=scale",
+        },
+      ],
+      comparison: {
+        eyebrow: "对比",
+        title: "直接讲清楚差别，而不是把价格页做成迷宫。",
+        columns: ["变化点", "入门版", "增长版", "规模版"],
+        rows: [
+          ["付费前可先免费配置", "是", "是", "是"],
+          ["已上线提交渠道", "2", "2", "2"],
+          ["包含产品数", "1", "3", "10"],
+          ["月度提交容量", "100", "500", "不限"],
+          ["适合谁", "单产品启动", "活跃增长", "团队与代理"],
+        ],
+      },
+      faq: {
+        eyebrow: "常见问题",
+        title: "把价格问题直接讲明白，不靠细则迷惑用户。",
+        items: [
+          {
+            q: "付费前能先体验流程吗？",
+            a: "可以。你现在可以先免费添加一个产品、自动识别它的基础信息，并在购买前理解整个流程。",
+          },
+          {
+            q: "升级之后到底会发生什么？",
+            a: "升级会把你保存的产品档案变成真实提交的执行源，目录和 stealth 渠道都可以从它直接开始跑。",
+          },
+          {
+            q: "为什么不做到首条提交前都免费？",
+            a: "免费层的目标是降低 onboarding 摩擦，而不是覆盖真实执行成本。真正开始代你跑分发时，才进入付费计划。",
+          },
+        ],
+      },
+      cta: {
+        eyebrow: "下一步",
+        title: "先从免费配置流程开始。",
+        body:
+          "如果系统能正确理解你的主页，流程体验也足够顺滑，再在你准备好时升级进入真实提交。",
+        button: "打开 Dashboard",
+      },
+      unit: "每月",
+    };
+  }
 
-const plans = [
-  {
-    name: "Starter",
-    price: 29,
-    accent: "border-[var(--line-soft)] bg-white/[0.03]",
-    eyebrow: "For first launches",
-    desc: "A clean first paid step for one product that needs real directory momentum.",
-    features: [
-      "1 product",
-      "100 submissions / month",
-      "Directory Submission",
-      "Stealth Browser Submission",
-      "Basic reporting",
+  return {
+    metadata: {
+      title: "Pricing — BacklinkPilot",
+      description:
+        "Consumer-friendly pricing for backlink automation. Set up your first product for free, then unlock live directory and stealth submission plans from $29/month.",
+    },
+    nav: {
+      product: "Product",
+      pricing: "Pricing",
+      faq: "FAQ",
+      login: "Log in",
+      tryFree: "Try Free Setup",
+    },
+    hero: {
+      eyebrow: "Pricing",
+      titleTop: "Set up first.",
+      titleBottom: "Pay for execution.",
+      body:
+        "Pricing should feel like a clear unlock, not a wall. The product now lets you add your first product for free, then choose the plan that matches the amount of real submission work you want to run.",
+      summary: [
+        { label: "Free setup", value: "1 product" },
+        { label: "Live today", value: `${LIVE_CHANNEL_COUNT} channels` },
+        { label: "Starts at", value: "$29 / month" },
+      ],
+    },
+    plans: [
+      {
+        name: "Starter",
+        price: 29,
+        accent: "border-[var(--line-soft)] bg-white/[0.03]",
+        eyebrow: "For first launches",
+        desc: "A clean first paid step for one product that needs real directory momentum.",
+        features: [
+          "1 product",
+          "100 submissions / month",
+          "Directory Submission",
+          "Stealth Browser Submission",
+          "Basic reporting",
+        ],
+        note: "Best when you already know what product you want to push.",
+        cta: "Unlock Starter",
+        href: "/api/stripe/checkout?plan=starter",
+      },
+      {
+        name: "Growth",
+        price: 79,
+        accent:
+          "border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.16),rgba(208,166,90,0.05))]",
+        eyebrow: "For serious distribution",
+        desc: "The main plan for teams that want enough volume to actually feel the product compounding.",
+        features: [
+          "3 products",
+          "500 submissions / month",
+          `${LIVE_CHANNEL_COUNT} live channels today`,
+          `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
+          "Priority support",
+        ],
+        note: "This is the default plan if backlink distribution is an active growth lane.",
+        cta: "Unlock Growth",
+        href: "/api/stripe/checkout?plan=growth",
+      },
+      {
+        name: "Scale",
+        price: 199,
+        accent: "border-[var(--line-soft)] bg-white/[0.03]",
+        eyebrow: "For multi-product teams",
+        desc: "For agencies, operators, and product groups managing a broader portfolio.",
+        features: [
+          "10 products",
+          "Unlimited submissions",
+          `${LIVE_CHANNEL_COUNT} live channels today`,
+          "Custom directory handling",
+          "API access",
+        ],
+        note: "Use this when the bottleneck is not onboarding, but throughput and control.",
+        cta: "Unlock Scale",
+        href: "/api/stripe/checkout?plan=scale",
+      },
     ],
-    note: "Best when you already know what product you want to push.",
-    cta: "Unlock Starter",
-    href: "/api/stripe/checkout?plan=starter",
-  },
-  {
-    name: "Growth",
-    price: 79,
-    accent:
-      "border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.16),rgba(208,166,90,0.05))]",
-    eyebrow: "For serious distribution",
-    desc: "The main plan for teams that want enough volume to actually feel the product compounding.",
-    features: [
-      "3 products",
-      "500 submissions / month",
-      `${LIVE_CHANNEL_COUNT} live channels today`,
-      `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
-      "Priority support",
-    ],
-    note: "This is the default plan if backlink distribution is an active growth lane.",
-    cta: "Unlock Growth",
-    href: "/api/stripe/checkout?plan=growth",
-  },
-  {
-    name: "Scale",
-    price: 199,
-    accent: "border-[var(--line-soft)] bg-white/[0.03]",
-    eyebrow: "For multi-product teams",
-    desc: "For agencies, operators, and product groups managing a broader portfolio.",
-    features: [
-      "10 products",
-      "Unlimited submissions",
-      `${LIVE_CHANNEL_COUNT} live channels today`,
-      "Custom directory handling",
-      "API access",
-    ],
-    note: "Use this when the bottleneck is not onboarding, but throughput and control.",
-    cta: "Unlock Scale",
-    href: "/api/stripe/checkout?plan=scale",
-  },
-];
+    comparison: {
+      eyebrow: "Comparison",
+      title: "A plain-language comparison, not a pricing maze.",
+      columns: ["What changes", "Starter", "Growth", "Scale"],
+      rows: [
+        ["Free setup before paying", "Yes", "Yes", "Yes"],
+        ["Live submission channels", "2", "2", "2"],
+        ["Products included", "1", "3", "10"],
+        ["Monthly submission capacity", "100", "500", "Unlimited"],
+        ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
+      ],
+    },
+    faq: {
+      eyebrow: "FAQ",
+      title: "Pricing answers without the usual fine-print fog.",
+      items: [
+        {
+          q: "Can I try the workflow before paying?",
+          a: "Yes. You can now add your first product for free, auto-detect its basic profile, and understand the flow before you buy a plan.",
+        },
+        {
+          q: "What actually changes when I upgrade?",
+          a: "Upgrade turns your saved product profile into a live submission source. Directory and stealth routes can then run from the product you already configured.",
+        },
+        {
+          q: "Why not make everything free until first submission?",
+          a: "The free tier is meant to reduce onboarding friction, not subsidize execution cost. Paid plans start when the system begins doing real distribution work on your behalf.",
+        },
+      ],
+    },
+    cta: {
+      eyebrow: "Next step",
+      title: "Start with the free setup flow.",
+      body:
+        "If the product understands your homepage and the workflow feels right, upgrade when you are ready to run live submissions.",
+      button: "Open Dashboard",
+    },
+    unit: "per month",
+  };
+}
 
-const comparisonRows = [
-  ["Free setup before paying", "Yes", "Yes", "Yes"],
-  ["Live submission channels", "2", "2", "2"],
-  ["Products included", "1", "3", "10"],
-  ["Monthly submission capacity", "100", "500", "Unlimited"],
-  ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const copy = getPricingCopy(locale);
 
-const pricingFaq = [
-  {
-    q: "Can I try the workflow before paying?",
-    a: "Yes. You can now add your first product for free, auto-detect its basic profile, and understand the flow before you buy a plan.",
-  },
-  {
-    q: "What actually changes when I upgrade?",
-    a: "Upgrade turns your saved product profile into a live submission source. Directory and stealth routes can then run from the product you already configured.",
-  },
-  {
-    q: "Why not make everything free until first submission?",
-    a: "The free tier is meant to reduce onboarding friction, not subsidize execution cost. Paid plans start when the system begins doing real distribution work on your behalf.",
-  },
-];
+  return {
+    title: copy.metadata.title,
+    description: copy.metadata.description,
+  };
+}
 
-export default function Pricing() {
+export default async function Pricing() {
+  const locale = await getLocale();
+  const copy = getPricingCopy(locale);
+
   return (
     <main className="overflow-x-hidden">
       <nav className="fixed inset-x-0 top-0 z-50">
@@ -99,24 +273,25 @@ export default function Pricing() {
             BacklinkPilot
           </Link>
           <div className="hidden items-center gap-8 text-sm text-stone-400 md:flex">
-            <Link href="/#product">Product</Link>
+            <Link href="/#product">{copy.nav.product}</Link>
             <Link href="/pricing" className="text-stone-100">
-              Pricing
+              {copy.nav.pricing}
             </Link>
-            <Link href="/#faq">FAQ</Link>
+            <Link href="/#faq">{copy.nav.faq}</Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <LocaleToggle locale={locale} className="hidden sm:inline-flex" />
             <Link
               href="/login"
               className="text-sm text-stone-400 transition hover:text-white"
             >
-              Log in
+              {copy.nav.login}
             </Link>
             <Link
               href="/dashboard"
               className="rounded-full border border-[var(--line-strong)] bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
             >
-              Try Free Setup
+              {copy.nav.tryFree}
             </Link>
           </div>
         </div>
@@ -127,29 +302,26 @@ export default function Pricing() {
         <div className="absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,rgba(246,212,148,0.16),transparent_58%)]" />
         <div className="relative mx-auto max-w-7xl">
           <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-            Pricing
+            {copy.hero.eyebrow}
           </p>
           <div className="mt-5 grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
             <div>
               <h1 className="font-display text-5xl leading-[0.95] text-stone-50 md:text-7xl">
-                Set up first.
+                {copy.hero.titleTop}
                 <br />
-                Pay for execution.
+                {copy.hero.titleBottom}
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-stone-400 md:text-lg">
-                Pricing should feel like a clear unlock, not a wall. The product now lets
-                you add your first product for free, then choose the plan that matches the
-                amount of real submission work you want to run.
+                {copy.hero.body}
               </p>
+              <div className="mt-6 sm:hidden">
+                <LocaleToggle locale={locale} />
+              </div>
             </div>
 
             <div className="rounded-[2rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
               <div className="grid gap-4 md:grid-cols-3">
-                {[
-                  { label: "Free setup", value: "1 product" },
-                  { label: "Live today", value: `${LIVE_CHANNEL_COUNT} channels` },
-                  { label: "Starts at", value: "$29 / month" },
-                ].map((item) => (
+                {copy.hero.summary.map((item) => (
                   <div
                     key={item.label}
                     className="rounded-[1.35rem] border border-[var(--line-soft)] bg-stone-950/60 p-4"
@@ -170,7 +342,7 @@ export default function Pricing() {
 
       <section className="px-5 py-14 md:px-8 md:py-18">
         <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-3">
-          {plans.map((plan) => (
+          {copy.plans.map((plan) => (
             <article
               key={plan.name}
               className={`rounded-[2rem] border p-7 ${plan.accent}`}
@@ -192,7 +364,7 @@ export default function Pricing() {
                     ${plan.price}
                   </p>
                   <p className="mt-2 text-xs uppercase tracking-[0.24em] text-stone-500">
-                    per month
+                    {copy.unit}
                   </p>
                 </div>
               </div>
@@ -200,10 +372,7 @@ export default function Pricing() {
               <div className="mt-8 border-t border-[var(--line-soft)] pt-6">
                 <ul className="space-y-3 text-sm leading-6 text-stone-300">
                   {plan.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-start gap-3"
-                    >
+                    <li key={feature} className="flex items-start gap-3">
                       <span className="mt-1 h-2 w-2 rounded-full bg-[var(--accent-300)]" />
                       <span>{feature}</span>
                     </li>
@@ -211,9 +380,7 @@ export default function Pricing() {
                 </ul>
               </div>
 
-              <p className="mt-8 text-sm leading-6 text-stone-500">
-                {plan.note}
-              </p>
+              <p className="mt-8 text-sm leading-6 text-stone-500">{plan.note}</p>
 
               <a
                 href={plan.href}
@@ -231,21 +398,25 @@ export default function Pricing() {
           <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                Comparison
+                {copy.comparison.eyebrow}
               </p>
               <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-                A plain-language comparison, not a pricing maze.
+                {copy.comparison.title}
               </h2>
             </div>
 
             <div className="overflow-hidden rounded-[2rem] border border-[var(--line-soft)]">
               <div className="grid grid-cols-[1.2fr_repeat(3,minmax(0,1fr))] bg-stone-950/60 px-5 py-4 text-xs uppercase tracking-[0.24em] text-stone-500">
-                <span>What changes</span>
-                <span className="text-center">Starter</span>
-                <span className="text-center">Growth</span>
-                <span className="text-center">Scale</span>
+                {copy.comparison.columns.map((column) => (
+                  <span
+                    key={column}
+                    className={column === copy.comparison.columns[0] ? "" : "text-center"}
+                  >
+                    {column}
+                  </span>
+                ))}
               </div>
-              {comparisonRows.map(([label, starter, growth, scale]) => (
+              {copy.comparison.rows.map(([label, starter, growth, scale]) => (
                 <div
                   key={label}
                   className="grid grid-cols-[1.2fr_repeat(3,minmax(0,1fr))] border-t border-[var(--line-soft)] px-5 py-4 text-sm text-stone-300"
@@ -265,14 +436,14 @@ export default function Pricing() {
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.75fr_1.25fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              FAQ
+              {copy.faq.eyebrow}
             </p>
             <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-              Pricing answers without the usual fine-print fog.
+              {copy.faq.title}
             </h2>
           </div>
           <div className="space-y-4">
-            {pricingFaq.map((item) => (
+            {copy.faq.items.map((item) => (
               <details
                 key={item.q}
                 className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.03] p-6"
@@ -292,20 +463,20 @@ export default function Pricing() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                Next step
+                {copy.cta.eyebrow}
               </p>
               <h2 className="font-display mt-4 text-4xl leading-none text-stone-50 md:text-5xl">
-                Start with the free setup flow.
+                {copy.cta.title}
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-stone-400">
-                If the product understands your homepage and the workflow feels right, upgrade when you are ready to run live submissions.
+                {copy.cta.body}
               </p>
             </div>
             <Link
               href="/dashboard"
               className="inline-flex rounded-full bg-[var(--accent-500)] px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
             >
-              Open Dashboard
+              {copy.cta.button}
             </Link>
           </div>
         </div>

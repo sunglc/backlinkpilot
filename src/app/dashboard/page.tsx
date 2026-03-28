@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { getLocale } from "@/lib/locale";
 import DashboardClient from "./dashboard-client";
 
 export default async function Dashboard() {
+  const locale = await getLocale();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -24,6 +26,7 @@ export default async function Dashboard() {
 
   return (
     <DashboardClient
+      locale={locale}
       user={user}
       subscription={subscription}
       products={products || []}

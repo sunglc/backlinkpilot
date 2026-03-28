@@ -1,97 +1,383 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
+import LocaleToggle from "@/components/locale-toggle";
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
+import { getLocale } from "@/lib/locale";
+import type { Locale } from "@/lib/locale-config";
 
-const signalStrip = [
-  "500+ vetted directories",
-  `${LIVE_CHANNEL_COUNT} live channels today`,
-  "Free first-product setup",
-  "AI-assisted copy detection",
-];
+function getHomeCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      metadata: {
+        title: "BacklinkPilot - 自动驾驶你的外链增长",
+        description:
+          "把产品网址贴进来，自动识别信息并启动真实目录与 stealth 外链执行。先免费完成首个产品配置，再按执行量付费。",
+      },
+      nav: {
+        product: "产品",
+        workflow: "流程",
+        pricing: "价格",
+        faq: "常见问题",
+        login: "登录",
+        tryFree: "免费开始配置",
+      },
+      hero: {
+        eyebrow: "消费级外链工具",
+        titleTop: "贴上你的首页。",
+        titleBottom: "带着一套可执行的外链启动方案离开。",
+        body:
+          "BacklinkPilot 会把一个普通产品网址变成可直接提交的产品档案，再把它送入真实的目录与 stealth 渠道，而不是让你去学习代理商式的复杂流程。",
+        primaryCta: "免费开始配置",
+        secondaryCta: "查看价格",
+        signals: [
+          "500+ 经过筛选的目录",
+          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+          "首个产品可免费配置",
+          "AI 辅助识别文案",
+        ],
+      },
+      panel: {
+        eyebrow: "首个产品配置",
+        title: "一个网址进来，一份可执行档案出来。",
+        live: "已上线",
+        homepageUrl: "首页网址",
+        profile: "自动识别的产品档案",
+        productName: "产品名称",
+        description: "描述",
+        profileBody:
+          "为独立开发者和小团队提供自动化外链配置，让目录分发、stealth 提交和启动期传播更容易落地。",
+        readiness: "提交准备度",
+        directoryNetwork: "目录网络",
+        stealthRoute: "Stealth 渠道",
+        outreachLanes: "外联渠道",
+        ready: "就绪",
+        rollout: "推进中",
+        deltaTitle: "和手工模式相比，变化是什么",
+        deltaBody:
+          "现在的产品体验更像消费级 onboarding，而不是后台表单：先识别文案、先免费保存一个产品，再在准备好时升级进入真实执行。",
+      },
+      valueSection: {
+        eyebrow: "为什么它的感觉不一样",
+        title: "它是为第一波真正有意义的外链而做，不是为企业级 SEO 表演而做。",
+        points: [
+          {
+            title: "从你的首页开始",
+            detail:
+              "贴上网址后，BacklinkPilot 会先拉取产品名、标题和描述，你不需要一开始就手动填写所有字段。",
+          },
+          {
+            title: "围绕真实提交场景构建",
+            detail:
+              "目录和 stealth 渠道今天就能跑，其他渠道明确标记为推进中，而不是假装已经全部上线。",
+          },
+          {
+            title: "为 maker 而不是 SEO 团队设计",
+            detail:
+              "你不需要 VA、外链代理或一整套复杂 SOP，才能让第一波外链分发真正动起来。",
+          },
+        ],
+      },
+      workflowSection: {
+        eyebrow: "流程",
+        title: "三步完成，不再拆成十五个零碎的 SEO 小动作。",
+        items: [
+          {
+            step: "01",
+            title: "贴上你的首页",
+            copy:
+              "从你已经上线的产品网址开始。系统会规范化 URL、读取公开元信息，并把它整理成产品档案。",
+            aside: "典型耗时：30 秒以内",
+          },
+          {
+            step: "02",
+            title: "确认产品定位",
+            copy:
+              "修改自动识别出的名称和描述，然后决定什么时候升级，进入真实的目录与 stealth 提交流程。",
+            aside: "不用从零写提交文案",
+          },
+          {
+            step: "03",
+            title: "让引擎去跑",
+            copy:
+              "从一个地方看队列、进度和执行状态，不用再在表格、外包和外联文档之间来回切换。",
+            aside: "为前 500 条外链设计，不为企业式包装设计",
+          },
+        ],
+      },
+      channelSection: {
+        eyebrow: "渠道真相",
+        title: "诚实说明什么能跑，胜过假装“所有渠道都已上线”。",
+        body:
+          "产品会清楚说出今天哪些渠道已可执行，哪些还在推进中。消费级工具最重要的是第一天就建立信任，而不是退款后再解释。",
+        liveNow: "今天可跑",
+        rollingOut: "下一步推进",
+        lanes: "个渠道",
+        ready: "就绪",
+        soon: "即将推出",
+        roadmap: `总路线图：${TOTAL_CHANNEL_COUNT} 个渠道，今天已上线：${LIVE_CHANNEL_COUNT} 个。`,
+        groups: [
+          {
+            label: "今天可跑",
+            tone: "text-emerald-300",
+            items: ["目录提交", "Stealth 浏览器提交"],
+          },
+          {
+            label: "下一步推进",
+            tone: "text-amber-200",
+            items: ["社区提交", "资源页外联", "社交分发", "编辑外联"],
+          },
+        ],
+      },
+      pricingTeaser: {
+        eyebrow: "定价姿态",
+        titleTop: "先完成配置。",
+        titleBottom: "想要执行时再付费。",
+        body:
+          "现在的新用户可以先感受到流程本身，再决定是否付费。定价的作用是解锁真实提交能力，而不是挡在最前面制造摩擦。",
+        cta: "查看完整价格",
+        cards: [
+          {
+            label: "入门版",
+            price: "$29",
+            desc: "一个产品、基础执行量，适合干净地启动第一轮分发。",
+            accent: "rounded-[1.75rem] border p-6 border-[var(--line-soft)] bg-white/[0.03]",
+          },
+          {
+            label: "增长版",
+            price: "$79",
+            desc: "适合已经把外链分发当成实际增长动作来跑的产品。",
+            accent:
+              "rounded-[1.75rem] border p-6 border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.13),rgba(208,166,90,0.04))]",
+          },
+          {
+            label: "规模版",
+            price: "$199",
+            desc: "适合多产品团队、代理运营和更高吞吐的执行需求。",
+            accent: "rounded-[1.75rem] border p-6 border-[var(--line-soft)] bg-white/[0.03]",
+          },
+        ],
+      },
+      faqSection: {
+        eyebrow: "常见问题",
+        title: "把真正重要的问题，直接讲清楚。",
+        items: [
+          {
+            q: "这样做对 SEO 安全么？",
+            a: "产品围绕经过筛选的目录和受控的 rollout 设计，明确不是做垃圾量、也不是做 PBN 自动化。",
+          },
+          {
+            q: "为什么“免费配置”这么重要？",
+            a: "因为消费级工具应该让人先感受到流程，再要求付费。你现在可以先添加一个产品，看系统如何识别它，再决定是否升级。",
+          },
+          {
+            q: "升级之后会发生什么？",
+            a: "你保存下来的产品档案会变成真实渠道的执行源。目录和 stealth 路线可以直接从这个档案开始跑。",
+          },
+          {
+            q: "现在是不是所有渠道都上线了？",
+            a: `不是。今天上线了 ${LIVE_CHANNEL_COUNT} 个渠道，剩余 ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个会明确标记为推进中，不会过度承诺。`,
+          },
+        ],
+      },
+    };
+  }
 
-const valuePoints = [
-  {
-    title: "Starts from your homepage",
-    detail:
-      "Paste your URL and BacklinkPilot pulls the name, title, and product description before you touch a field.",
-  },
-  {
-    title: "Built for real submission work",
-    detail:
-      "Directories and stealth routes are live now. The rest of the network is shown honestly as rollout, not fake coverage.",
-  },
-  {
-    title: "Made for makers, not SEO teams",
-    detail:
-      "You do not need a VA, a link agency, or a giant playbook just to get your first wave of backlinks moving.",
-  },
-];
+  return {
+    metadata: {
+      title: "BacklinkPilot — Autopilot for Your Backlinks",
+      description:
+        "Paste your product URL, auto-detect site copy, and launch into real directory and stealth backlink workflows. Set up the first product for free, then pay for execution.",
+    },
+    nav: {
+      product: "Product",
+      workflow: "Workflow",
+      pricing: "Pricing",
+      faq: "FAQ",
+      login: "Log in",
+      tryFree: "Try Free Setup",
+    },
+    hero: {
+      eyebrow: "Consumer link-building tool",
+      titleTop: "Paste your homepage.",
+      titleBottom: "Leave with a live backlink launch plan.",
+      body:
+        "BacklinkPilot turns a plain product URL into a submission-ready profile, then routes it into real directory and stealth channels without making you learn agency-style workflows.",
+      primaryCta: "Start Free Setup",
+      secondaryCta: "See Pricing",
+      signals: [
+        "500+ vetted directories",
+        `${LIVE_CHANNEL_COUNT} live channels today`,
+        "Free first-product setup",
+        "AI-assisted copy detection",
+      ],
+    },
+    panel: {
+      eyebrow: "First-product setup",
+      title: "One URL in, ready-to-run profile out.",
+      live: "Live now",
+      homepageUrl: "Homepage URL",
+      profile: "Auto-detected profile",
+      productName: "Product name",
+      description: "Description",
+      profileBody:
+        "Automated backlink setup for makers who want vetted directory reach, stealth unlocks, and a clean launch path.",
+      readiness: "Submission readiness",
+      directoryNetwork: "Directory network",
+      stealthRoute: "Stealth route",
+      outreachLanes: "Outreach lanes",
+      ready: "Ready",
+      rollout: "Rollout",
+      deltaTitle: "What changes versus manual work",
+      deltaBody:
+        "The product now feels like an onboarding flow, not an admin form: detect copy first, save one product free, then upgrade when you are ready to run.",
+    },
+    valueSection: {
+      eyebrow: "Why this feels different",
+      title:
+        "Built for the first meaningful wave of backlinks, not enterprise SEO theatre.",
+      points: [
+        {
+          title: "Starts from your homepage",
+          detail:
+            "Paste your URL and BacklinkPilot pulls the name, title, and product description before you touch a field.",
+        },
+        {
+          title: "Built for real submission work",
+          detail:
+            "Directories and stealth routes are live now. The rest of the network is shown honestly as rollout, not fake coverage.",
+        },
+        {
+          title: "Made for makers, not SEO teams",
+          detail:
+            "You do not need a VA, a link agency, or a giant playbook just to get your first wave of backlinks moving.",
+        },
+      ],
+    },
+    workflowSection: {
+      eyebrow: "Workflow",
+      title: "Three clean steps instead of fifteen little SEO chores.",
+      items: [
+        {
+          step: "01",
+          title: "Paste your homepage",
+          copy:
+            "Start with the URL you already ship. The app normalizes it, reads public metadata, and turns it into a product profile.",
+          aside: "Typical time: under 30 seconds",
+        },
+        {
+          step: "02",
+          title: "Confirm the positioning",
+          copy:
+            "Edit the detected name and description, then choose when to upgrade into live directory and stealth submission lanes.",
+          aside: "No need to write submission copy from scratch",
+        },
+        {
+          step: "03",
+          title: "Let the engine run",
+          copy:
+            "Track queue, progress, and operational status from one place instead of juggling spreadsheets, VAs, and outreach docs.",
+          aside: "Designed for the first 500 backlinks, not enterprise theatre",
+        },
+      ],
+    },
+    channelSection: {
+      eyebrow: "Channel truth",
+      title: "Honest coverage beats fake “all channels live” marketing.",
+      body:
+        "The product says exactly what is ready today and what is still rolling out. That matters because consumer trust is easier to win on day one than after a refund.",
+      liveNow: "Live now",
+      rollingOut: "Rolling out next",
+      lanes: "lanes",
+      ready: "Ready",
+      soon: "Soon",
+      roadmap: `Total roadmap: ${TOTAL_CHANNEL_COUNT} channels. Live today: ${LIVE_CHANNEL_COUNT}.`,
+      groups: [
+        {
+          label: "Live now",
+          tone: "text-emerald-300",
+          items: ["Directory Submission", "Stealth Browser Submission"],
+        },
+        {
+          label: "Rolling out next",
+          tone: "text-amber-200",
+          items: [
+            "Community Submission",
+            "Resource Page Outreach",
+            "Social Distribution",
+            "Editorial Outreach",
+          ],
+        },
+      ],
+    },
+    pricingTeaser: {
+      eyebrow: "Pricing posture",
+      titleTop: "Start with setup.",
+      titleBottom: "Pay when you want the engine.",
+      body:
+        "The product now lets new users feel the workflow before committing. Pricing is there to unlock live submission capacity, not block basic orientation.",
+      cta: "Open Full Pricing",
+      cards: [
+        {
+          label: "Starter",
+          price: "$29",
+          desc: "Single product, essential volume, clean first launch.",
+          accent: "rounded-[1.75rem] border p-6 border-[var(--line-soft)] bg-white/[0.03]",
+        },
+        {
+          label: "Growth",
+          price: "$79",
+          desc: "The main plan for products actively building distribution.",
+          accent:
+            "rounded-[1.75rem] border p-6 border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.13),rgba(208,166,90,0.04))]",
+        },
+        {
+          label: "Scale",
+          price: "$199",
+          desc: "For teams, larger portfolios, and custom submission depth.",
+          accent: "rounded-[1.75rem] border p-6 border-[var(--line-soft)] bg-white/[0.03]",
+        },
+      ],
+    },
+    faqSection: {
+      eyebrow: "FAQ",
+      title: "Short answers for the questions that actually matter.",
+      items: [
+        {
+          q: "Is this safe for SEO?",
+          a: "The product is built around vetted directories and controlled rollout. It is explicitly not positioned as spam volume or private-blog-network automation.",
+        },
+        {
+          q: "Why is free setup important?",
+          a: "Because a consumer tool should let you feel the workflow before asking for money. You can now add one product and see the system recognize it before you upgrade.",
+        },
+        {
+          q: "What happens after I upgrade?",
+          a: "Your saved product profile becomes the source of truth for live channels. Directory and stealth routes can start from that profile immediately.",
+        },
+        {
+          q: "Is everything already live?",
+          a: `No. ${LIVE_CHANNEL_COUNT} channels are live today, and the remaining ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} are shown as rollout so the product does not over-promise.`,
+        },
+      ],
+    },
+  };
+}
 
-const workflow = [
-  {
-    step: "01",
-    title: "Paste your homepage",
-    copy:
-      "Start with the URL you already ship. The app normalizes it, reads public metadata, and turns it into a product profile.",
-    aside: "Typical time: under 30 seconds",
-  },
-  {
-    step: "02",
-    title: "Confirm the positioning",
-    copy:
-      "Edit the detected name and description, then choose when to upgrade into live directory and stealth submission lanes.",
-    aside: "No need to write submission copy from scratch",
-  },
-  {
-    step: "03",
-    title: "Let the engine run",
-    copy:
-      "Track queue, progress, and operational status from one place instead of juggling spreadsheets, VAs, and outreach docs.",
-    aside: "Designed for the first 500 backlinks, not enterprise theatre",
-  },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const copy = getHomeCopy(locale);
 
-const channelGroups = [
-  {
-    label: "Live now",
-    tone: "text-emerald-300",
-    items: [
-      "Directory Submission",
-      "Stealth Browser Submission",
-    ],
-  },
-  {
-    label: "Rolling out next",
-    tone: "text-amber-200",
-    items: [
-      "Community Submission",
-      "Resource Page Outreach",
-      "Social Distribution",
-      "Editorial Outreach",
-    ],
-  },
-];
+  return {
+    title: copy.metadata.title,
+    description: copy.metadata.description,
+  };
+}
 
-const faqs = [
-  {
-    q: "Is this safe for SEO?",
-    a: "The product is built around vetted directories and controlled rollout. It is explicitly not positioned as spam volume or private-blog-network automation.",
-  },
-  {
-    q: "Why is free setup important?",
-    a: "Because a consumer tool should let you feel the workflow before asking for money. You can now add one product and see the system recognize it before you upgrade.",
-  },
-  {
-    q: "What happens after I upgrade?",
-    a: "Your saved product profile becomes the source of truth for live channels. Directory and stealth routes can start from that profile immediately.",
-  },
-  {
-    q: "Is everything already live?",
-    a: `No. ${LIVE_CHANNEL_COUNT} channels are live today, and the remaining ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} are shown as rollout so the product does not over-promise.`,
-  },
-];
+export default async function Home() {
+  const locale = await getLocale();
+  const copy = getHomeCopy(locale);
 
-export default function Home() {
   return (
     <main className="overflow-x-hidden">
       <nav className="fixed inset-x-0 top-0 z-50">
@@ -103,23 +389,24 @@ export default function Home() {
             BacklinkPilot
           </Link>
           <div className="hidden items-center gap-8 text-sm text-stone-400 md:flex">
-            <a href="#product">Product</a>
-            <a href="#workflow">Workflow</a>
-            <a href="#pricing-teaser">Pricing</a>
-            <a href="#faq">FAQ</a>
+            <a href="#product">{copy.nav.product}</a>
+            <a href="#workflow">{copy.nav.workflow}</a>
+            <a href="#pricing-teaser">{copy.nav.pricing}</a>
+            <a href="#faq">{copy.nav.faq}</a>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <LocaleToggle locale={locale} className="hidden sm:inline-flex" />
             <Link
               href="/login"
               className="text-sm text-stone-400 transition hover:text-white"
             >
-              Log in
+              {copy.nav.login}
             </Link>
             <Link
               href="/dashboard"
               className="rounded-full border border-[var(--line-strong)] bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
             >
-              Try Free Setup
+              {copy.nav.tryFree}
             </Link>
           </div>
         </div>
@@ -134,21 +421,19 @@ export default function Home() {
         <div className="relative mx-auto grid max-w-7xl gap-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(26rem,0.85fr)] lg:items-end">
           <div className="bp-fade-up">
             <p className="mb-5 text-xs font-medium uppercase tracking-[0.32em] text-amber-200/80">
-              Consumer link-building tool
+              {copy.hero.eyebrow}
             </p>
             <div className="max-w-4xl">
               <div className="font-display text-[4.25rem] leading-none tracking-[-0.05em] text-stone-50 md:text-[7rem]">
                 BacklinkPilot
               </div>
               <h1 className="mt-5 max-w-3xl text-3xl font-medium leading-[1.03] text-stone-100 md:text-5xl">
-                Paste your homepage.
+                {copy.hero.titleTop}
                 <br />
-                Leave with a live backlink launch plan.
+                {copy.hero.titleBottom}
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-7 text-stone-300 md:text-lg">
-                BacklinkPilot turns a plain product URL into a submission-ready profile,
-                then routes it into real directory and stealth channels without making
-                you learn agency-style workflows.
+                {copy.hero.body}
               </p>
             </div>
 
@@ -157,18 +442,18 @@ export default function Home() {
                 href="/dashboard"
                 className="rounded-full bg-[var(--accent-500)] px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
               >
-                Start Free Setup
+                {copy.hero.primaryCta}
               </Link>
               <Link
                 href="/pricing"
                 className="rounded-full border border-[var(--line-strong)] px-6 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
               >
-                See Pricing
+                {copy.hero.secondaryCta}
               </Link>
             </div>
 
             <div className="bp-fade-up bp-fade-delay-2 mt-10 flex flex-wrap gap-3 text-xs uppercase tracking-[0.24em] text-stone-400">
-              {signalStrip.map((item) => (
+              {copy.hero.signals.map((item) => (
                 <span
                   key={item}
                   className="rounded-full border border-[var(--line-soft)] bg-white/4 px-3 py-2"
@@ -176,6 +461,10 @@ export default function Home() {
                   {item}
                 </span>
               ))}
+            </div>
+
+            <div className="mt-4 sm:hidden">
+              <LocaleToggle locale={locale} />
             </div>
           </div>
 
@@ -186,21 +475,21 @@ export default function Home() {
               <div className="flex items-center justify-between border-b border-[var(--line-soft)] pb-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.28em] text-stone-400">
-                    First-product setup
+                    {copy.panel.eyebrow}
                   </p>
                   <p className="mt-2 text-2xl font-medium text-stone-50">
-                    One URL in, ready-to-run profile out.
+                    {copy.panel.title}
                   </p>
                 </div>
                 <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-emerald-200">
-                  Live now
+                  {copy.panel.live}
                 </div>
               </div>
 
               <div className="mt-6 space-y-5">
                 <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-stone-950/60 p-4">
                   <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                    Homepage URL
+                    {copy.panel.homepageUrl}
                   </p>
                   <p className="mt-3 rounded-full border border-white/8 bg-white/5 px-4 py-3 text-sm text-stone-200">
                     https://your-product.com
@@ -210,20 +499,19 @@ export default function Home() {
                 <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
                   <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[#221c17] p-4">
                     <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                      Auto-detected profile
+                      {copy.panel.profile}
                     </p>
                     <div className="mt-4 space-y-4">
                       <div>
-                        <p className="text-xs text-stone-500">Product name</p>
+                        <p className="text-xs text-stone-500">{copy.panel.productName}</p>
                         <p className="mt-1 text-lg font-medium text-stone-100">
                           BacklinkPilot
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-stone-500">Description</p>
+                        <p className="text-xs text-stone-500">{copy.panel.description}</p>
                         <p className="mt-1 text-sm leading-6 text-stone-300">
-                          Automated backlink setup for makers who want vetted
-                          directory reach, stealth unlocks, and a clean launch path.
+                          {copy.panel.profileBody}
                         </p>
                       </div>
                     </div>
@@ -231,20 +519,20 @@ export default function Home() {
 
                   <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[#141310] p-4">
                     <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                      Submission readiness
+                      {copy.panel.readiness}
                     </p>
                     <div className="mt-4 space-y-3 text-sm text-stone-300">
                       <div className="flex items-center justify-between border-b border-[var(--line-soft)] pb-3">
-                        <span>Directory network</span>
-                        <span className="text-emerald-200">Ready</span>
+                        <span>{copy.panel.directoryNetwork}</span>
+                        <span className="text-emerald-200">{copy.panel.ready}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-[var(--line-soft)] pb-3">
-                        <span>Stealth route</span>
-                        <span className="text-emerald-200">Ready</span>
+                        <span>{copy.panel.stealthRoute}</span>
+                        <span className="text-emerald-200">{copy.panel.ready}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Outreach lanes</span>
-                        <span className="text-amber-200">Rollout</span>
+                        <span>{copy.panel.outreachLanes}</span>
+                        <span className="text-amber-200">{copy.panel.rollout}</span>
                       </div>
                     </div>
                   </div>
@@ -254,11 +542,10 @@ export default function Home() {
                   <div className="flex items-end justify-between gap-6">
                     <div>
                       <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                        What changes versus manual work
+                        {copy.panel.deltaTitle}
                       </p>
                       <p className="mt-3 max-w-sm text-sm leading-6 text-stone-300">
-                        The product now feels like an onboarding flow, not an admin form:
-                        detect copy first, save one product free, then upgrade when you are ready to run.
+                        {copy.panel.deltaBody}
                       </p>
                     </div>
                     <div className="font-display text-5xl leading-none text-amber-100">
@@ -279,20 +566,21 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              Why this feels different
+              {copy.valueSection.eyebrow}
             </p>
             <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-              Built for the first meaningful wave of backlinks, not enterprise SEO theatre.
+              {copy.valueSection.title}
             </h2>
           </div>
-
           <div className="mt-12 divide-y divide-[var(--line-soft)] border-y border-[var(--line-soft)]">
-            {valuePoints.map((point) => (
+            {copy.valueSection.points.map((point) => (
               <div
                 key={point.title}
                 className="grid gap-5 py-8 md:grid-cols-[0.9fr_1.1fr] md:items-start"
               >
-                <h3 className="text-2xl font-medium text-stone-100">{point.title}</h3>
+                <h3 className="text-2xl font-medium text-stone-100">
+                  {point.title}
+                </h3>
                 <p className="max-w-2xl text-base leading-7 text-stone-400">
                   {point.detail}
                 </p>
@@ -302,23 +590,19 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        id="workflow"
-        className="px-5 py-18 md:px-8 md:py-24"
-      >
+      <section id="workflow" className="px-5 py-18 md:px-8 md:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[0.62fr_1fr]">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                Workflow
+                {copy.workflowSection.eyebrow}
               </p>
               <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-                Three clean steps instead of fifteen little SEO chores.
+                {copy.workflowSection.title}
               </h2>
             </div>
-
             <div className="space-y-6">
-              {workflow.map((item) => (
+              {copy.workflowSection.items.map((item) => (
                 <div
                   key={item.step}
                   className="grid gap-4 rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.03] p-6 md:grid-cols-[5.5rem_1fr_auto] md:items-start"
@@ -348,29 +632,29 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.85fr_1.15fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              Channel truth
+              {copy.channelSection.eyebrow}
             </p>
             <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-              Honest coverage beats fake “all channels live” marketing.
+              {copy.channelSection.title}
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-stone-400">
-              The product says exactly what is ready today and what is still rolling out.
-              That matters because consumer trust is easier to win on day one than after a refund.
+              {copy.channelSection.body}
             </p>
           </div>
-
           <div className="space-y-8">
-            {channelGroups.map((group) => (
+            {copy.channelSection.groups.map((group, index) => (
               <div
                 key={group.label}
                 className="rounded-[1.75rem] border border-[var(--line-soft)] bg-stone-950/60 p-6"
               >
                 <div className="flex items-center justify-between border-b border-[var(--line-soft)] pb-4">
-                  <p className={`text-sm font-medium uppercase tracking-[0.28em] ${group.tone}`}>
+                  <p
+                    className={`text-sm font-medium uppercase tracking-[0.28em] ${group.tone}`}
+                  >
                     {group.label}
                   </p>
                   <span className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                    {group.items.length} lanes
+                    {group.items.length} {copy.channelSection.lanes}
                   </span>
                 </div>
                 <div className="mt-4 divide-y divide-[var(--line-soft)]">
@@ -380,87 +664,60 @@ export default function Home() {
                       className="flex items-center justify-between py-4 text-sm text-stone-300 md:text-base"
                     >
                       <span>{item}</span>
-                      <span className={`text-xs uppercase tracking-[0.24em] ${group.tone}`}>
-                        {group.label === "Live now" ? "Ready" : "Soon"}
+                      <span
+                        className={`text-xs uppercase tracking-[0.24em] ${group.tone}`}
+                      >
+                        {index === 0
+                          ? copy.channelSection.ready
+                          : copy.channelSection.soon}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
-            <p className="text-sm text-stone-500">
-              Total roadmap: {TOTAL_CHANNEL_COUNT} channels. Live today: {LIVE_CHANNEL_COUNT}.
-            </p>
+            <p className="text-sm text-stone-500">{copy.channelSection.roadmap}</p>
           </div>
         </div>
       </section>
 
-      <section
-        id="pricing-teaser"
-        className="px-5 py-18 md:px-8 md:py-24"
-      >
+      <section id="pricing-teaser" className="px-5 py-18 md:px-8 md:py-24">
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              Pricing posture
+              {copy.pricingTeaser.eyebrow}
             </p>
             <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-              Start with setup.
+              {copy.pricingTeaser.titleTop}
               <br />
-              Pay when you want the engine.
+              {copy.pricingTeaser.titleBottom}
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-stone-400">
-              The product now lets new users feel the workflow before committing.
-              Pricing is there to unlock live submission capacity, not block basic orientation.
+              {copy.pricingTeaser.body}
             </p>
           </div>
-
           <div className="grid gap-4 md:grid-cols-3">
-            {[
-              {
-                name: "Starter",
-                price: "$29",
-                copy: "Single product, essential volume, clean first launch.",
-              },
-              {
-                name: "Growth",
-                price: "$79",
-                copy: "The main plan for products actively building distribution.",
-              },
-              {
-                name: "Scale",
-                price: "$199",
-                copy: "For teams, larger portfolios, and custom submission depth.",
-              },
-            ].map((plan, index) => (
-              <div
-                key={plan.name}
-                className={`rounded-[1.75rem] border p-6 ${
-                  index === 1
-                    ? "border-[var(--accent-500)] bg-[linear-gradient(180deg,rgba(208,166,90,0.13),rgba(208,166,90,0.04))]"
-                    : "border-[var(--line-soft)] bg-white/[0.03]"
-                }`}
-              >
+            {copy.pricingTeaser.cards.map((card) => (
+              <div key={card.label} className={card.accent}>
                 <p className="text-sm uppercase tracking-[0.28em] text-stone-500">
-                  {plan.name}
+                  {card.label}
                 </p>
                 <p className="mt-5 font-display text-5xl text-stone-50">
-                  {plan.price}
+                  {card.price}
                 </p>
                 <p className="mt-4 text-sm leading-6 text-stone-400">
-                  {plan.copy}
+                  {card.desc}
                 </p>
               </div>
             ))}
           </div>
         </div>
-
         <div className="mx-auto mt-10 max-w-7xl">
           <Link
             href="/pricing"
             className="inline-flex rounded-full border border-[var(--line-strong)] px-6 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
           >
-            Open Full Pricing
+            {copy.pricingTeaser.cta}
           </Link>
         </div>
       </section>
@@ -472,14 +729,14 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.7fr_1.3fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              FAQ
+              {copy.faqSection.eyebrow}
             </p>
             <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-              Short answers for the questions that actually matter.
+              {copy.faqSection.title}
             </h2>
           </div>
           <div className="space-y-4">
-            {faqs.map((item) => (
+            {copy.faqSection.items.map((item) => (
               <details
                 key={item.q}
                 className="group rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.03] p-6"
