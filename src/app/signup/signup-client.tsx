@@ -5,17 +5,42 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
+import {
+  loginHrefForNext,
+  type AuthIntent,
+} from "@/lib/auth-return";
 import type { Locale } from "@/lib/locale-config";
 import { createClient } from "@/lib/supabase-browser";
 
-function getSignupCopy(locale: Locale) {
+function getSignupCopy(locale: Locale, authIntent: AuthIntent) {
   if (locale === "zh") {
+    const context =
+      authIntent === "checkout_success"
+        ? {
+            eyebrow: "付款后继续",
+            heading: "先创建账号，再直接回到已解锁的工作台。",
+            intro:
+              "你的付款返回路径会保留。注册后直接回到 launch workspace，开始第一条 live 渠道。",
+          }
+        : authIntent === "product"
+          ? {
+              eyebrow: "从这个产品开始",
+              heading: "创建账号后，直接回到这个产品页继续执行。",
+              intro:
+                "不用重新找页面。注册完成后会回到原来的产品执行页，继续启动或查看结果。",
+            }
+          : {
+              eyebrow: "从第一条真实外链开始",
+              heading: "先把产品配置清楚，再让执行引擎接手。",
+              intro:
+                "注册后你可以先免费添加一个产品，自动识别主页文案，确认定位，再决定什么时候进入真实提交执行。",
+            };
+
     return {
       title: "创建账号",
-      eyebrow: "从第一条真实外链开始",
-      heading: "先把产品配置清楚，再让执行引擎接手。",
-      intro:
-        "注册后你可以先免费添加一个产品，自动识别主页文案，确认定位，再决定什么时候进入真实提交执行。",
+      eyebrow: context.eyebrow,
+      heading: context.heading,
+      intro: context.intro,
       bullets: [
         "首个产品配置免费",
         "自动识别标题与描述",
@@ -33,12 +58,33 @@ function getSignupCopy(locale: Locale) {
     };
   }
 
+  const context =
+    authIntent === "checkout_success"
+      ? {
+          eyebrow: "Continue after payment",
+          heading: "Create the account, then jump straight back into the unlocked workspace.",
+          intro:
+            "The payment return path stays intact. After signup, you should land back in the launch workspace and start the first live lane.",
+        }
+      : authIntent === "product"
+        ? {
+            eyebrow: "Start from this product",
+            heading: "Create the account, then return directly to this product page.",
+            intro:
+              "No need to hunt for the page again. After signup, you should land back on the same product execution view.",
+          }
+        : {
+            eyebrow: "Start with your first real backlink flow",
+            heading: "Set up the product clearly, then let the engine execute.",
+            intro:
+              "Create an account to add your first product for free, auto-detect homepage copy, confirm the positioning, and upgrade only when you want live submissions.",
+          };
+
   return {
     title: "Create account",
-    eyebrow: "Start with your first real backlink flow",
-    heading: "Set up the product clearly, then let the engine execute.",
-    intro:
-      "Create an account to add your first product for free, auto-detect homepage copy, confirm the positioning, and upgrade only when you want live submissions.",
+    eyebrow: context.eyebrow,
+    heading: context.heading,
+    intro: context.intro,
     bullets: [
       "Free first-product setup",
       "Auto-detect title and description",
@@ -56,8 +102,16 @@ function getSignupCopy(locale: Locale) {
   };
 }
 
-export default function SignupClient({ locale }: { locale: Locale }) {
-  const copy = getSignupCopy(locale);
+export default function SignupClient({
+  locale,
+  nextPath,
+  authIntent,
+}: {
+  locale: Locale;
+  nextPath: string;
+  authIntent: AuthIntent;
+}) {
+  const copy = getSignupCopy(locale, authIntent);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -84,16 +138,19 @@ export default function SignupClient({ locale }: { locale: Locale }) {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(nextPath);
     router.refresh();
   }
 
   async function handleGoogleLogin() {
     const supabase = createClient();
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("next", nextPath);
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
   }
@@ -219,7 +276,10 @@ export default function SignupClient({ locale }: { locale: Locale }) {
 
             <p className="mt-6 text-sm text-stone-500">
               {copy.hasAccount}{" "}
-              <Link href="/login" className="text-amber-200 transition hover:text-amber-100">
+              <Link
+                href={loginHrefForNext(nextPath)}
+                className="text-amber-200 transition hover:text-amber-100"
+              >
                 {copy.login}
               </Link>
             </p>

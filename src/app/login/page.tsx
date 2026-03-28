@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 
+import {
+  authIntentFromNextPath,
+  resolveAuthNextPath,
+} from "@/lib/auth-return";
 import { getLocale } from "@/lib/locale";
 
 import LoginClient from "./login-client";
@@ -21,8 +25,31 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function LoginPage() {
-  const locale = await getLocale();
+type LoginPageSearchParams = Promise<{
+  next?: string | string[];
+  checkout?: string | string[];
+  error?: string | string[];
+}>;
 
-  return <LoginClient locale={locale} />;
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: LoginPageSearchParams;
+}) {
+  const locale = await getLocale();
+  const resolvedSearchParams = await searchParams;
+  const nextPath = resolveAuthNextPath(resolvedSearchParams);
+  const authIntent = authIntentFromNextPath(nextPath);
+  const errorParam = Array.isArray(resolvedSearchParams.error)
+    ? resolvedSearchParams.error[0]
+    : resolvedSearchParams.error;
+
+  return (
+    <LoginClient
+      locale={locale}
+      nextPath={nextPath}
+      authIntent={authIntent}
+      initialError={errorParam === "auth_failed" ? "auth_failed" : ""}
+    />
+  );
 }

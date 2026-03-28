@@ -5,17 +5,49 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
+import {
+  signupHrefForNext,
+  type AuthIntent,
+} from "@/lib/auth-return";
 import type { Locale } from "@/lib/locale-config";
 import { createClient } from "@/lib/supabase-browser";
 
-function getLoginCopy(locale: Locale) {
+function getLoginCopy(locale: Locale, authIntent: AuthIntent) {
   if (locale === "zh") {
+    const context =
+      authIntent === "checkout_success"
+        ? {
+            eyebrow: "付款已完成",
+            heading: "登录后，直接开始第一条 live 渠道。",
+            intro:
+              "计划已经解锁。登录后会回到刚才的工作台，不会把你的付款返回路径丢掉。",
+          }
+        : authIntent === "checkout_cancelled"
+          ? {
+              eyebrow: "继续结账流程",
+              heading: "登录后，回到刚才的升级工作台继续推进。",
+              intro:
+                "产品、推荐渠道和升级入口都还在。登录后会直接带你回到原来的工作台。",
+            }
+          : authIntent === "product"
+            ? {
+                eyebrow: "继续这个产品",
+                heading: "登录后，回到这个产品页继续执行。",
+                intro:
+                  "当前产品的执行历史、推荐渠道和结果证明都会保留。登录后直接回到刚才那一页。",
+              }
+            : {
+                eyebrow: "继续推进你的外链分发",
+                heading: "让产品页更快进入真实外链执行。",
+                intro:
+                  "登录后，你可以继续配置产品、自动识别站点文案，并在准备好时启动真实的目录与 stealth 渠道。",
+              };
+
     return {
       title: "登录",
-      eyebrow: "继续推进你的外链分发",
-      heading: "让产品页更快进入真实外链执行。",
-      intro:
-        "登录后，你可以继续配置产品、自动识别站点文案，并在准备好时启动真实的目录与 stealth 渠道。",
+      eyebrow: context.eyebrow,
+      heading: context.heading,
+      intro: context.intro,
       bullets: [
         "先免费完成首个产品配置",
         "自动识别产品名称与描述",
@@ -27,18 +59,47 @@ function getLoginCopy(locale: Locale) {
       password: "密码",
       submit: "登录",
       submitting: "登录中...",
+      authFailed: "登录回调没有成功完成，请重新试一次。",
       noAccount: "还没有账号？",
       signup: "注册",
       backHome: "返回首页",
     };
   }
 
+  const context =
+    authIntent === "checkout_success"
+      ? {
+          eyebrow: "Payment received",
+          heading: "Log in and start the first live lane immediately.",
+          intro:
+            "The plan is already unlocked. After login, you should land back in the launch workspace instead of losing the payment return path.",
+        }
+      : authIntent === "checkout_cancelled"
+        ? {
+            eyebrow: "Continue checkout",
+            heading: "Log in and return to the upgrade workspace.",
+            intro:
+              "Your product, recommended lanes, and upgrade entry are still there. Login should take you straight back to that workspace.",
+          }
+        : authIntent === "product"
+          ? {
+              eyebrow: "Resume this product",
+              heading: "Log in and go straight back to this execution page.",
+              intro:
+                "The product history, recommended lanes, and result proof stay intact. After login, you should return to the same product page.",
+            }
+          : {
+              eyebrow: "Resume your backlink launch",
+              heading: "Bring your product back into live submission flow.",
+              intro:
+                "Sign in to continue product setup, auto-detect site copy, and unlock real directory and stealth execution when you are ready.",
+            };
+
   return {
     title: "Log in",
-    eyebrow: "Resume your backlink launch",
-    heading: "Bring your product back into live submission flow.",
-    intro:
-      "Sign in to continue product setup, auto-detect site copy, and unlock real directory and stealth execution when you are ready.",
+    eyebrow: context.eyebrow,
+    heading: context.heading,
+    intro: context.intro,
     bullets: [
       "Set up your first product for free",
       "Auto-detect product name and description",
@@ -50,17 +111,30 @@ function getLoginCopy(locale: Locale) {
     password: "Password",
     submit: "Log in",
     submitting: "Logging in...",
+    authFailed: "The sign-in callback did not finish correctly. Please try again.",
     noAccount: "Don't have an account?",
     signup: "Sign up",
     backHome: "Back to home",
   };
 }
 
-export default function LoginClient({ locale }: { locale: Locale }) {
-  const copy = getLoginCopy(locale);
+export default function LoginClient({
+  locale,
+  nextPath,
+  authIntent,
+  initialError,
+}: {
+  locale: Locale;
+  nextPath: string;
+  authIntent: AuthIntent;
+  initialError: string;
+}) {
+  const copy = getLoginCopy(locale, authIntent);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    initialError === "auth_failed" ? copy.authFailed : initialError
+  );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -81,16 +155,19 @@ export default function LoginClient({ locale }: { locale: Locale }) {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(nextPath);
     router.refresh();
   }
 
   async function handleGoogleLogin() {
     const supabase = createClient();
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("next", nextPath);
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
   }
@@ -215,7 +292,10 @@ export default function LoginClient({ locale }: { locale: Locale }) {
 
             <p className="mt-6 text-sm text-stone-500">
               {copy.noAccount}{" "}
-              <Link href="/signup" className="text-amber-200 transition hover:text-amber-100">
+              <Link
+                href={signupHrefForNext(nextPath)}
+                className="text-amber-200 transition hover:text-amber-100"
+              >
                 {copy.signup}
               </Link>
             </p>

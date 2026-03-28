@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { loginHrefForNext } from "@/lib/auth-return";
 import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import DashboardClient from "./dashboard-client";
@@ -25,7 +26,10 @@ export default async function Dashboard({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    const nextPath = checkoutState
+      ? `/dashboard?checkout=${checkoutState}`
+      : "/dashboard";
+    redirect(loginHrefForNext(nextPath));
   }
 
   const { data: subscription } = await supabase

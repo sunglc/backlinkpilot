@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 
+import {
+  authIntentFromNextPath,
+  resolveAuthNextPath,
+} from "@/lib/auth-return";
 import { getLocale } from "@/lib/locale";
 
 import SignupClient from "./signup-client";
@@ -22,8 +26,20 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function SignupPage() {
-  const locale = await getLocale();
+type SignupPageSearchParams = Promise<{
+  next?: string | string[];
+  checkout?: string | string[];
+}>;
 
-  return <SignupClient locale={locale} />;
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: SignupPageSearchParams;
+}) {
+  const locale = await getLocale();
+  const resolvedSearchParams = await searchParams;
+  const nextPath = resolveAuthNextPath(resolvedSearchParams);
+  const authIntent = authIntentFromNextPath(nextPath);
+
+  return <SignupClient locale={locale} nextPath={nextPath} authIntent={authIntent} />;
 }

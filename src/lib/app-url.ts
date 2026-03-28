@@ -9,3 +9,27 @@ export function getCanonicalAppUrl() {
 
   return appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
 }
+
+export function getRequestAppUrl(request: { headers: Headers; url: string }) {
+  const requestUrl = new URL(request.url);
+  const forwardedHost =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    "";
+  const forwardedProto =
+    request.headers.get("x-forwarded-proto") ||
+    requestUrl.protocol.replace(":", "") ||
+    "http";
+  const normalizedHost = forwardedHost.trim().toLowerCase();
+
+  if (
+    normalizedHost &&
+    !normalizedHost.startsWith("0.0.0.0") &&
+    !normalizedHost.startsWith("127.0.0.1") &&
+    !normalizedHost.startsWith("localhost")
+  ) {
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, "");
+  }
+
+  return getCanonicalAppUrl();
+}

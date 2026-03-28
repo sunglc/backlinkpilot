@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getCanonicalAppUrl } from "@/lib/app-url";
+import {
+  loginHrefForNext,
+  resolveAuthNextPath,
+} from "@/lib/auth-return";
 
 export async function middleware(request: NextRequest) {
   const canonicalAppUrl = getCanonicalAppUrl();
@@ -55,16 +59,19 @@ export async function middleware(request: NextRequest) {
 
   // Protect dashboard routes
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+    const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.href = new URL(loginHrefForNext(nextPath), request.url).toString();
     return NextResponse.redirect(url);
   }
 
   // Redirect logged-in users away from login/signup
   if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    const nextPath = resolveAuthNextPath({
+      next: request.nextUrl.searchParams.get("next") ?? undefined,
+      checkout: request.nextUrl.searchParams.get("checkout") ?? undefined,
+    });
+    return NextResponse.redirect(new URL(nextPath, request.url));
   }
 
   return supabaseResponse;
