@@ -33,6 +33,71 @@ function getPricingCopy(locale: Locale) {
           { label: "起步价", value: "$29 / 月" },
         ],
       },
+      path: {
+        eyebrow: "解锁路径",
+        title: "先感受流程，再为真实执行付费。",
+        body:
+          "这不该是一张把免费层和付费层割裂开的价格表，而应该是一条连续的产品路径。",
+        cards: [
+          {
+            step: "Step 1",
+            name: "免费配置",
+            price: "$0",
+            body:
+              "添加 1 个产品，自动识别主页文案，先看到 launch board 和渠道推荐。",
+            cta: "免费开始配置",
+            href: "/dashboard",
+          },
+          {
+            step: "Step 2",
+            name: "入门版",
+            price: "$29",
+            body:
+              "当你准备让第一个产品进入真实分发，就解锁目录和 stealth 两条 live 渠道。",
+            cta: "解锁入门版",
+            href: "/api/stripe/checkout?plan=starter",
+          },
+          {
+            step: "Step 3",
+            name: "增长版",
+            price: "$79",
+            body:
+              "当外链分发已经是活跃增长动作，就把产品数和提交容量一起拉起来。",
+            cta: "解锁增长版",
+            href: "/api/stripe/checkout?plan=growth",
+          },
+          {
+            step: "Step 4",
+            name: "规模版",
+            price: "$199",
+            body:
+              "当瓶颈从 onboarding 变成吞吐、协作和控制力时，进入团队级方案。",
+            cta: "解锁规模版",
+            href: "/api/stripe/checkout?plan=scale",
+          },
+        ],
+      },
+      decision: {
+        eyebrow: "怎么选",
+        title: "按你现在的阶段选，不按功能堆砌选。",
+        cards: [
+          {
+            title: "我还在确认系统是否真的理解我的产品",
+            body:
+              "先用免费配置层。只有当你确定主页识别、产品档案和 launch 路径都顺了，再进入付费执行。",
+          },
+          {
+            title: "我已经有一个明确要推的产品",
+            body:
+              "直接上入门版，把目录和 stealth 跑起来。这个阶段最重要的是先获得第一轮真实提交和结果信号。",
+          },
+          {
+            title: "我已经把外链分发当成活跃增长动作",
+            body:
+              "默认上增长版。你需要的是更多产品位、更多提交量和更稳定的执行节奏，而不是更复杂的 onboarding。",
+          },
+        ],
+      },
       plans: [
         {
           name: "入门版",
@@ -151,6 +216,71 @@ function getPricingCopy(locale: Locale) {
         { label: "Free setup", value: "1 product" },
         { label: "Live today", value: `${LIVE_CHANNEL_COUNT} channels` },
         { label: "Starts at", value: "$29 / month" },
+      ],
+    },
+    path: {
+      eyebrow: "Unlock path",
+      title: "Feel the workflow first. Pay when execution starts.",
+      body:
+        "This should not be a pricing table that splits free and paid into two unrelated worlds. It should feel like one continuous product path.",
+      cards: [
+        {
+          step: "Step 1",
+          name: "Free setup",
+          price: "$0",
+          body:
+            "Add 1 product, auto-detect the homepage copy, and see the launch board plus lane recommendations first.",
+          cta: "Start Free Setup",
+          href: "/dashboard",
+        },
+        {
+          step: "Step 2",
+          name: "Starter",
+          price: "$29",
+          body:
+            "When you are ready to move the first product into real distribution, unlock Directory Submission and Stealth.",
+          cta: "Unlock Starter",
+          href: "/api/stripe/checkout?plan=starter",
+        },
+        {
+          step: "Step 3",
+          name: "Growth",
+          price: "$79",
+          body:
+            "When backlink distribution is already an active growth motion, increase both product slots and submission capacity together.",
+          cta: "Unlock Growth",
+          href: "/api/stripe/checkout?plan=growth",
+        },
+        {
+          step: "Step 4",
+          name: "Scale",
+          price: "$199",
+          body:
+            "When the bottleneck shifts from onboarding to throughput, teamwork, and control, move into the team-grade plan.",
+          cta: "Unlock Scale",
+          href: "/api/stripe/checkout?plan=scale",
+        },
+      ],
+    },
+    decision: {
+      eyebrow: "How to choose",
+      title: "Choose by where you are, not by feature pile-up.",
+      cards: [
+        {
+          title: "I am still validating whether the system understands my product",
+          body:
+            "Stay on the free setup layer first. Only move into paid execution once the homepage parsing, product profile, and launch path feel right.",
+        },
+        {
+          title: "I already have one product I want to push",
+          body:
+            "Go straight to Starter and get Directory plus Stealth moving. The real job at this stage is getting the first live result signal.",
+        },
+        {
+          title: "Backlink distribution is already an active growth lane for me",
+          body:
+            "Default to Growth. What you need now is more product slots, more submission volume, and steadier execution cadence, not more onboarding.",
+        },
       ],
     },
     plans: [
@@ -336,6 +466,82 @@ export default async function Pricing() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 py-14 md:px-8 md:py-18">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.path.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {copy.path.title}
+            </h2>
+            <p className="mt-4 text-base leading-7 text-stone-400">
+              {copy.path.body}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-4">
+            {copy.path.cards.map((card, index) => (
+              <article
+                key={card.name}
+                className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6"
+              >
+                <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.24em] text-stone-500">
+                  <span>{card.step}</span>
+                  <span>{card.price}</span>
+                </div>
+                <h3 className="mt-4 text-2xl font-medium text-stone-100">
+                  {card.name}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-400">{card.body}</p>
+                {card.href.startsWith("/api/") ? (
+                  <a
+                    href={card.href}
+                    className="mt-6 inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+                  >
+                    {card.cta}
+                  </a>
+                ) : (
+                  <Link
+                    href={card.href}
+                    className="mt-6 inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+                  >
+                    {card.cta}
+                  </Link>
+                )}
+                {index < copy.path.cards.length - 1 ? (
+                  <div className="mt-6 text-sm text-stone-600">↓</div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[var(--line-soft)] bg-white/[0.02] px-5 py-16 md:px-8 md:py-20">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.72fr_1.28fr]">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.decision.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {copy.decision.title}
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {copy.decision.cards.map((card) => (
+              <div
+                key={card.title}
+                className="rounded-[1.5rem] border border-[var(--line-soft)] bg-black/15 p-5"
+              >
+                <h3 className="text-lg font-medium text-stone-100">{card.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-stone-400">{card.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
