@@ -453,6 +453,45 @@ function getProductDetailCopy(locale: Locale) {
         launchNext: "启动推荐渠道",
         retryLane: "重跑这一条渠道",
       },
+      proofPipeline: {
+        title: "结果推进管线",
+        body:
+          "这里不再盯局部动作，而是看这个产品离“拿到可证明结果”还有多远，以及现在最值得推进哪一步。",
+        stats: {
+          receipts: "提交回执",
+          threads: "真实回复线程",
+          close: "接近发布",
+          verify: "待验证证明",
+        },
+        priorityTitle: "当前最值得推进的动作",
+        candidatesTitle: "当前最接近结果的候选",
+        candidatesEmpty:
+          "现在还没有足够强的 proof 候选。继续推进 live 渠道和外联线程后，这里会开始出现最接近拿到证明的目标。",
+        receiptCandidateLabel: "提交回执",
+        priorities: {
+          publishedTitle: "先验证已经接近落地的结果",
+          publishedBody:
+            "有线程已经明显指向上线或收录完成。现在最值钱的是抓公开页面、保存证明，并把它们推进到结果层。",
+          publicationReadyTitle: "先守住接近发布的线程",
+          publicationReadyBody:
+            "这些线程已经非常接近结果，最怕在最后一轮确认里掉线。先把它们盯紧。",
+          materialsTitle: "先把对方要的资料补齐",
+          materialsBody:
+            "回复已经来了，但价值卡在素材、描述或截图。现在不是继续发新线程，而是把这些资料补快。",
+          commercialTitle: "先筛掉不值得付费的机会",
+          commercialBody:
+            "线程已经进入商务条件。先决定哪些机会值得继续、哪些应该直接放弃。",
+          reviewTitle: "先设跟进节奏，守住审核中的机会",
+          reviewBody:
+            "这些线程还在内部审核或评估阶段，最重要的是别让它们在没有 follow-up 的情况下自然冷掉。",
+          receiptTitle: "先把提交回执往公开证明推进",
+          receiptBody:
+            "虽然还没有强回复线程，但已经有真实提交动作成功。下一步应该去追公开可见结果，而不是停在回执层。",
+          fallbackTitle: "继续累积结果信号",
+          fallbackBody:
+            "当前还没有足够强的 proof 候选。先继续跑 live 渠道和托管外联，把结果面做厚。",
+        },
+      },
       launchMap: {
         title: "Launch 路线图",
         body: "这里把每条 live 渠道在这个产品上的状态串成一条推进路径，让你一眼知道已经完成了什么、下一步该跑什么。",
@@ -679,6 +718,45 @@ function getProductDetailCopy(locale: Locale) {
       openDashboard: "Back to Dashboard",
       launchNext: "Launch Recommended Lane",
       retryLane: "Retry This Lane",
+    },
+    proofPipeline: {
+      title: "Proof pipeline",
+      body:
+        "This moves the view away from local actions and toward a bigger question: how close is this product to a result you can actually prove?",
+      stats: {
+        receipts: "Submission receipts",
+        threads: "Live reply threads",
+        close: "Close to publication",
+        verify: "Ready to verify",
+      },
+      priorityTitle: "Highest-value move right now",
+      candidatesTitle: "Closest candidates to a real result",
+      candidatesEmpty:
+        "There are no strong proof candidates yet. As live lanes and outreach threads keep moving, the closest targets should start showing up here.",
+      receiptCandidateLabel: "Submission receipt",
+      priorities: {
+        publishedTitle: "Verify the results that look close to live",
+        publishedBody:
+          "At least one thread already points toward a live placement. The valuable move now is capturing proof and moving it into the result layer.",
+        publicationReadyTitle: "Protect the threads closest to publication",
+        publicationReadyBody:
+          "These conversations are close to becoming results. The main risk now is losing momentum during the final confirmation step.",
+        materialsTitle: "Send the materials the target already asked for",
+        materialsBody:
+          "The reply exists, but the value is stuck behind missing assets, copy, or screenshots. Ship those before opening more threads.",
+        commercialTitle: "Filter the opportunities that are not worth paying for",
+        commercialBody:
+          "These threads have moved into pricing or sponsorship territory. Decide quickly which ones deserve budget and which should be dropped.",
+        reviewTitle: "Hold the threads that are under review",
+        reviewBody:
+          "These opportunities are being evaluated internally. The important move is protecting them with a clear follow-up rhythm.",
+        receiptTitle: "Push submission receipts toward public proof",
+        receiptBody:
+          "There may not be strong reply threads yet, but real submission actions already landed. The next step is pushing them toward visible proof.",
+        fallbackTitle: "Keep building result signal",
+        fallbackBody:
+          "There are not enough strong proof candidates yet. Keep running live lanes and managed outreach until the result layer thickens.",
+      },
     },
     launchMap: {
       title: "Launch map",
@@ -1553,6 +1631,24 @@ export default function ProductDetail({
   const awaitingReplyPackets = managedLaunchPackets.filter(
     (packet) => packet.replyStatus === "awaiting"
   );
+  const publishedPackets = repliedPackets.filter(
+    (packet) => packet.threadStage === "published"
+  );
+  const publicationReadyPackets = repliedPackets.filter(
+    (packet) => packet.threadStage === "publication_ready"
+  );
+  const needsMaterialsPackets = repliedPackets.filter(
+    (packet) => packet.threadStage === "needs_materials"
+  );
+  const commercialReviewPackets = repliedPackets.filter(
+    (packet) => packet.threadStage === "commercial_review"
+  );
+  const underReviewPackets = repliedPackets.filter(
+    (packet) => packet.threadStage === "under_review"
+  );
+  const threadOpenPackets = repliedPackets.filter(
+    (packet) => packet.threadStage === "thread_open" || !packet.threadStage
+  );
   const unsentManagedPackets = managedLaunchPackets.filter(
     (packet) => packet.state !== "sent"
   );
@@ -1570,6 +1666,14 @@ export default function ProductDetail({
       return rightDate.localeCompare(leftDate);
     })
     .slice(0, 3);
+  const proofCandidatePackets = [
+    ...publishedPackets,
+    ...publicationReadyPackets,
+    ...needsMaterialsPackets,
+    ...underReviewPackets,
+    ...commercialReviewPackets,
+    ...threadOpenPackets,
+  ].slice(0, 3);
   const replyStageCounts = {
     thread_open: repliedPackets.filter((packet) => packet.threadStage === "thread_open").length,
     needs_materials: repliedPackets.filter(
@@ -1584,6 +1688,41 @@ export default function ProductDetail({
     ).length,
     published: repliedPackets.filter((packet) => packet.threadStage === "published").length,
   };
+  const proofPipelineStats = {
+    receipts: latestSuccessReceipts.length,
+    threads: repliedPackets.length,
+    close: publicationReadyPackets.length,
+    verify: publishedPackets.length,
+  };
+  let proofPriorityTitle = copy.proofPipeline.priorities.fallbackTitle;
+  let proofPriorityBody = copy.proofPipeline.priorities.fallbackBody;
+  let proofPriorityTone = "border-white/10 bg-white/[0.04]";
+
+  if (publishedPackets.length > 0) {
+    proofPriorityTitle = copy.proofPipeline.priorities.publishedTitle;
+    proofPriorityBody = copy.proofPipeline.priorities.publishedBody;
+    proofPriorityTone = "border-lime-300/15 bg-lime-300/[0.06]";
+  } else if (publicationReadyPackets.length > 0) {
+    proofPriorityTitle = copy.proofPipeline.priorities.publicationReadyTitle;
+    proofPriorityBody = copy.proofPipeline.priorities.publicationReadyBody;
+    proofPriorityTone = "border-emerald-300/15 bg-emerald-300/[0.06]";
+  } else if (needsMaterialsPackets.length > 0) {
+    proofPriorityTitle = copy.proofPipeline.priorities.materialsTitle;
+    proofPriorityBody = copy.proofPipeline.priorities.materialsBody;
+    proofPriorityTone = "border-amber-300/15 bg-amber-300/[0.06]";
+  } else if (commercialReviewPackets.length > 0) {
+    proofPriorityTitle = copy.proofPipeline.priorities.commercialTitle;
+    proofPriorityBody = copy.proofPipeline.priorities.commercialBody;
+    proofPriorityTone = "border-fuchsia-300/15 bg-fuchsia-300/[0.06]";
+  } else if (underReviewPackets.length > 0 || threadOpenPackets.length > 0) {
+    proofPriorityTitle = copy.proofPipeline.priorities.reviewTitle;
+    proofPriorityBody = copy.proofPipeline.priorities.reviewBody;
+    proofPriorityTone = "border-sky-300/15 bg-sky-300/[0.06]";
+  } else if (latestSuccessReceipts.length > 0) {
+    proofPriorityTitle = copy.proofPipeline.priorities.receiptTitle;
+    proofPriorityBody = copy.proofPipeline.priorities.receiptBody;
+    proofPriorityTone = "border-emerald-300/15 bg-emerald-300/[0.05]";
+  }
   const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
@@ -2974,6 +3113,121 @@ export default function ProductDetail({
             })}
           </div>
         </section>
+
+        {latestResolvedSubmission || managedLaunchPackets.length > 0 ? (
+          <section className="mt-12">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.proofPipeline.title}
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {copy.proofPipeline.title}
+              </h2>
+              <p className="mt-4 text-base leading-7 text-stone-400">
+                {copy.proofPipeline.body}
+              </p>
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {(
+                [
+                  ["receipts", proofPipelineStats.receipts],
+                  ["threads", proofPipelineStats.threads],
+                  ["close", proofPipelineStats.close],
+                  ["verify", proofPipelineStats.verify],
+                ] as const
+              ).map(([key, value]) => (
+                <div
+                  key={key}
+                  className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/[0.04] p-5"
+                >
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.proofPipeline.stats[key]}
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-[0.94fr_1.06fr]">
+              <div className={`rounded-[1.75rem] border p-6 ${proofPriorityTone}`}>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.proofPipeline.priorityTitle}
+                </div>
+                <h3 className="mt-4 text-2xl font-semibold text-white">
+                  {proofPriorityTitle}
+                </h3>
+                <p className="mt-4 text-sm leading-7 text-stone-300">
+                  {proofPriorityBody}
+                </p>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.proofPipeline.candidatesTitle}
+                </div>
+
+                {proofCandidatePackets.length > 0 ? (
+                  <div className="mt-5 grid gap-3">
+                    {proofCandidatePackets.map((packet) => (
+                      <div
+                        key={packet.id}
+                        className="rounded-[1.15rem] border border-white/10 bg-black/15 p-4"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          {packet.threadStage ? (
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketThreadStageClasses(
+                                packet.threadStage
+                              )}`}
+                            >
+                              {managedInboxCopy.managed.threadStage[packet.threadStage]}
+                            </span>
+                          ) : null}
+                          <div className="text-sm font-semibold text-white">{packet.title}</div>
+                        </div>
+                        {packet.lastReplySnippet ? (
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {packet.lastReplySnippet}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                          {managedInboxCopy.managed.packetNextStepLabel}
+                        </div>
+                        <p className="mt-2 text-sm leading-7 text-stone-400">
+                          {packet.nextStep}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : latestSuccessReceipts.length > 0 ? (
+                  <div className="mt-5 grid gap-3">
+                    {latestSuccessReceipts.slice(0, 3).map((result, index) => (
+                      <div
+                        key={`${result.site}-${index}`}
+                        className="rounded-[1.15rem] border border-emerald-300/12 bg-emerald-300/[0.04] p-4"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald-200">
+                            {copy.proofPipeline.receiptCandidateLabel}
+                          </span>
+                          <div className="text-sm font-semibold text-white">{result.site}</div>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {summarizeResultOutput(result.output, locale)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm leading-7 text-stone-400">
+                    {copy.proofPipeline.candidatesEmpty}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {latestResolvedSubmission ? (
           <section className="mt-12">
