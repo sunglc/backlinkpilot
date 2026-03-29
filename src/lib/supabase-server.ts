@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SUPABASE_AUTH_COOKIE_OPTIONS } from "@/lib/supabase-auth";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -21,6 +22,7 @@ export async function createClient() {
           }
         },
       },
+      cookieOptions: SUPABASE_AUTH_COOKIE_OPTIONS,
     }
   );
 }

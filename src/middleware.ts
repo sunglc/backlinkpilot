@@ -5,9 +5,14 @@ import {
   loginHrefForNext,
   resolveAuthNextPath,
 } from "@/lib/auth-return";
+import {
+  applyLegacySupabaseAuthCookieCleanup,
+  SUPABASE_AUTH_COOKIE_OPTIONS,
+} from "@/lib/supabase-auth";
 
 export async function middleware(request: NextRequest) {
   const canonicalAppUrl = getCanonicalAppUrl();
+  const requestCookieNames = request.cookies.getAll().map(({ name }) => name);
   const requestHosts = [
     request.headers.get("x-forwarded-host"),
     request.headers.get("host"),
@@ -27,10 +32,13 @@ export async function middleware(request: NextRequest) {
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
       canonicalAppUrl
     );
-    return NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(redirectUrl);
+    applyLegacySupabaseAuthCookieCleanup(response, requestCookieNames);
+    return response;
   }
 
   let supabaseResponse = NextResponse.next({ request });
+  applyLegacySupabaseAuthCookieCleanup(supabaseResponse, requestCookieNames);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,8 +56,13 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
+          applyLegacySupabaseAuthCookieCleanup(
+            supabaseResponse,
+            requestCookieNames
+          );
         },
       },
+      cookieOptions: SUPABASE_AUTH_COOKIE_OPTIONS,
     }
   );
 
@@ -62,7 +75,9 @@ export async function middleware(request: NextRequest) {
     const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     const url = request.nextUrl.clone();
     url.href = new URL(loginHrefForNext(nextPath), request.url).toString();
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    applyLegacySupabaseAuthCookieCleanup(response, requestCookieNames);
+    return response;
   }
 
   // Redirect logged-in users away from login/signup
@@ -71,7 +86,9 @@ export async function middleware(request: NextRequest) {
       next: request.nextUrl.searchParams.get("next") ?? undefined,
       checkout: request.nextUrl.searchParams.get("checkout") ?? undefined,
     });
-    return NextResponse.redirect(new URL(nextPath, request.url));
+    const response = NextResponse.redirect(new URL(nextPath, request.url));
+    applyLegacySupabaseAuthCookieCleanup(response, requestCookieNames);
+    return response;
   }
 
   return supabaseResponse;

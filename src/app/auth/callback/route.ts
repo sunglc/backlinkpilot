@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { normalizeNextPath } from "@/lib/auth-return";
 import { getRequestAppUrl } from "@/lib/app-url";
+import {
+  applyLegacySupabaseAuthCookieCleanup,
+  SUPABASE_AUTH_COOKIE_OPTIONS,
+} from "@/lib/supabase-auth";
 
 function buildLoginErrorRedirect(
   appUrl: string,
@@ -20,17 +24,20 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = normalizeNextPath(searchParams.get("next"));
   const appUrl = getRequestAppUrl(request);
+  const cookieStore = await cookies();
+  const cookieNames = cookieStore.getAll().map(({ name }) => name);
   const providerError =
     searchParams.get("error_description") || searchParams.get("error");
 
   if (providerError) {
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       buildLoginErrorRedirect(appUrl, next, providerError)
     );
+    applyLegacySupabaseAuthCookieCleanup(response, cookieNames);
+    return response;
   }
 
   if (code) {
-    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -49,18 +56,27 @@ export async function GET(request: Request) {
             }
           },
         },
+        cookieOptions: SUPABASE_AUTH_COOKIE_OPTIONS,
       }
     );
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${appUrl}${next}`);
+      const response = NextResponse.redirect(`${appUrl}${next}`);
+      applyLegacySupabaseAuthCookieCleanup(response, cookieNames);
+      return response;
     }
 
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       buildLoginErrorRedirect(appUrl, next, error.message || "auth_failed")
     );
+    applyLegacySupabaseAuthCookieCleanup(response, cookieNames);
+    return response;
   }
 
-  return NextResponse.redirect(buildLoginErrorRedirect(appUrl, next, "auth_failed"));
+  const response = NextResponse.redirect(
+    buildLoginErrorRedirect(appUrl, next, "auth_failed")
+  );
+  applyLegacySupabaseAuthCookieCleanup(response, cookieNames);
+  return response;
 }
