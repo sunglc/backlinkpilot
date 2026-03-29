@@ -59,6 +59,13 @@ interface SitePreview {
 
 type CheckoutState = "success" | "cancelled" | null;
 type LaunchStage = "unlock" | "running" | "ready" | "momentum" | "setup";
+type OutcomeStage =
+  | "staged"
+  | "launched"
+  | "receipts"
+  | "threads"
+  | "close"
+  | "proved";
 type ProductPrimaryAction =
   | {
       kind: "link";
@@ -735,6 +742,133 @@ function getTodayBriefCopy(locale: Locale) {
   };
 }
 
+function getOutcomeLadderCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      eyebrow: "Outcome Ladder",
+      title: "用同一条结果路径看所有产品",
+      body:
+        "真正的消费级体验不是让你学会一堆运营术语，而是让你知道每个产品目前处在哪一步，以及离下一个结果还差什么。",
+      stageLabel: "当前阶段",
+      nextLabel: "下一步门槛",
+      actionLabel: "推进动作",
+      empty: "还没有产品进入结果路径。先添加一个产品，把第一条执行链跑起来。",
+      stages: {
+        staged: "档案已就绪",
+        launched: "首轮已启动",
+        receipts: "拿到动作回执",
+        threads: "拿到真实回复",
+        close: "接近公开 proof",
+        proved: "已进入 proof",
+      },
+      stageBody: {
+        staged: "这个产品已经有基本档案，但还没有进入真实执行。",
+        launched: "这个产品已经开始跑真实渠道，下一步是等第一批有效动作回执。",
+        receipts: "已经出现真实动作成功，下一步要把它推进到回复或公开结果。",
+        threads: "已经拿到真实回复，重点是别让高质量线程冷掉。",
+        close: "它已经接近公开 proof，最值得优先推进。",
+        proved: "这个产品已经拿到最强结果信号，接下来应该复制和扩张。",
+      },
+      nextBody: {
+        staged: "把第一个 live 渠道跑起来。",
+        launched: "拿到第一批成功动作回执。",
+        receipts: "把回执推进到回复或公开证据。",
+        threads: "把回复推进到接近发布或公开结果。",
+        close: "拿到最终 proof 并沉淀成成果。",
+        proved: "把这套打法复制到下一条渠道或下一个产品。",
+      },
+      actionBody: {
+        staged: "现在最值钱的动作是启动，而不是继续改文案。",
+        launched: "现在最值钱的动作是盯住进度和第一批结果。",
+        receipts: "现在最值钱的动作是把已成功的信号推进到回复层。",
+        threads: "现在最值钱的动作是守住高质量线程，别让它们自然流失。",
+        close: "现在最值钱的动作是抓 proof，而不是分散到别的产品。",
+        proved: "现在最值钱的动作是复制这条结果路径。",
+      },
+      openProduct: "打开产品",
+    };
+  }
+
+  return {
+    eyebrow: "Outcome Ladder",
+    title: "Map every product onto the same result path",
+    body:
+      "A consumer-grade product should not make you learn ops jargon. It should show what stage each product is in and what is missing before the next real outcome.",
+    stageLabel: "Current stage",
+    nextLabel: "Next threshold",
+    actionLabel: "Best move",
+    empty: "No product has entered the result ladder yet. Add one product and start the first execution path.",
+    stages: {
+      staged: "Profile staged",
+      launched: "First lane launched",
+      receipts: "Receipts landed",
+      threads: "Replies landed",
+      close: "Close to public proof",
+      proved: "Proof reached",
+    },
+    stageBody: {
+      staged: "The product profile exists, but it has not entered live execution yet.",
+      launched: "A real lane has started. The next threshold is the first useful action receipt.",
+      receipts: "Real actions have landed. The next move is pushing them toward replies or public outcomes.",
+      threads: "Real replies are live now, so the priority is protecting the strong threads.",
+      close: "This product is close to public proof and deserves priority.",
+      proved: "This product already has the strongest result signal. Now the job is replication and expansion.",
+    },
+    nextBody: {
+      staged: "Launch the first live lane.",
+      launched: "Land the first successful action receipts.",
+      receipts: "Push receipts toward replies or public evidence.",
+      threads: "Push replies toward publication or proof.",
+      close: "Capture the final proof and turn it into visible outcome.",
+      proved: "Replicate this path into the next lane or product.",
+    },
+    actionBody: {
+      staged: "The highest-value move now is launching, not polishing more copy.",
+      launched: "The highest-value move now is watching for the first real outcome.",
+      receipts: "The highest-value move now is pushing successful signal toward replies.",
+      threads: "The highest-value move now is protecting the strongest live threads.",
+      close: "The highest-value move now is capturing proof instead of spreading attention.",
+      proved: "The highest-value move now is copying the winning pattern.",
+    },
+    openProduct: "Open product",
+  };
+}
+
+function getOutcomeStage(summary: ProductSummary): OutcomeStage {
+  if (summary.proof.counts.verify > 0) {
+    return "proved";
+  }
+
+  if (summary.proof.counts.close > 0) {
+    return "close";
+  }
+
+  if (summary.proof.counts.threads > 0) {
+    return "threads";
+  }
+
+  if (summary.proof.counts.receipts > 0) {
+    return "receipts";
+  }
+
+  if (summary.launchCount > 0 || summary.activeSubmission) {
+    return "launched";
+  }
+
+  return "staged";
+}
+
+function getOutcomeStageRank(stage: OutcomeStage) {
+  return {
+    staged: 0,
+    launched: 1,
+    receipts: 2,
+    threads: 3,
+    close: 4,
+    proved: 5,
+  }[stage];
+}
+
 function proofPriorityClasses(priority: ProductProofPriority) {
   const classes: Record<ProductProofPriority, string> = {
     verify_published: "border-lime-300/15 bg-lime-300/[0.08] text-lime-100",
@@ -1027,6 +1161,7 @@ export default function DashboardClient({
   const copy = getDashboardCopy(locale);
   const proofCopy = getProofBoardCopy(locale);
   const todayBriefCopy = getTodayBriefCopy(locale);
+  const outcomeCopy = getOutcomeLadderCopy(locale);
   const router = useRouter();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [name, setName] = useState("");
@@ -1250,6 +1385,41 @@ export default function DashboardClient({
       );
     });
   const topProofProducts = proofLedProducts.slice(0, 3);
+  const outcomeLeaders = productSummaries
+    .slice()
+    .sort((left, right) => {
+      const leftStage = getOutcomeStage(left);
+      const rightStage = getOutcomeStage(right);
+      const rankDelta =
+        getOutcomeStageRank(rightStage) - getOutcomeStageRank(leftStage);
+
+      if (rankDelta !== 0) {
+        return rankDelta;
+      }
+
+      if (right.proof.score !== left.proof.score) {
+        return right.proof.score - left.proof.score;
+      }
+
+      return (right.proof.lastSignalAt || "").localeCompare(
+        left.proof.lastSignalAt || ""
+      );
+    });
+  const outcomeStageCounts = productSummaries.reduce(
+    (counts, summary) => {
+      const stage = getOutcomeStage(summary);
+      counts[stage] += 1;
+      return counts;
+    },
+    {
+      staged: 0,
+      launched: 0,
+      receipts: 0,
+      threads: 0,
+      close: 0,
+      proved: 0,
+    } satisfies Record<OutcomeStage, number>
+  );
   const workspaceProofStats = productSummaries.reduce(
     (totals, summary) => ({
       receipts: totals.receipts + summary.proof.counts.receipts,
@@ -1877,6 +2047,155 @@ export default function DashboardClient({
             </div>
           </div>
         </section>
+
+        {products.length > 0 ? (
+          <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {outcomeCopy.eyebrow}
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                {outcomeCopy.title}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-stone-400">
+                {outcomeCopy.body}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              {(
+                [
+                  "staged",
+                  "launched",
+                  "receipts",
+                  "threads",
+                  "close",
+                  "proved",
+                ] as const
+              ).map((stage) => (
+                <div
+                  key={stage}
+                  className="rounded-full border border-[var(--line-soft)] bg-black/15 px-4 py-2 text-xs text-stone-300"
+                >
+                  {outcomeCopy.stages[stage]} · {outcomeStageCounts[stage]}
+                </div>
+              ))}
+            </div>
+
+            {outcomeLeaders.length > 0 ? (
+              <div className="mt-6 grid gap-4">
+                {outcomeLeaders.slice(0, 4).map((summary) => {
+                  const stage = getOutcomeStage(summary);
+                  const proofAction =
+                    summary.proof.priority !== "build_signal"
+                      ? proofActionForSummary(summary, proofCopy)
+                      : null;
+                  const launchAction = isLaunchAction(summary.primaryAction)
+                    ? summary.primaryAction
+                    : null;
+
+                  return (
+                    <div
+                      key={`${summary.product.id}:${stage}`}
+                      className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                    >
+                      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="max-w-3xl">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-medium text-stone-100">
+                              {outcomeCopy.stageLabel}: {outcomeCopy.stages[stage]}
+                            </span>
+                            <span className="text-lg font-semibold text-white">
+                              {summary.product.name}
+                            </span>
+                          </div>
+
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {outcomeCopy.stageBody[stage]}
+                          </p>
+
+                          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                            <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {outcomeCopy.nextLabel}
+                              </div>
+                              <div className="mt-2 text-sm leading-7 text-stone-200">
+                                {outcomeCopy.nextBody[stage]}
+                              </div>
+                            </div>
+                            <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {outcomeCopy.actionLabel}
+                              </div>
+                              <div className="mt-2 text-sm leading-7 text-stone-200">
+                                {outcomeCopy.actionBody[stage]}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          {proofAction ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleWorkspaceProofAction(
+                                  summary.product.id,
+                                  proofAction
+                                )
+                              }
+                              disabled={
+                                proofActionKey ===
+                                `${summary.product.id}:${proofAction.taskType}`
+                              }
+                              className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                            >
+                              {proofActionKey ===
+                              `${summary.product.id}:${proofAction.taskType}`
+                                ? copy.productCard.starting
+                                : proofAction.label}
+                            </button>
+                          ) : launchAction ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleWorkspaceLaunch(
+                                  summary.product.id,
+                                  launchAction.channelId
+                                )
+                              }
+                              disabled={
+                                launchingKey ===
+                                `${summary.product.id}:${launchAction.channelId}`
+                              }
+                              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                            >
+                              {launchingKey ===
+                              `${summary.product.id}:${launchAction.channelId}`
+                                ? copy.productCard.starting
+                                : launchAction.label}
+                            </button>
+                          ) : (
+                            <Link
+                              href={`/dashboard/product/${summary.product.id}`}
+                              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                            >
+                              {outcomeCopy.openProduct}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm leading-7 text-stone-400">
+                {outcomeCopy.empty}
+              </p>
+            )}
+          </section>
+        ) : null}
 
         {isCheckoutSuccess || isCheckoutCancelled ? (
           <section className="mt-8">
