@@ -2236,6 +2236,35 @@ function workspaceSupplyFocusCopy(args: {
   }[args.workspaceSupply.focus];
 }
 
+function plannerSelectionStatusCopy(args: {
+  locale: Locale;
+  selectedProductName: string;
+  recommendedProductName: string;
+  followsRecommendation: boolean;
+}) {
+  if (args.locale === "zh") {
+    return args.followsRecommendation
+      ? {
+          badge: "跟随当前优先产品",
+          body: `系统当前把新增任务优先路由给 ${args.recommendedProductName}。你仍然可以手动切到别的有效产品。`,
+        }
+      : {
+          badge: "手动切换中",
+          body: `你当前手动选中了 ${args.selectedProductName}。系统建议仍然是 ${args.recommendedProductName}，但不会覆盖你的选择。`,
+        };
+  }
+
+  return args.followsRecommendation
+    ? {
+        badge: "Following the current lead",
+        body: `The workspace is routing new tasks into ${args.recommendedProductName} right now. You can still switch to another valid product manually.`,
+      }
+    : {
+        badge: "Manual override",
+        body: `You are currently building tasks for ${args.selectedProductName}. The workspace still recommends ${args.recommendedProductName}, but it will not override your choice.`,
+      };
+}
+
 function workspaceAutoCoverageGuardMessage(args: {
   locale: Locale;
   productId: string;
@@ -3686,6 +3715,25 @@ export default function DashboardClient({
     plannerProductExists && !plannerProductReclaimed
       ? plannerProductId
       : recommendedPlannerProductId;
+  const resolvedPlannerSummary =
+    productSummaries.find((summary) => summary.product.id === resolvedPlannerProductId) ||
+    null;
+  const recommendedPlannerSummary =
+    productSummaries.find(
+      (summary) => summary.product.id === recommendedPlannerProductId
+    ) || resolvedPlannerSummary;
+  const plannerFollowsRecommendation =
+    !resolvedPlannerProductId ||
+    resolvedPlannerProductId === recommendedPlannerProductId;
+  const plannerSelectionStatus =
+    resolvedPlannerSummary && recommendedPlannerSummary
+      ? plannerSelectionStatusCopy({
+          locale,
+          selectedProductName: resolvedPlannerSummary.product.name,
+          recommendedProductName: recommendedPlannerSummary.product.name,
+          followsRecommendation: plannerFollowsRecommendation,
+        })
+      : null;
   const workspaceBudgetLead =
     featuredCandidates
       .slice()
@@ -4956,9 +5004,24 @@ export default function DashboardClient({
                 {productSummaries.map((summary) => (
                   <option key={summary.product.id} value={summary.product.id}>
                     {summary.product.name}
+                    {summary.product.id === recommendedPlannerProductId
+                      ? locale === "zh"
+                        ? " · 当前优先"
+                        : " · Current lead"
+                      : ""}
                   </option>
                 ))}
               </select>
+              {plannerSelectionStatus ? (
+                <div className="mt-3 rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {plannerSelectionStatus.badge}
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-stone-300">
+                    {plannerSelectionStatus.body}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
