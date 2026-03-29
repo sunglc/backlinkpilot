@@ -1,4 +1,7 @@
-export type WorkspaceTaskPlanMode = "auto_coverage" | "import_list";
+export type WorkspaceTaskPlanMode =
+  | "auto_coverage"
+  | "import_list"
+  | "competitor_map";
 
 export type WorkspaceTaskPlanGranularity = "batch" | "per_target";
 

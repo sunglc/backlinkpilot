@@ -359,6 +359,12 @@ function getDashboardCopy(locale: Locale) {
         autoBody:
           "基于当前产品、已跑渠道和 discovery 供给，生成一版推荐覆盖计划，并落成任务。",
         autoAction: "生成覆盖计划",
+        competitorTitle: "生成竞品覆盖规划",
+        competitorBody:
+          "贴上竞品网址，系统会把它们压成一版竞品覆盖任务，告诉你先该匹配哪些渠道。",
+        competitorPlaceholder:
+          "competitor-one.com\nhttps://competitor-two.com\ncompetitor-three.ai",
+        competitorAction: "生成竞品规划",
         importTitle: "导入你的外链清单",
         importBody:
           "一行一个域名或 URL。你可以先按批次导入，也可以拆成每个外链一个任务。",
@@ -661,19 +667,25 @@ function getDashboardCopy(locale: Locale) {
         },
       },
     },
-    builder: {
-      eyebrow: "Task Builder",
-      title: "Create the task first, then scale the execution",
-      body:
-        "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
+      builder: {
+        eyebrow: "Task Builder",
+        title: "Create the task first, then scale the execution",
+        body:
+          "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
       productLabel: "Product",
       autoTitle: "Generate a system coverage plan",
-      autoBody:
-        "Use the current product, completed lanes, and discovery supply to generate a recommended coverage plan and turn it into a task.",
-      autoAction: "Generate coverage plan",
-      importTitle: "Import your backlink list",
-      importBody:
-        "Use one domain or URL per line. You can import them as one batch or split them into one task per target.",
+        autoBody:
+          "Use the current product, completed lanes, and discovery supply to generate a recommended coverage plan and turn it into a task.",
+        autoAction: "Generate coverage plan",
+        competitorTitle: "Build a competitor coverage map",
+        competitorBody:
+          "Paste competitor URLs and the app will turn them into a competitor coverage task that shows which lanes your product should match first.",
+        competitorPlaceholder:
+          "competitor-one.com\nhttps://competitor-two.com\ncompetitor-three.ai",
+        competitorAction: "Generate competitor plan",
+        importTitle: "Import your backlink list",
+        importBody:
+          "Use one domain or URL per line. You can import them as one batch or split them into one task per target.",
       importPlaceholder:
         "example.com\nhttps://directory.example/submit\nblog.example.com/tools",
       granularityLabel: "Import mode",
@@ -1539,11 +1551,12 @@ export default function DashboardClient({
   const [workspaceActionError, setWorkspaceActionError] = useState("");
   const [plannerProductId, setPlannerProductId] = useState(products[0]?.id || "");
   const [importList, setImportList] = useState("");
+  const [competitorList, setCompetitorList] = useState("");
   const [importGranularity, setImportGranularity] =
     useState<WorkspaceTaskPlanGranularity>("batch");
-  const [builderAction, setBuilderAction] = useState<"auto" | "import" | null>(
-    null
-  );
+  const [builderAction, setBuilderAction] = useState<
+    "auto" | "competitor" | "import" | null
+  >(null);
   const [builderError, setBuilderError] = useState("");
 
   const isPaid = subscription?.status === "active";
@@ -1828,6 +1841,10 @@ export default function DashboardClient({
   const resolvedPlannerProductId =
     plannerProductId || featuredProduct?.product.id || products[0]?.id || "";
   const importLineCount = importList
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+  const competitorLineCount = competitorList
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean).length;
@@ -2171,7 +2188,7 @@ export default function DashboardClient({
     }
   }
 
-  async function handleCreateTaskPlan(mode: "auto" | "import") {
+  async function handleCreateTaskPlan(mode: "auto" | "competitor" | "import") {
     if (!resolvedPlannerProductId) {
       setBuilderError(copy.errors.saveFailed);
       return;
@@ -2182,6 +2199,15 @@ export default function DashboardClient({
         locale === "zh"
           ? "请先粘贴至少一个域名或 URL。"
           : "Paste at least one domain or URL first."
+      );
+      return;
+    }
+
+    if (mode === "competitor" && !competitorList.trim()) {
+      setBuilderError(
+        locale === "zh"
+          ? "请先粘贴至少一个竞品域名或网址。"
+          : "Paste at least one competitor domain or URL first."
       );
       return;
     }
@@ -2200,6 +2226,11 @@ export default function DashboardClient({
               ? {
                   action: "create_auto_coverage",
                 }
+              : mode === "competitor"
+                ? {
+                    action: "create_competitor_plan",
+                    competitorList,
+                  }
               : {
                   action: "import_target_list",
                   rawList: importList,
@@ -2221,6 +2252,8 @@ export default function DashboardClient({
 
       if (mode === "import") {
         setImportList("");
+      } else if (mode === "competitor") {
+        setCompetitorList("");
       }
 
       router.refresh();
@@ -2662,7 +2695,7 @@ export default function DashboardClient({
               </select>
             </div>
 
-            <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            <div className="mt-6 grid gap-4 xl:grid-cols-3">
               <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
                 <h3 className="text-xl font-semibold text-white">
                   {copy.builder.autoTitle}
@@ -2679,6 +2712,35 @@ export default function DashboardClient({
                   {builderAction === "auto"
                     ? copy.builder.loading
                     : copy.builder.autoAction}
+                </button>
+              </div>
+
+              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <h3 className="text-xl font-semibold text-white">
+                  {copy.builder.competitorTitle}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-300">
+                  {copy.builder.competitorBody}
+                </p>
+                <textarea
+                  value={competitorList}
+                  onChange={(event) => setCompetitorList(event.target.value)}
+                  rows={6}
+                  placeholder={copy.builder.competitorPlaceholder}
+                  className="mt-4 w-full resize-none rounded-[1.1rem] border border-[var(--line-soft)] bg-stone-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent-500)]"
+                />
+                <div className="mt-3 text-xs text-stone-500">
+                  {copy.builder.detectedCount}: {competitorLineCount}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCreateTaskPlan("competitor")}
+                  disabled={builderAction !== null}
+                  className="mt-5 rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                >
+                  {builderAction === "competitor"
+                    ? copy.builder.loading
+                    : copy.builder.competitorAction}
                 </button>
               </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createAutoCoverageTaskPlan,
+  createCompetitorCoverageTaskPlan,
   createImportedTaskPlan,
   readWorkspaceTaskPlans,
 } from "@/lib/workspace-task-plans";
@@ -73,7 +74,8 @@ export async function POST(
   const body = (await request.json().catch(() => null)) as
     | {
         action?: string;
-        rawList?: string;
+    rawList?: string;
+        competitorList?: string;
         granularity?: string;
       }
     | null;
@@ -134,6 +136,44 @@ export async function POST(
             error instanceof Error
               ? error.message
               : "Could not import the target list.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (body.action === "create_competitor_plan") {
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("plan")
+      .eq("user_id", user.id)
+      .single();
+    const { data: submissions } = await supabase
+      .from("submissions")
+      .select("channel")
+      .eq("product_id", id);
+
+    try {
+      const plan = await createCompetitorCoverageTaskPlan({
+        product,
+        actor: {
+          userId: user.id,
+          userEmail: user.email || null,
+        },
+        rawCompetitorList: body.competitorList || "",
+        plan: subscription?.plan || "free",
+        submissions: submissions || [],
+        operationalInsights: await readSaasOperationalInsights(),
+      });
+
+      return NextResponse.json({ plan });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Could not create the competitor coverage plan.",
         },
         { status: 400 }
       );

@@ -10,6 +10,7 @@ import { runtimeConfig } from "@/lib/runtime-config";
 import type { OperationalInsights } from "@/lib/saas-operational-insights";
 import type {
   WorkspaceTaskPlan,
+  WorkspaceTaskPlanMode,
   WorkspaceTaskPlanGranularity,
   WorkspaceTaskPlanStage,
   WorkspaceTaskPlanTarget,
@@ -72,6 +73,20 @@ function normalizeTarget(
   };
 }
 
+function normalizeMode(
+  mode: string | null | undefined
+): WorkspaceTaskPlanMode {
+  if (
+    mode === "auto_coverage" ||
+    mode === "import_list" ||
+    mode === "competitor_map"
+  ) {
+    return mode;
+  }
+
+  return "auto_coverage";
+}
+
 function normalizePlan(
   input: Partial<WorkspaceTaskPlan> & Pick<WorkspaceTaskPlan, "id" | "productId" | "userId">
 ): WorkspaceTaskPlan {
@@ -80,7 +95,7 @@ function normalizePlan(
     id: input.id,
     productId: input.productId,
     userId: input.userId,
-    mode: input.mode || "auto_coverage",
+    mode: normalizeMode(input.mode),
     granularity: input.granularity || "batch",
     stage: normalizeStage(input.stage),
     title: input.title || "Workspace task plan",
@@ -150,6 +165,34 @@ function economicsForChannels(channels: ChannelContract[]) {
   return { successCost: 3, failureCost: 1 };
 }
 
+function channelsForCurrentPlan(plan: string) {
+  const effectivePlan = plan === "free" ? "starter" : plan;
+  return CHANNELS.filter((channel) => channel.plans.includes(effectivePlan));
+}
+
+function recommendedCoverageChannels(args: {
+  plan: string;
+  submissions: Array<{ channel: string }>;
+  operationalInsights: OperationalInsights;
+}) {
+  const eligibleChannels = channelsForCurrentPlan(args.plan);
+  const prioritizedIds = args.operationalInsights.playbook.recommended_lane_ids || [];
+  const prioritizedChannels = prioritizedIds
+    .map((id) => eligibleChannels.find((channel) => channel.id === id))
+    .filter((channel): channel is ChannelContract => Boolean(channel));
+  const fallbackChannels = channelSortForPlan(args.plan, args.submissions);
+  const seen = new Set<string>();
+
+  return [...prioritizedChannels, ...fallbackChannels].filter((channel) => {
+    if (seen.has(channel.id)) {
+      return false;
+    }
+
+    seen.add(channel.id);
+    return true;
+  });
+}
+
 export async function createAutoCoverageTaskPlan(args: {
   product: ProductSnapshot;
   actor: ActorSnapshot;
@@ -161,7 +204,11 @@ export async function createAutoCoverageTaskPlan(args: {
     productId: args.product.id,
     userId: args.actor.userId,
   });
-  const recommendedChannels = channelSortForPlan(args.plan, args.submissions).slice(0, 3);
+  const recommendedChannels = recommendedCoverageChannels({
+    plan: args.plan,
+    submissions: args.submissions,
+    operationalInsights: args.operationalInsights,
+  }).slice(0, 3);
   const economics = economicsForChannels(recommendedChannels);
   const createdAt = nowIso();
   const planId = `plan-${args.product.id.slice(0, 8)}-${Date.now()
@@ -298,6 +345,83 @@ export async function createImportedTaskPlan(args: {
     recommendedChannelIds: [],
     targets,
     ...economics,
+  });
+
+  await writePlans(args.product.id, [nextPlan, ...existingPlans].slice(0, 20));
+  return nextPlan;
+}
+
+export async function createCompetitorCoverageTaskPlan(args: {
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  rawCompetitorList: string;
+  plan: string;
+  submissions: Array<{ channel: string }>;
+  operationalInsights: OperationalInsights;
+}) {
+  const lines = args.rawCompetitorList
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const uniqueTargets = new Map<string, WorkspaceTaskPlanTarget>();
+
+  lines.forEach((line, index) => {
+    const normalized = normalizeImportedUrl(line);
+    if (!normalized) {
+      return;
+    }
+
+    const key = normalized.host || normalized.url;
+    if (!uniqueTargets.has(key)) {
+      uniqueTargets.set(key, {
+        id: `competitor-${index}-${normalized.host}`,
+        label: normalized.label,
+        detail: normalized.detail,
+        url: normalized.url,
+        host: normalized.host,
+      });
+    }
+  });
+
+  const competitors = Array.from(uniqueTargets.values()).slice(0, 25);
+  if (competitors.length === 0) {
+    throw new Error("Import at least one valid competitor domain or URL.");
+  }
+
+  const existingPlans = await readWorkspaceTaskPlans({
+    productId: args.product.id,
+    userId: args.actor.userId,
+  });
+  const recommendedChannels = recommendedCoverageChannels({
+    plan: args.plan,
+    submissions: args.submissions,
+    operationalInsights: args.operationalInsights,
+  }).slice(0, 3);
+  const createdAt = nowIso();
+  const planId = `plan-${args.product.id.slice(0, 8)}-${Date.now()
+    .toString()
+    .slice(-6)}`;
+
+  const nextPlan = normalizePlan({
+    id: planId,
+    productId: args.product.id,
+    userId: args.actor.userId,
+    mode: "competitor_map",
+    granularity: "batch",
+    stage: "planned",
+    title: "Competitor coverage plan",
+    summary: `Map ${competitors.length} competitors into ${recommendedChannels
+      .map((channel) => channel.name)
+      .join(", ")} first. Use this to decide which coverage lanes your product should match or outrun before expanding deeper.`,
+    createdAt,
+    updatedAt: createdAt,
+    recommendedChannelIds: recommendedChannels.map((channel) => channel.id),
+    targets: competitors.map((competitor) => ({
+      ...competitor,
+      detail: `${competitor.detail} · Compare this competitor against ${args.product.name} and route the strongest lane first.`,
+    })),
+    successCost: 0,
+    failureCost: 0,
   });
 
   await writePlans(args.product.id, [nextPlan, ...existingPlans].slice(0, 20));
