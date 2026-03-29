@@ -19,6 +19,7 @@ interface WorkspaceSubmissionSnapshot {
   product_id: string;
   status: string;
   success_sites: number;
+  created_at?: string | null;
 }
 
 interface WorkspacePolicyProductInput {
@@ -102,6 +103,73 @@ function deriveProductLane(
   return "build";
 }
 
+function latestTimestamp(values: Array<string | null | undefined>) {
+  return (
+    values
+      .filter((value): value is string => Boolean(value))
+      .sort((left, right) => right.localeCompare(left))[0] || null
+  );
+}
+
+function ageInDays(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+
+  return Math.floor((Date.now() - parsed) / 86_400_000);
+}
+
+function isSettledProof(product: WorkspacePolicyProductSnapshot) {
+  return (
+    product.verifyCount > 0 &&
+    product.activeProofTaskCount === 0 &&
+    product.openSubmissionCount === 0
+  );
+}
+
+function isStalledPipeline(product: WorkspacePolicyProductSnapshot) {
+  const ageDays = ageInDays(product.lastSignalAt);
+
+  return (
+    ageDays !== null &&
+    ageDays >= 10 &&
+    product.openSubmissionCount > 0 &&
+    product.activeProofTaskCount === 0 &&
+    product.verifyCount === 0 &&
+    product.closeCount === 0
+  );
+}
+
+function eligibleProductsForLane(args: {
+  products: WorkspacePolicyProductSnapshot[];
+  lane: WorkspacePolicyLane;
+}) {
+  return args.products.filter((product) => {
+    if (isSettledProof(product)) {
+      return false;
+    }
+
+    if (isStalledPipeline(product)) {
+      return false;
+    }
+
+    if (args.lane === "proof") {
+      return product.activeProofTaskCount === 0;
+    }
+
+    if (args.lane === "premium") {
+      return product.premiumCandidate;
+    }
+
+    return true;
+  });
+}
+
 function submissionCandidateScore(product: WorkspacePolicyProductSnapshot) {
   const laneWeight = {
     build: 420,
@@ -109,32 +177,46 @@ function submissionCandidateScore(product: WorkspacePolicyProductSnapshot) {
     prove: 120,
     premium: 60,
   }[product.lane];
+  const settledPenalty = isSettledProof(product) ? 420 : 0;
+  const stalledPenalty = isStalledPipeline(product) ? 300 : 0;
 
   return (
     laneWeight +
     (product.openSubmissionCount === 0 ? 90 : -product.openSubmissionCount * 35) +
     (product.receiptCount === 0 ? 24 : 0) -
     product.activeProofTaskCount * 18 -
-    product.proofScore * 0.18
+    product.proofScore * 0.18 -
+    settledPenalty -
+    stalledPenalty
   );
 }
 
 function proofCandidateScore(product: WorkspacePolicyProductSnapshot) {
+  const settledPenalty = isSettledProof(product) ? 360 : 0;
+  const stalledPenalty = isStalledPipeline(product) ? 240 : 0;
+
   return (
     product.proofScore +
     product.verifyCount * 90 +
     product.closeCount * 45 +
     product.repliedThreadCount * 16 -
-    product.openSubmissionCount * 6
+    product.openSubmissionCount * 6 -
+    settledPenalty -
+    stalledPenalty
   );
 }
 
 function premiumCandidateScore(product: WorkspacePolicyProductSnapshot) {
+  const settledPenalty = isSettledProof(product) ? 320 : 0;
+  const stalledPenalty = isStalledPipeline(product) ? 260 : 0;
+
   return (
     product.proofScore +
     product.receiptCount * 4 +
     (product.lane === "premium" ? 40 : 0) -
-    product.activeProofTaskCount * 15
+    product.activeProofTaskCount * 15 -
+    settledPenalty -
+    stalledPenalty
   );
 }
 
@@ -147,12 +229,18 @@ function allowProductsForLane(args: {
     return [] as string[];
   }
 
+  const eligibleProducts = eligibleProductsForLane(args);
+
+  if (eligibleProducts.length === 0) {
+    return [] as string[];
+  }
+
   if (args.lane === "submission") {
-    const primaryCandidates = args.products.filter(
+    const primaryCandidates = eligibleProducts.filter(
       (product) => product.openSubmissionCount === 0
     );
     const fallbackCandidates =
-      primaryCandidates.length > 0 ? primaryCandidates : args.products;
+      primaryCandidates.length > 0 ? primaryCandidates : eligibleProducts;
 
     return fallbackCandidates
       .slice()
@@ -165,20 +253,15 @@ function allowProductsForLane(args: {
   }
 
   if (args.lane === "proof") {
-    return args.products
-      .filter(
-        (product) =>
-          product.activeProofTaskCount === 0 &&
-          (product.proofScore > 0 || product.receiptCount > 0)
-      )
+    return eligibleProducts
+      .filter((product) => product.proofScore > 0 || product.receiptCount > 0)
       .slice()
       .sort((left, right) => proofCandidateScore(right) - proofCandidateScore(left))
       .slice(0, args.remaining)
       .map((product) => product.productId);
   }
 
-  return args.products
-    .filter((product) => product.premiumCandidate)
+  return eligibleProducts
     .slice()
     .sort(
       (left, right) => premiumCandidateScore(right) - premiumCandidateScore(left)
@@ -278,9 +361,17 @@ export async function buildWorkspacePolicySnapshot(args: {
         0
       ) *
         4;
+    const lastSignalAt = latestTimestamp([
+      ...productSubmissions.map((submission) => submission.created_at || null),
+      ...record.proofTasks.map((task) => task.updatedAt || task.createdAt || null),
+      ...packets.map((packet) => packet.lastReplyAt || packet.sentAt || null),
+      record.launchRequest?.createdAt || null,
+      record.updatedAt || null,
+    ]);
     const snapshot = {
       productId: product.id,
       productName: product.name,
+      lastSignalAt,
       openSubmissionCount: productSubmissions.filter(isOpenSubmission).length,
       receiptCount: productSubmissions.reduce(
         (sum, submission) => sum + submission.success_sites,

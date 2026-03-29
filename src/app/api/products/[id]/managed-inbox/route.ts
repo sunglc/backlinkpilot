@@ -138,7 +138,7 @@ export async function POST(
   const productIds = products.map((item) => item.id);
   const { data: submissions } = await supabase
     .from("submissions")
-    .select("product_id, status, success_sites")
+    .select("product_id, status, success_sites, created_at")
     .in("product_id", productIds);
   const workspacePolicy = await buildWorkspacePolicySnapshot({
     userId: user.id,

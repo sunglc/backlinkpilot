@@ -120,7 +120,7 @@ export async function POST(
     const productIds = products.map((item) => item.id);
     const { data: workspaceSubmissions } = await supabase
       .from("submissions")
-      .select("product_id, channel, status, success_sites")
+      .select("product_id, channel, status, success_sites, created_at")
       .in("product_id", productIds);
     const workspacePolicy = await buildWorkspacePolicySnapshot({
       userId: user.id,
@@ -130,6 +130,7 @@ export async function POST(
         product_id: submission.product_id,
         status: submission.status,
         success_sites: submission.success_sites,
+        created_at: submission.created_at,
       })),
     });
     const operationalInsights = await readSaasOperationalInsights();
@@ -278,7 +279,7 @@ export async function POST(
     const productIds = products.map((item) => item.id);
     const { data: submissions } = await supabase
       .from("submissions")
-      .select("product_id, channel, status, success_sites")
+      .select("product_id, channel, status, success_sites, created_at")
       .in("product_id", productIds);
     const workspacePolicy = await buildWorkspacePolicySnapshot({
       userId: user.id,

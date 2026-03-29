@@ -12,6 +12,7 @@ export interface WorkspacePolicyProductSnapshot {
   productId: string;
   productName: string;
   lane: WorkspacePolicyProductLane;
+  lastSignalAt: string | null;
   openSubmissionCount: number;
   receiptCount: number;
   repliedThreadCount: number;
