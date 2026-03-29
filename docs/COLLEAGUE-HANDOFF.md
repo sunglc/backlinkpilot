@@ -3,6 +3,7 @@
 This document is the fastest way for a teammate to understand what BacklinkPilot is becoming, how the main execution loop works today, and where product feedback is most valuable.
 
 If someone only has a few minutes, start with [COLLEAGUE-HANDOFF-QUICKSTART.md](/root/backlinkpilot/docs/COLLEAGUE-HANDOFF-QUICKSTART.md) first.
+For a text-first system map, see [SYSTEM-ARCHITECTURE-TEXT.md](/root/backlinkpilot/docs/SYSTEM-ARCHITECTURE-TEXT.md).
 
 ## What This Product Is
 

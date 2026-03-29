@@ -3,6 +3,7 @@
 This is the shortest useful read for a teammate who needs to understand what BacklinkPilot is, how the product loop works today, and where product critique is most valuable.
 
 For the longer version, continue with [COLLEAGUE-HANDOFF.md](/root/backlinkpilot/docs/COLLEAGUE-HANDOFF.md).
+For a text-first architecture map, see [SYSTEM-ARCHITECTURE-TEXT.md](/root/backlinkpilot/docs/SYSTEM-ARCHITECTURE-TEXT.md).
 
 ## Product In One Sentence
 
