@@ -27,6 +27,10 @@ import {
   type WorkspaceStrategyDecisionKey,
   type WorkspaceStrategyLaneKey,
 } from "@/lib/workspace-strategy";
+import {
+  buildWorkspaceCapacity,
+  type WorkspaceCapacityLaneKey,
+} from "@/lib/workspace-capacity";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -492,6 +496,50 @@ function getDashboardCopy(locale: Locale) {
           empty: "当前没有产品落在这条策略里。",
         },
       },
+      capacity: {
+        eyebrow: "执行容量",
+        title: "把本周开口收在可控范围内。",
+        body:
+          "长期上，这套系统不该只会推荐动作，还要控制每周同时打开多少 submission、proof 和 premium work，避免账户越来越像噪音机器。",
+        policyLabel: "当前容量策略",
+        laneLabels: {
+          submission: "Submission 开口",
+          proof: "Proof 开口",
+          premium: "Premium 开口",
+        },
+        metrics: {
+          used: "已占用",
+          limit: "建议上限",
+          remaining: "剩余空间",
+          over: "超出",
+        },
+        states: {
+          unlock: {
+            title: "先解锁再谈容量",
+            body: "还没进入可执行状态前，不需要同时打开太多口子。",
+          },
+          tighten: {
+            title: "先收口",
+            body: "当前开口已经偏多，优先把现有任务推向生效和 proof。",
+          },
+          balanced: {
+            title: "保持平衡推进",
+            body: "当前容量和策略基本一致，可以继续按当前节奏推进。",
+          },
+          expand: {
+            title: "可以继续扩一点",
+            body: "当前仍然偏 build 模式，还有空间继续铺首轮 submission 和 coverage。",
+          },
+        },
+        fullError: {
+          submission:
+            "本周 submission 开口已经满了。先盯生效或推进 proof，再开新的提交任务。",
+          proof:
+            "本周 proof 开口已经满了。先把当前结果任务往前推完，再排新的 proof。",
+          premium:
+            "当前 premium 开口已经满了。先把普通 proof 路线跑顺，再继续接高级机会。",
+        },
+      },
       builder: {
         eyebrow: "Task Builder",
         title: "先把任务建出来，再谈放大执行",
@@ -938,6 +986,50 @@ function getDashboardCopy(locale: Locale) {
         burn: "Related credits",
         open: "Open",
         empty: "No products are sitting in this strategy lane right now.",
+      },
+    },
+    capacity: {
+      eyebrow: "Operating Limits",
+      title: "Keep this week's openings inside a controllable range.",
+      body:
+        "Long term, the system should not only recommend actions. It should also control how many submission, proof, and premium lanes stay open at the same time, so the account does not turn into a noise machine.",
+      policyLabel: "Current capacity policy",
+      laneLabels: {
+        submission: "Submission openings",
+        proof: "Proof openings",
+        premium: "Premium openings",
+      },
+      metrics: {
+        used: "Used",
+        limit: "Suggested cap",
+        remaining: "Remaining",
+        over: "Over",
+      },
+      states: {
+        unlock: {
+          title: "Unlock first, then worry about capacity.",
+          body: "Before live execution is really open, there is no value in opening too many lanes at once.",
+        },
+        tighten: {
+          title: "Tighten the aperture first.",
+          body: "The workspace is already carrying too many openings. Push current work toward effect and proof before opening more.",
+        },
+        balanced: {
+          title: "The current pace is balanced.",
+          body: "Capacity and strategy are mostly aligned, so the workspace can keep moving at the current rhythm.",
+        },
+        expand: {
+          title: "There is still room to expand.",
+          body: "The workspace is still in build mode and has room to open more first-pass submission and coverage work.",
+        },
+      },
+      fullError: {
+        submission:
+          "The submission lane is already full for this week. Let current work land or push proof before opening more submissions.",
+        proof:
+          "The proof lane is already full for this week. Finish pushing the current result tasks before queuing another proof task.",
+        premium:
+          "The premium lane is already full right now. Keep premium work separate until the standard proof path is clearer.",
       },
     },
     builder: {
@@ -1731,6 +1823,23 @@ function workspaceStrategyLaneClasses(lane: WorkspaceStrategyLaneKey) {
     prove: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
     watch: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
     build: "border-white/10 bg-white/[0.06] text-stone-200",
+    premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
+  }[lane];
+}
+
+function workspaceCapacityPolicyClasses(policy: "unlock" | "tighten" | "balanced" | "expand") {
+  return {
+    unlock: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    tighten: "border-rose-300/15 bg-rose-300/[0.08] text-rose-100",
+    balanced: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    expand: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+  }[policy];
+}
+
+function workspaceCapacityLaneClasses(lane: WorkspaceCapacityLaneKey) {
+  return {
+    submission: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    proof: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
     premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
   }[lane];
 }
@@ -2860,6 +2969,22 @@ export default function DashboardClient({
     })),
   });
   const workspaceStrategyCopy = copy.strategy;
+  const workspaceCapacity = buildWorkspaceCapacity({
+    currentPlan,
+    strategyMode: workspaceStrategy.mode,
+    submissionLoad: allWorkspaceTasks.filter(
+      (task) =>
+        task.kind === "submission" &&
+        (task.stage === "pending" ||
+          task.stage === "planned" ||
+          task.stage === "awaiting_effect")
+    ).length,
+    proofLoad: productSummaries.filter((summary) => summary.proof.activeTask).length,
+    premiumLoad: allWorkspaceTasks.filter(
+      (task) => task.billingRule?.type === "premium_service"
+    ).length,
+  });
+  const workspaceCapacityCopy = copy.capacity;
   const workspaceStrategyLead =
     productSummaries.find(
       (summary) => summary.product.id === workspaceStrategy.leadProductId
@@ -3014,6 +3139,11 @@ export default function DashboardClient({
   }
 
   async function handleWorkspaceLaunch(productId: string, channelId: string) {
+    if (workspaceCapacity.lanes.submission.remaining <= 0) {
+      setWorkspaceActionError(copy.capacity.fullError.submission);
+      return;
+    }
+
     const actionKey = `${productId}:${channelId}`;
     setLaunchingKey(actionKey);
     setWorkspaceActionError("");
@@ -3048,6 +3178,11 @@ export default function DashboardClient({
     }
 
     const actionKey = `${productId}:${action.taskType}`;
+    if (workspaceCapacity.lanes.proof.remaining <= 0) {
+      setWorkspaceActionError(copy.capacity.fullError.proof);
+      return;
+    }
+
     setProofActionKey(actionKey);
     setWorkspaceActionError("");
 
@@ -3163,6 +3298,11 @@ export default function DashboardClient({
     productId: string,
     planId: string
   ) {
+    if (workspaceCapacity.lanes.submission.remaining <= 0) {
+      setWorkspaceActionError(copy.capacity.fullError.submission);
+      return;
+    }
+
     setMaterializingPlanId(planId);
     setWorkspaceActionError("");
 
@@ -3850,6 +3990,111 @@ export default function DashboardClient({
                             {workspaceStrategyCopy.laneMetrics.empty}
                           </div>
                         )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {products.length > 0 ? (
+          <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+            <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+              <div>
+                <div className="max-w-3xl">
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                    {workspaceCapacityCopy.eyebrow}
+                  </p>
+                  <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                    {workspaceCapacityCopy.title}
+                  </h2>
+                  <p className="mt-4 text-sm leading-7 text-stone-400">
+                    {workspaceCapacityCopy.body}
+                  </p>
+                </div>
+
+                <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {workspaceCapacityCopy.policyLabel}
+                  </div>
+                  <div className="mt-3">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceCapacityPolicyClasses(
+                        workspaceCapacity.policy
+                      )}`}
+                    >
+                      {
+                        workspaceCapacityCopy.states[workspaceCapacity.policy]
+                          .title
+                      }
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-stone-300">
+                    {workspaceCapacityCopy.states[workspaceCapacity.policy].body}
+                  </p>
+                </div>
+
+                {workspaceActionError ? (
+                  <p className="mt-5 text-sm text-red-300">{workspaceActionError}</p>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {(
+                  ["submission", "proof", "premium"] as const
+                ).map((lane) => {
+                  const laneState = workspaceCapacity.lanes[lane];
+
+                  return (
+                    <article
+                      key={lane}
+                      className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                    >
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceCapacityLaneClasses(
+                          lane
+                        )}`}
+                      >
+                        {workspaceCapacityCopy.laneLabels[lane]}
+                      </span>
+
+                      <div className="mt-5 grid gap-3">
+                        <div className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                            {workspaceCapacityCopy.metrics.used}
+                          </div>
+                          <div className="mt-2 text-2xl font-semibold text-white">
+                            {laneState.used}
+                          </div>
+                        </div>
+                        <div className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                            {workspaceCapacityCopy.metrics.limit}
+                          </div>
+                          <div className="mt-2 text-2xl font-semibold text-white">
+                            {laneState.limit}
+                          </div>
+                        </div>
+                        <div className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                            {laneState.overLimit > 0
+                              ? workspaceCapacityCopy.metrics.over
+                              : workspaceCapacityCopy.metrics.remaining}
+                          </div>
+                          <div
+                            className={`mt-2 text-2xl font-semibold ${
+                              laneState.overLimit > 0
+                                ? "text-rose-200"
+                                : "text-stone-100"
+                            }`}
+                          >
+                            {laneState.overLimit > 0
+                              ? laneState.overLimit
+                              : laneState.remaining}
+                          </div>
+                        </div>
                       </div>
                     </article>
                   );
