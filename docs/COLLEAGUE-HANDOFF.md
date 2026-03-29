@@ -2,6 +2,8 @@
 
 This document is the fastest way for a teammate to understand what BacklinkPilot is becoming, how the main execution loop works today, and where product feedback is most valuable.
 
+If someone only has a few minutes, start with [COLLEAGUE-HANDOFF-QUICKSTART.md](/root/backlinkpilot/docs/COLLEAGUE-HANDOFF-QUICKSTART.md) first.
+
 ## What This Product Is
 
 BacklinkPilot is being shaped into a consumer-grade backlink product, not an internal SEO console.
@@ -242,4 +244,3 @@ High-value review topics right now:
 Send the code with a fixed commit and a short request like:
 
 > Please review this commit as a product system, not just as code. I want feedback on whether the user journey from product setup -> task planning -> execution -> proof -> budget guidance is coherent, and what still feels too internal or too complicated before we put this in front of users.
-
