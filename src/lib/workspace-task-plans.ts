@@ -539,6 +539,7 @@ export async function materializeCompetitorCoveragePlan(args: {
   actor: ActorSnapshot;
   planId: string;
   currentPlan: string;
+  maxLaunchCount?: number;
   submissions: Array<{ channel: string }>;
   operationalInsights: OperationalInsights;
 }) {
@@ -567,6 +568,18 @@ export async function materializeCompetitorCoveragePlan(args: {
   const launchChannelIds = targetPlan.recommendedChannelIds.filter((channelId) => {
     return executableChannelIds.has(channelId) && !existingChannels.has(channelId);
   });
+
+  if (
+    typeof args.maxLaunchCount === "number" &&
+    args.maxLaunchCount >= 0 &&
+    launchChannelIds.length > args.maxLaunchCount
+  ) {
+    throw new Error(
+      args.maxLaunchCount === 0
+        ? "This workspace is already at the suggested submission limit for this week. Let current work land before opening more submission tasks."
+        : `This competitor plan wants to open ${launchChannelIds.length} live submission tasks, but only ${args.maxLaunchCount} submission slots are left in the workspace this week.`
+    );
+  }
 
   const paidTargets = args.operationalInsights.top_paid_targets.slice(0, 5);
   const followUpPlans: WorkspaceTaskPlan[] = [];

@@ -8,6 +8,10 @@ import {
 } from "@/lib/workspace-task-plans";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import type { WorkspaceTaskPlanGranularity } from "@/lib/workspace-task-plans-types";
+import {
+  buildWorkspacePolicySnapshot,
+  getWorkspacePolicyError,
+} from "@/lib/workspace-policy";
 import { createClient } from "@/lib/supabase-server";
 
 function isGranularity(value: string): value is WorkspaceTaskPlanGranularity {
@@ -202,10 +206,30 @@ export async function POST(
       );
     }
 
+    const { data: userProducts } = await supabase
+      .from("products")
+      .select("id")
+      .eq("user_id", user.id);
+    const productIds = Array.from(
+      new Set(((userProducts || []).map((item) => item.id) || []).concat(id))
+    );
     const { data: submissions } = await supabase
       .from("submissions")
-      .select("channel")
-      .eq("product_id", id);
+      .select("product_id, channel, status, success_sites")
+      .in("product_id", productIds);
+    const workspacePolicy = await buildWorkspacePolicySnapshot({
+      userId: user.id,
+      currentPlan,
+      productIds,
+      submissions: submissions || [],
+    });
+    const submissionPolicyError = getWorkspacePolicyError(
+      workspacePolicy,
+      "submission"
+    );
+    if (submissionPolicyError) {
+      return NextResponse.json({ error: submissionPolicyError }, { status: 409 });
+    }
 
     try {
       const result = await materializeCompetitorCoveragePlan({
@@ -216,7 +240,12 @@ export async function POST(
         },
         planId: body.planId.trim(),
         currentPlan,
-        submissions: submissions || [],
+        maxLaunchCount: workspacePolicy.capacity.lanes.submission.remaining,
+        submissions: (submissions || [])
+          .filter((submission) => submission.product_id === id)
+          .map((submission) => ({
+            channel: submission.channel,
+          })),
         operationalInsights: await readSaasOperationalInsights(),
       });
 
@@ -240,14 +269,20 @@ export async function POST(
 
       return NextResponse.json(result);
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not materialize the competitor plan.";
+
       return NextResponse.json(
+        { error: message },
         {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Could not materialize the competitor plan.",
-        },
-        { status: 400 }
+          status:
+            message.includes("submission limit") ||
+            message.includes("submission slots")
+              ? 409
+              : 400,
+        }
       );
     }
   }

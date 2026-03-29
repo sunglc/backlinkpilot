@@ -10,6 +10,10 @@ import {
   updateManagedProofTask,
 } from "@/lib/managed-inbox-server";
 import type { ManagedInboxProofTaskType } from "@/lib/managed-inbox-types";
+import {
+  buildWorkspacePolicySnapshot,
+  getWorkspacePolicyError,
+} from "@/lib/workspace-policy";
 import { createClient } from "@/lib/supabase-server";
 
 const MANAGED_INBOX_PLAN_SET = new Set(["growth", "scale"]);
@@ -106,11 +110,29 @@ export async function POST(
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan")
+    .select("plan, status")
     .eq("user_id", user.id)
     .single();
 
-  const plan = subscription?.plan || "free";
+  const plan =
+    subscription?.status === "active" ? subscription.plan || "starter" : "free";
+  const { data: userProducts } = await supabase
+    .from("products")
+    .select("id")
+    .eq("user_id", user.id);
+  const productIds = Array.from(
+    new Set(((userProducts || []).map((item) => item.id) || []).concat(id))
+  );
+  const { data: submissions } = await supabase
+    .from("submissions")
+    .select("product_id, status, success_sites")
+    .in("product_id", productIds);
+  const workspacePolicy = await buildWorkspacePolicySnapshot({
+    userId: user.id,
+    currentPlan: plan,
+    productIds,
+    submissions: submissions || [],
+  });
   const body = (await request.json().catch(() => null)) as
     | {
         action?: string;
@@ -195,6 +217,11 @@ export async function POST(
       );
     }
 
+    const premiumPolicyError = getWorkspacePolicyError(workspacePolicy, "premium");
+    if (premiumPolicyError) {
+      return NextResponse.json({ error: premiumPolicyError }, { status: 409 });
+    }
+
     const liveActivity = await getManagedInboxLiveActivity({
       name: product.name || "",
       url: product.url || "",
@@ -215,6 +242,11 @@ export async function POST(
   if (body.action === "queue_proof_task") {
     if (!body.taskType || !isProofTaskType(body.taskType)) {
       return NextResponse.json({ error: "Unsupported proof task type." }, { status: 400 });
+    }
+
+    const proofPolicyError = getWorkspacePolicyError(workspacePolicy, "proof");
+    if (proofPolicyError) {
+      return NextResponse.json({ error: proofPolicyError }, { status: 409 });
     }
 
     const record = await queueManagedProofTask({
