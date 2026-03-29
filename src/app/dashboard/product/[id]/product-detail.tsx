@@ -14,6 +14,7 @@ import {
 import type {
   ManagedInboxLiveActivity,
   ManagedInboxEventState,
+  ManagedInboxLaunchPacketThreadStage,
   ManagedInboxRecord,
 } from "@/lib/managed-inbox-types";
 import type { Locale } from "@/lib/locale-config";
@@ -994,6 +995,19 @@ function managedPacketReplyStateClasses(state: "awaiting" | "replied") {
   return classes[state];
 }
 
+function managedPacketThreadStageClasses(stage: ManagedInboxLaunchPacketThreadStage) {
+  const classes = {
+    thread_open: "border-white/10 bg-white/[0.05] text-stone-200",
+    needs_materials: "border-amber-300/15 bg-amber-300/10 text-amber-100",
+    commercial_review: "border-fuchsia-300/15 bg-fuchsia-300/10 text-fuchsia-100",
+    under_review: "border-sky-300/15 bg-sky-300/10 text-sky-200",
+    publication_ready: "border-emerald-300/15 bg-emerald-300/10 text-emerald-200",
+    published: "border-lime-300/15 bg-lime-300/10 text-lime-100",
+  } as const;
+
+  return classes[stage];
+}
+
 function managedLaunchLaneLabel(
   lane: "resource_page" | "editorial_contact",
   locale: Locale
@@ -1062,6 +1076,8 @@ function getManagedInboxCopy(locale: Locale) {
         packetReplyFromLabel: "回复来自",
         packetReplySnippetLabel: "回复摘要",
         packetReplyAtLabel: "回复时间",
+        packetThreadStageLabel: "线程阶段",
+        packetThreadStageReasonLabel: "判断依据",
         threadBoardLabel: "线程动作板",
         threadBoardBody:
           "这里把首批托管外联拆成现在最该处理的动作，不让用户只看到一串状态标签。",
@@ -1073,6 +1089,22 @@ function getManagedInboxCopy(locale: Locale) {
         replyQueueLabel: "优先处理的回复线程",
         replyQueueEmpty:
           "当前还没有新的真实回复。一旦 reply monitor 捕捉到回信，这里会直接出现下一步线程。",
+        threadStage: {
+          thread_open: "线程已打开",
+          needs_materials: "需要补资料",
+          commercial_review: "涉及商务条件",
+          under_review: "编辑审核中",
+          publication_ready: "接近发布",
+          published: "已上线/已收录",
+        },
+        threadStageReason: {
+          thread_open: "已经收到真实回复，但还没有进入更明确的推进节点。",
+          needs_materials: "对方在要资料、素材或更完整的产品描述。",
+          commercial_review: "对方在谈价格、赞助、付费或其他商务条件。",
+          under_review: "对方看起来准备内部审核、排队或继续评估。",
+          publication_ready: "对方已经明显接近收录或发布，只差最后确认。",
+          published: "对方的回复已经指向上线、发布或收录完成。",
+        },
         openTarget: "打开目标",
       },
       byo: {
@@ -1185,21 +1217,45 @@ function getManagedInboxCopy(locale: Locale) {
       packetSentAtLabel: "Sent at",
       packetReceiptLabel: "Send receipt",
         packetReplyFromLabel: "Reply from",
-        packetReplySnippetLabel: "Reply snippet",
-        packetReplyAtLabel: "Reply received",
-        threadBoardLabel: "Thread action board",
-        threadBoardBody:
-          "This turns the first managed batch into the actions that matter right now, instead of leaving the user with raw state labels.",
+      packetReplySnippetLabel: "Reply snippet",
+      packetReplyAtLabel: "Reply received",
+      packetThreadStageLabel: "Thread stage",
+      packetThreadStageReasonLabel: "Why the system thinks so",
+      threadBoardLabel: "Thread action board",
+      threadBoardBody:
+        "This turns the first managed batch into the actions that matter right now, instead of leaving the user with raw state labels.",
         threadActionCards: {
           needsResponse: "Needs response now",
           awaitingReply: "Awaiting reply",
           unsent: "Still not sent",
         },
-        replyQueueLabel: "Reply threads to handle first",
-        replyQueueEmpty:
-          "There are no new live replies yet. Once the reply monitor catches one, the next thread should appear here automatically.",
-        openTarget: "Open target",
+      replyQueueLabel: "Reply threads to handle first",
+      replyQueueEmpty:
+        "There are no new live replies yet. Once the reply monitor catches one, the next thread should appear here automatically.",
+      threadStage: {
+        thread_open: "Thread open",
+        needs_materials: "Needs materials",
+        commercial_review: "Commercial review",
+        under_review: "Under review",
+        publication_ready: "Close to publication",
+        published: "Published/live",
       },
+      threadStageReason: {
+        thread_open:
+          "A real reply exists, but it has not entered a stronger execution bucket yet.",
+        needs_materials:
+          "The target is asking for assets, supporting copy, or richer product details.",
+        commercial_review:
+          "The thread has moved into pricing, sponsorship, or payment territory.",
+        under_review:
+          "The target appears to be reviewing, discussing internally, or evaluating fit.",
+        publication_ready:
+          "The thread sounds close to inclusion and mainly needs final confirmation.",
+        published:
+          "The reply already points to the placement being live or fully published.",
+      },
+      openTarget: "Open target",
+    },
     byo: {
       title: "Bring your own inbox",
       body:
@@ -1514,6 +1570,20 @@ export default function ProductDetail({
       return rightDate.localeCompare(leftDate);
     })
     .slice(0, 3);
+  const replyStageCounts = {
+    thread_open: repliedPackets.filter((packet) => packet.threadStage === "thread_open").length,
+    needs_materials: repliedPackets.filter(
+      (packet) => packet.threadStage === "needs_materials"
+    ).length,
+    commercial_review: repliedPackets.filter(
+      (packet) => packet.threadStage === "commercial_review"
+    ).length,
+    under_review: repliedPackets.filter((packet) => packet.threadStage === "under_review").length,
+    publication_ready: repliedPackets.filter(
+      (packet) => packet.threadStage === "publication_ready"
+    ).length,
+    published: repliedPackets.filter((packet) => packet.threadStage === "published").length,
+  };
   const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
@@ -2397,6 +2467,30 @@ export default function ProductDetail({
                               </div>
                               {replyQueuePackets.length > 0 ? (
                                 <div className="mt-4 grid gap-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    {(
+                                      [
+                                        "needs_materials",
+                                        "commercial_review",
+                                        "under_review",
+                                        "publication_ready",
+                                        "published",
+                                        "thread_open",
+                                      ] as const
+                                    ).map((stage) =>
+                                      replyStageCounts[stage] > 0 ? (
+                                        <span
+                                          key={stage}
+                                          className={`rounded-full border px-3 py-1.5 text-[11px] tracking-[0.18em] ${managedPacketThreadStageClasses(
+                                            stage
+                                          )}`}
+                                        >
+                                          {managedInboxCopy.managed.threadStage[stage]} ·{" "}
+                                          {replyStageCounts[stage]}
+                                        </span>
+                                      ) : null
+                                    )}
+                                  </div>
                                   {replyQueuePackets.map((packet) => (
                                     <div
                                       key={packet.id}
@@ -2410,6 +2504,15 @@ export default function ProductDetail({
                                         >
                                           {managedInboxCopy.managed.packetReplyState.replied}
                                         </span>
+                                        {packet.threadStage ? (
+                                          <span
+                                            className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketThreadStageClasses(
+                                              packet.threadStage
+                                            )}`}
+                                          >
+                                            {managedInboxCopy.managed.threadStage[packet.threadStage]}
+                                          </span>
+                                        ) : null}
                                         <div className="text-sm font-semibold text-white">
                                           {packet.title}
                                         </div>
@@ -2429,6 +2532,23 @@ export default function ProductDetail({
                                       {packet.lastReplySnippet ? (
                                         <div className="mt-3 text-sm leading-7 text-stone-300">
                                           {packet.lastReplySnippet}
+                                        </div>
+                                      ) : null}
+                                      {packet.threadStage || packet.threadStageReason ? (
+                                        <div className="mt-3 rounded-[0.85rem] border border-white/8 bg-white/[0.03] p-3 text-xs leading-6 text-stone-300">
+                                          <div className="uppercase tracking-[0.18em] text-stone-500">
+                                            {
+                                              managedInboxCopy.managed
+                                                .packetThreadStageReasonLabel
+                                            }
+                                          </div>
+                                          <div className="mt-2">
+                                            {packet.threadStage
+                                              ? managedInboxCopy.managed.threadStageReason[
+                                                  packet.threadStage
+                                                ]
+                                              : packet.threadStageReason}
+                                          </div>
                                         </div>
                                       ) : null}
                                       <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">
@@ -2468,6 +2588,15 @@ export default function ProductDetail({
                                       )}`}
                                     >
                                       {managedInboxCopy.managed.packetReplyState[packet.replyStatus]}
+                                    </span>
+                                  ) : null}
+                                  {packet.threadStage ? (
+                                    <span
+                                      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketThreadStageClasses(
+                                        packet.threadStage
+                                      )}`}
+                                    >
+                                      {managedInboxCopy.managed.threadStage[packet.threadStage]}
                                     </span>
                                   ) : null}
                                   <div className="text-sm font-semibold text-white">
@@ -2510,6 +2639,20 @@ export default function ProductDetail({
                                     </div>
                                     <div className="mt-2">
                                       {packet.lastReplySnippet}
+                                    </div>
+                                  </div>
+                                ) : null}
+                                {packet.threadStage || packet.threadStageReason ? (
+                                  <div className="mt-3 rounded-[0.85rem] border border-white/8 bg-white/[0.03] p-3 text-xs leading-6 text-stone-300">
+                                    <div className="uppercase tracking-[0.18em] text-stone-500">
+                                      {managedInboxCopy.managed.packetThreadStageReasonLabel}
+                                    </div>
+                                    <div className="mt-2">
+                                      {packet.threadStage
+                                        ? managedInboxCopy.managed.threadStageReason[
+                                            packet.threadStage
+                                          ]
+                                        : packet.threadStageReason}
                                     </div>
                                   </div>
                                 ) : null}

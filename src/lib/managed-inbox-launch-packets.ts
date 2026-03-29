@@ -160,6 +160,8 @@ ${sourceExcerpt}
         lastReplyFrom: null,
         lastReplySubject: null,
         lastReplySnippet: null,
+        threadStage: null,
+        threadStageReason: null,
       } satisfies ManagedInboxLaunchPacket;
     })
   );

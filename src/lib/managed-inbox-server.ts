@@ -17,6 +17,7 @@ import type {
   ManagedInboxEventState,
   ManagedInboxLaunchRequest,
   ManagedInboxLaunchPacket,
+  ManagedInboxLaunchPacketThreadStage,
   ManagedInboxRecord,
   ManagedInboxTimelineEvent,
 } from "@/lib/managed-inbox-types";
@@ -58,6 +59,151 @@ function normalizeHost(value: string) {
     .split("/")[0]
     .trim()
     .toLowerCase();
+}
+
+function includesAny(text: string, phrases: string[]) {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function classifyReplyThread(args: {
+  subject: string;
+  snippet: string;
+}): {
+  stage: ManagedInboxLaunchPacketThreadStage;
+  reason: string;
+  nextStep: string;
+} {
+  const haystack = normalizeText(`${args.subject}\n${args.snippet}`);
+
+  if (
+    includesAny(haystack, [
+      "went live",
+      "is live",
+      "now live",
+      "already live",
+      "published",
+      "has been published",
+      "featured you",
+      "added your tool",
+      "we added",
+      "you are listed",
+      "listing is live",
+    ])
+  ) {
+    return {
+      stage: "published",
+      reason: "The reply sounds like the placement is already live or published.",
+      nextStep:
+        "Verify the live placement, capture proof, and move this thread into the proof/result layer.",
+    };
+  }
+
+  if (
+    includesAny(haystack, [
+      "will add",
+      "can add",
+      "happy to include",
+      "happy to add",
+      "approved",
+      "scheduled",
+      "queued for publication",
+      "going live",
+      "plan to publish",
+      "should be live soon",
+      "we can feature",
+    ])
+  ) {
+    return {
+      stage: "publication_ready",
+      reason: "The reply indicates the target is leaning toward inclusion or publication.",
+      nextStep:
+        "Confirm the final details, keep the thread warm, and watch for the placement to go live.",
+    };
+  }
+
+  if (
+    includesAny(haystack, [
+      "sponsored",
+      "sponsorship",
+      "paid placement",
+      "rate card",
+      "pricing",
+      "price",
+      "cost",
+      "budget",
+      "payment",
+      "invoice",
+      "fee",
+    ])
+  ) {
+    return {
+      stage: "commercial_review",
+      reason: "The reply is asking about payment, sponsorship, or commercial terms.",
+      nextStep:
+        "Decide whether this opportunity is worth paying for and respond with clear commercial boundaries.",
+    };
+  }
+
+  if (
+    includesAny(haystack, [
+      "send over",
+      "please send",
+      "could you send",
+      "can you send",
+      "need a logo",
+      "need logo",
+      "screenshot",
+      "screenshots",
+      "more details",
+      "more info",
+      "more information",
+      "description",
+      "one-liner",
+      "bio",
+      "assets",
+      "media kit",
+      "category",
+      "blurb",
+    ])
+  ) {
+    return {
+      stage: "needs_materials",
+      reason: "The reply is asking for assets, copy, or structured product details.",
+      nextStep:
+        "Prepare the requested materials fast so the thread keeps moving toward inclusion.",
+    };
+  }
+
+  if (
+    includesAny(haystack, [
+      "review",
+      "take a look",
+      "take a closer look",
+      "editorial team",
+      "consider",
+      "queue",
+      "queued",
+      "pass this along",
+      "circle back",
+      "follow up",
+      "will discuss",
+      "team will check",
+    ])
+  ) {
+    return {
+      stage: "under_review",
+      reason: "The reply suggests the opportunity is in review rather than blocked or closed.",
+      nextStep:
+        "Keep the thread warm, set a follow-up reminder, and wait for the editor to come back with a decision.",
+    };
+  }
+
+  return {
+    stage: "thread_open",
+    reason: "A real reply arrived, but it does not yet fit a stronger execution bucket.",
+    nextStep:
+      "Read the thread, respond clearly, and steer it toward assets, approval, or publication.",
+  };
 }
 
 function sanitizeFragment(value: string) {
@@ -186,6 +332,8 @@ function normalizeRecord(
                 lastReplyFrom: packet.lastReplyFrom || null,
                 lastReplySubject: packet.lastReplySubject || null,
                 lastReplySnippet: packet.lastReplySnippet || null,
+                threadStage: packet.threadStage || null,
+                threadStageReason: packet.threadStageReason || null,
               }))
             : [],
         }
@@ -219,6 +367,8 @@ function mergePacketProgress(
       lastReplyFrom: previous.lastReplyFrom,
       lastReplySubject: previous.lastReplySubject,
       lastReplySnippet: previous.lastReplySnippet,
+      threadStage: previous.threadStage,
+      threadStageReason: previous.threadStageReason,
     };
   });
 }
@@ -299,10 +449,6 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
     url: args.product.url,
   });
 
-  if (relevantSendRows.length === 0) {
-    return args.record;
-  }
-
   const launchCreatedAt = args.record.launchRequest.createdAt;
   const eligibleSendRows = relevantSendRows.filter((row) => {
     const sentAt = parseLogDate(row.sent_at || "");
@@ -372,6 +518,8 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
         const awaitingPacket = {
           ...packet,
           replyStatus: "awaiting" as const,
+          threadStage: null,
+          threadStageReason: null,
         };
         changed = true;
         return awaitingPacket;
@@ -384,6 +532,10 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
     if (normalizedOutcome === "reply_received") {
       const replyAt =
         parseLogDate(latestReplyRow.reply_date || latestReplyRow.check_date || "") || nowIso();
+      const threadSummary = classifyReplyThread({
+        subject: latestReplyRow.reply_subject || "",
+        snippet: latestReplyRow.reply_snippet || "",
+      });
       const repliedPacket: ManagedInboxLaunchPacket = {
         ...packet,
         replyStatus: "replied",
@@ -391,13 +543,16 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
         lastReplyFrom: latestReplyRow.reply_from || null,
         lastReplySubject: latestReplyRow.reply_subject || null,
         lastReplySnippet: latestReplyRow.reply_snippet || null,
-        nextStep: "Review the reply, respond, and keep the thread moving toward publication.",
+        threadStage: threadSummary.stage,
+        threadStageReason: threadSummary.reason,
+        nextStep: threadSummary.nextStep,
       };
 
       if (
         repliedPacket.replyStatus !== packet.replyStatus ||
         repliedPacket.lastReplyAt !== packet.lastReplyAt ||
-        repliedPacket.lastReplySnippet !== packet.lastReplySnippet
+        repliedPacket.lastReplySnippet !== packet.lastReplySnippet ||
+        repliedPacket.threadStage !== packet.threadStage
       ) {
         changed = true;
         autoTimeline.push(
@@ -405,11 +560,11 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
             kind: "reply",
             state: "replied",
             direction: "inbound",
-            actor: "system",
-            title: `Reply synced from live monitor for ${packet.title}`,
-            body: `${latestReplyRow.reply_subject || "No subject"}\nFrom: ${
+          actor: "system",
+          title: `Reply synced from live monitor for ${packet.title}`,
+          body: `${latestReplyRow.reply_subject || "No subject"}\nFrom: ${
               latestReplyRow.reply_from || "unknown"
-            }\n${latestReplyRow.reply_snippet || "Reply received and synced from the monitor."}`,
+            }\nStage: ${threadSummary.stage}\n${latestReplyRow.reply_snippet || "Reply received and synced from the monitor."}`,
           })
         );
       }
@@ -422,6 +577,8 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
       return {
         ...packet,
         replyStatus: "awaiting" as const,
+        threadStage: null,
+        threadStageReason: null,
       };
     }
 
@@ -912,6 +1069,12 @@ export async function updateManagedLaunchPacket(args: {
         packet.replyStatus === "replied"
           ? ("replied" as const)
           : ("awaiting" as const),
+      lastReplyAt: packet.replyStatus === "replied" ? packet.lastReplyAt : null,
+      lastReplyFrom: packet.replyStatus === "replied" ? packet.lastReplyFrom : null,
+      lastReplySubject: packet.replyStatus === "replied" ? packet.lastReplySubject : null,
+      lastReplySnippet: packet.replyStatus === "replied" ? packet.lastReplySnippet : null,
+      threadStage: packet.replyStatus === "replied" ? packet.threadStage : null,
+      threadStageReason: packet.replyStatus === "replied" ? packet.threadStageReason : null,
       nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
     };
   });

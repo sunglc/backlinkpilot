@@ -55,6 +55,13 @@ export interface ManagedInboxLaunchTarget {
 
 export type ManagedInboxLaunchPacketState = "prepared" | "claimed" | "sent";
 export type ManagedInboxLaunchPacketReplyStatus = "none" | "awaiting" | "replied";
+export type ManagedInboxLaunchPacketThreadStage =
+  | "thread_open"
+  | "needs_materials"
+  | "commercial_review"
+  | "under_review"
+  | "publication_ready"
+  | "published";
 
 export interface ManagedInboxLaunchPacket {
   id: string;
@@ -80,6 +87,8 @@ export interface ManagedInboxLaunchPacket {
   lastReplyFrom: string | null;
   lastReplySubject: string | null;
   lastReplySnippet: string | null;
+  threadStage: ManagedInboxLaunchPacketThreadStage | null;
+  threadStageReason: string | null;
 }
 
 export interface ManagedInboxLaunchRequest {

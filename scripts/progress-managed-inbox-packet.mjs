@@ -74,6 +74,15 @@ async function main() {
       sentAt: nowIso(),
       sendReceiptPath: receiptPath || packet.sendReceiptPath || null,
       replyStatus: packet.replyStatus === "replied" ? "replied" : "awaiting",
+      lastReplyAt: packet.replyStatus === "replied" ? packet.lastReplyAt || null : null,
+      lastReplyFrom: packet.replyStatus === "replied" ? packet.lastReplyFrom || null : null,
+      lastReplySubject:
+        packet.replyStatus === "replied" ? packet.lastReplySubject || null : null,
+      lastReplySnippet:
+        packet.replyStatus === "replied" ? packet.lastReplySnippet || null : null,
+      threadStage: packet.replyStatus === "replied" ? packet.threadStage || null : null,
+      threadStageReason:
+        packet.replyStatus === "replied" ? packet.threadStageReason || null : null,
       nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
     };
   });
