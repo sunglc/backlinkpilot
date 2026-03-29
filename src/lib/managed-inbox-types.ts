@@ -47,9 +47,22 @@ export interface ManagedInboxLaunchTarget {
   url: string;
   contactMethod: string;
   contactValue: string | null;
+  sourceReferencePath: string | null;
   score: number;
   status: string;
   reason: string;
+}
+
+export interface ManagedInboxLaunchPacket {
+  id: string;
+  targetId: string;
+  path: string;
+  relativePath: string;
+  title: string;
+  subject: string;
+  opening: string;
+  nextStep: string;
+  sourceReferencePath: string | null;
 }
 
 export interface ManagedInboxLaunchRequest {
@@ -62,6 +75,7 @@ export interface ManagedInboxLaunchRequest {
   status: "queued" | "updated";
   summary: string;
   shortlist: ManagedInboxLaunchTarget[];
+  packets: ManagedInboxLaunchPacket[];
 }
 
 export interface ManagedInboxTimelineEvent {

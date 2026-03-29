@@ -1011,6 +1011,10 @@ function getManagedInboxCopy(locale: Locale) {
         launchSummaryFallback: "首批托管外联请求已经生成，运营可以直接接手。",
         shortlistLabel: "首批候选目标",
         shortlistEmpty: "当前还没有自动 shortlist，运营会按现有队列手动补第一批目标。",
+        packetsLabel: "首批消息包",
+        packetsEmpty: "当前还没有预生成消息包，运营会按 shortlist 手动准备第一批。",
+        packetSubjectLabel: "建议主题",
+        packetNextStepLabel: "下一步",
         openTarget: "打开目标",
       },
       byo: {
@@ -1099,6 +1103,11 @@ function getManagedInboxCopy(locale: Locale) {
       shortlistLabel: "First-batch shortlist",
       shortlistEmpty:
         "There is no generated shortlist yet, so ops will build the first batch from the current queue.",
+      packetsLabel: "Prepared message packets",
+      packetsEmpty:
+        "There are no generated packets yet, so ops will prepare the first messages from the shortlist.",
+      packetSubjectLabel: "Suggested subject",
+      packetNextStepLabel: "Next step",
       openTarget: "Open target",
     },
     byo: {
@@ -2197,6 +2206,41 @@ export default function ProductDetail({
                       ) : (
                         <div className="mt-4 text-sm leading-7 text-stone-500">
                           {managedInboxCopy.managed.shortlistEmpty}
+                        </div>
+                      )}
+                      {managedLaunchRequest.packets.length > 0 ? (
+                        <div className="mt-5 grid gap-3">
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                            {managedInboxCopy.managed.packetsLabel}
+                          </div>
+                          <div className="grid gap-3">
+                            {managedLaunchRequest.packets.slice(0, 3).map((packet) => (
+                              <div
+                                key={packet.id}
+                                className="rounded-[1rem] border border-white/10 bg-black/15 p-4"
+                              >
+                                <div className="text-sm font-semibold text-white">
+                                  {packet.title}
+                                </div>
+                                <div className="mt-2 text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                  {managedInboxCopy.managed.packetSubjectLabel}
+                                </div>
+                                <div className="mt-2 text-sm leading-7 text-stone-200">
+                                  {packet.subject}
+                                </div>
+                                <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                  {managedInboxCopy.managed.packetNextStepLabel}
+                                </div>
+                                <p className="mt-2 text-sm leading-7 text-stone-400">
+                                  {packet.nextStep}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-5 text-sm leading-7 text-stone-500">
+                          {managedInboxCopy.managed.packetsEmpty}
                         </div>
                       )}
                       <div className="mt-3 text-xs text-stone-500">
