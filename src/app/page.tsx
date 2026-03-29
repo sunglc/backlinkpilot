@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import LocaleToggle from "@/components/locale-toggle";
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
@@ -438,7 +439,51 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Home() {
+type HomeSearchParams = Promise<{
+  code?: string | string[];
+  error?: string | string[];
+  error_description?: string | string[];
+  next?: string | string[];
+}>;
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: HomeSearchParams;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const code = Array.isArray(resolvedSearchParams.code)
+    ? resolvedSearchParams.code[0]
+    : resolvedSearchParams.code;
+  const error = Array.isArray(resolvedSearchParams.error)
+    ? resolvedSearchParams.error[0]
+    : resolvedSearchParams.error;
+  const errorDescription = Array.isArray(resolvedSearchParams.error_description)
+    ? resolvedSearchParams.error_description[0]
+    : resolvedSearchParams.error_description;
+  const next = Array.isArray(resolvedSearchParams.next)
+    ? resolvedSearchParams.next[0]
+    : resolvedSearchParams.next;
+
+  if (code || error || errorDescription) {
+    const callbackUrl = new URL("/auth/callback", "http://backlinkpilot.local");
+
+    if (code) {
+      callbackUrl.searchParams.set("code", code);
+    }
+    if (error) {
+      callbackUrl.searchParams.set("error", error);
+    }
+    if (errorDescription) {
+      callbackUrl.searchParams.set("error_description", errorDescription);
+    }
+    if (next) {
+      callbackUrl.searchParams.set("next", next);
+    }
+
+    redirect(`${callbackUrl.pathname}${callbackUrl.search}`);
+  }
+
   const locale = await getLocale();
   const copy = getHomeCopy(locale);
 
