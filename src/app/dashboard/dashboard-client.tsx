@@ -77,6 +77,9 @@ type ProductPrimaryAction =
       channelId: string;
       label: string;
     };
+type WorkflowStepStatus = "blocked" | "ready" | "active" | "done" | "live";
+type WorkspaceTaskStage = "pending" | "planned" | "awaiting_effect" | "live";
+type WorkspaceTaskKind = "profile" | "submission" | "proof";
 
 type LaunchProductPrimaryAction = Extract<
   ProductPrimaryAction,
@@ -100,6 +103,20 @@ interface ProductSummary {
 
 interface ProductProofSummaryRow extends ProductProofSummary {
   productId: string;
+}
+
+interface WorkspaceTask {
+  id: string;
+  productId: string;
+  productName: string;
+  kind: WorkspaceTaskKind;
+  stage: WorkspaceTaskStage;
+  title: string;
+  preview: string;
+  href: string;
+  updatedAt: string;
+  successCost: number;
+  failureCost: number;
 }
 
 type ProductProofAction = {
@@ -277,6 +294,87 @@ function getDashboardCopy(locale: Locale) {
             copy: `当你准备启动真实提交时，再解锁 ${LIVE_CHANNEL_COUNT} 个已上线渠道。`,
           },
         ],
+      },
+      workflow: {
+        eyebrow: "使用路径",
+        title: "登录后先沿着这 4 步走",
+        body:
+          "工作台不该先给你一堵能力墙，而应该先把你送进产品登记、覆盖计划、任务执行和结果跟踪。",
+        note:
+          "手工外链清单导入、竞品自动覆盖计划和真实积分扣费，会在这条主路径稳定后再继续加深。",
+        statuses: {
+          blocked: "未开始",
+          ready: "可继续",
+          active: "进行中",
+          done: "已就绪",
+          live: "已有结果",
+        },
+        steps: {
+          register: {
+            title: "1. 登记产品",
+            empty:
+              "贴上首页，先自动识别产品名称和描述，形成一个能执行的基础档案。",
+            done: "产品档案已经存在，可以继续进入覆盖计划和执行任务。",
+            actionAdd: "登记产品",
+            actionOpen: "打开产品",
+          },
+          plan: {
+            title: "2. 生成覆盖计划",
+            empty:
+              "先有产品，系统才能基于 discovery 供给和 live 渠道生成覆盖路线。",
+            ready:
+              "系统已经能根据当前产品、今日供给和可用渠道，给出一版可执行覆盖计划。",
+            action: "查看覆盖计划",
+          },
+          launch: {
+            title: "3. 建立执行任务",
+            empty: "先把产品档案建好，才能启动第一批真实外链任务。",
+            running: "当前已经有任务在跑，优先盯住它，而不是继续堆信息。",
+            ready: "现在最重要的是启动推荐渠道，让第一批任务真正跑起来。",
+            actionLaunch: "启动推荐任务",
+            actionQueue: "查看任务队列",
+          },
+          track: {
+            title: "4. 跟踪阶段与积分",
+            empty: "任务启动后，这里会告诉你每批外链现在走到哪一段。",
+            active:
+              "工作台会把任务拆成阶段视图，并给出每类任务的积分预估，让成本结构先变清楚。",
+            live:
+              "已经出现结果信号，下一步是把“待见效”和“已生效”的任务分开推进。",
+            action: "查看任务阶段",
+          },
+        },
+      },
+      tasks: {
+        eyebrow: "Task Queue",
+        title: "把执行能力翻成任务，而不是后台日志",
+        body:
+          "每个产品登记、每批提交和每个结果推进动作，都先压成一个任务。第一版先让用户看懂阶段和积分结构，再往真实计费接。",
+        previewBadge: "预估版",
+        empty:
+          "还没有任务。先登记一个产品，让系统开始生成覆盖计划和执行任务。",
+        labels: {
+          stage: "阶段",
+          preview: "任务预览",
+          economics: "积分预估",
+          updatedAt: "最近更新",
+          success: "成功",
+          failure: "失败/辛苦费",
+          open: "打开",
+        },
+        kinds: {
+          profile: "产品登记",
+          submission: "外链任务",
+          proof: "结果推进",
+        },
+        stages: {
+          pending: "待启动",
+          planned: "计划中",
+          awaiting_effect: "已发布/待生效",
+          live: "已生效",
+        },
+        footer:
+          "这批积分还是产品层预估，不会先于真实计费生效。它现在的作用，是先让用户理解每类任务的成本结构。",
       },
       emptyState: {
         title: "添加你的第一个产品",
@@ -479,6 +577,91 @@ function getDashboardCopy(locale: Locale) {
           copy: `Unlock ${LIVE_CHANNEL_COUNT} live lanes when you want real submissions to begin.`,
         },
       ],
+    },
+    workflow: {
+      eyebrow: "User Path",
+      title: "After login, move through these four steps first",
+      body:
+        "The workspace should not hit you with a wall of capability copy. It should move you into product setup, coverage planning, task execution, and result tracking.",
+      note:
+        "Manual backlink-list import, competitor-linked coverage plans, and real credit charging should come after this core path is stable.",
+      statuses: {
+        blocked: "Not started",
+        ready: "Ready",
+        active: "In progress",
+        done: "Ready to use",
+        live: "Result live",
+      },
+      steps: {
+        register: {
+          title: "1. Register the product",
+          empty:
+            "Paste the homepage first so the app can detect the product name and description and turn it into a workable profile.",
+          done: "The product profile already exists, so the next move is planning and execution.",
+          actionAdd: "Register product",
+          actionOpen: "Open product",
+        },
+        plan: {
+          title: "2. Build the coverage plan",
+          empty:
+            "The system needs a product profile before it can turn discovery supply and live lanes into a coverage path.",
+          ready:
+            "The app can already turn the current product, today's discovery supply, and available live lanes into an executable coverage plan.",
+          action: "View coverage plan",
+        },
+        launch: {
+          title: "3. Create execution tasks",
+          empty:
+            "Finish the product profile first so the first real backlink tasks can be created.",
+          running:
+            "A real task is already moving. Watch that instead of reading more capability copy.",
+          ready:
+            "The highest-value move now is launching the recommended lane so the first task batch actually starts.",
+          actionLaunch: "Launch recommended task",
+          actionQueue: "Open task queue",
+        },
+        track: {
+          title: "4. Track stages and credits",
+          empty:
+            "Once a task starts, this is where the workspace should show what stage each batch is in.",
+          active:
+            "The workspace now breaks work into task stages and a credit preview so the cost structure becomes visible before billing is wired in.",
+          live:
+            "Real result signal already exists, so the next move is separating 'awaiting effect' work from 'live' outcomes.",
+          action: "View task stages",
+        },
+      },
+    },
+    tasks: {
+      eyebrow: "Task Queue",
+      title: "Translate execution into tasks, not backend logs",
+      body:
+        "Each product setup, submission batch, and proof push becomes a visible task. This first version focuses on structure and credit clarity before real billing is attached.",
+      previewBadge: "Preview",
+      empty:
+        "There are no tasks yet. Register one product first and the system can start building the coverage and execution queue.",
+      labels: {
+        stage: "Stage",
+        preview: "Task preview",
+        economics: "Credit preview",
+        updatedAt: "Updated",
+        success: "Success",
+        failure: "Failure / ops fee",
+        open: "Open",
+      },
+      kinds: {
+        profile: "Product setup",
+        submission: "Backlink task",
+        proof: "Proof task",
+      },
+      stages: {
+        pending: "Pending",
+        planned: "Planned",
+        awaiting_effect: "Published / awaiting effect",
+        live: "Live",
+      },
+      footer:
+        "These credits are still a product-layer preview. They do not charge before the real billing model exists. Right now they help users understand the cost structure of each task type.",
     },
     emptyState: {
       title: "Add your first product",
@@ -834,6 +1017,128 @@ function getOutcomeLadderCopy(locale: Locale) {
   };
 }
 
+function workflowStatusClasses(status: WorkflowStepStatus) {
+  return {
+    blocked: "border-white/10 bg-white/[0.04] text-stone-300",
+    ready: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    active: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    done: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    live: "border-lime-300/15 bg-lime-300/[0.08] text-lime-100",
+  }[status];
+}
+
+function workspaceTaskStageClasses(stage: WorkspaceTaskStage) {
+  return {
+    pending: "border-white/10 bg-white/[0.04] text-stone-300",
+    planned: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    awaiting_effect: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    live: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+  }[stage];
+}
+
+function workspaceTaskStageRank(stage: WorkspaceTaskStage) {
+  return {
+    pending: 0,
+    planned: 1,
+    awaiting_effect: 2,
+    live: 3,
+  }[stage];
+}
+
+function proofTaskTitle(
+  type: ProductProofAction["taskType"],
+  locale: Locale
+) {
+  const labels =
+    locale === "zh"
+      ? {
+          verify_result: "验证结果",
+          protect_publication: "守住待发布机会",
+          send_materials: "补齐资料",
+          review_commercial: "评估商务条件",
+          follow_up: "继续跟进",
+          push_receipts: "推进回执证明",
+        }
+      : {
+          verify_result: "Verify result",
+          protect_publication: "Protect publication",
+          send_materials: "Send materials",
+          review_commercial: "Review commercial terms",
+          follow_up: "Follow up",
+          push_receipts: "Push receipts",
+        };
+
+  return labels[type];
+}
+
+function submissionTaskStage(
+  summary: ProductSummary,
+  submission: Submission
+): WorkspaceTaskStage {
+  if (summary.proof.counts.verify > 0) {
+    return "live";
+  }
+
+  if (
+    submission.status === "completed" ||
+    submission.status === "failed" ||
+    submission.success_sites > 0
+  ) {
+    return "awaiting_effect";
+  }
+
+  if (submission.status === "running") {
+    return "planned";
+  }
+
+  return "pending";
+}
+
+function proofTaskStage(
+  status: "queued" | "in_progress" | "proved" | "dropped"
+): WorkspaceTaskStage {
+  if (status === "proved") {
+    return "live";
+  }
+
+  if (status === "in_progress") {
+    return "planned";
+  }
+
+  if (status === "dropped") {
+    return "awaiting_effect";
+  }
+
+  return "pending";
+}
+
+function taskEconomics(args: {
+  kind: WorkspaceTaskKind;
+  channelId?: string;
+  proofType?: ProductProofAction["taskType"];
+}) {
+  if (args.kind === "profile") {
+    return { successCost: 0, failureCost: 0 };
+  }
+
+  if (args.kind === "submission") {
+    if (args.channelId === "stealth") {
+      return { successCost: 4, failureCost: 1 };
+    }
+    return { successCost: 3, failureCost: 1 };
+  }
+
+  if (args.proofType === "verify_result" || args.proofType === "protect_publication") {
+    return { successCost: 2, failureCost: 1 };
+  }
+
+  if (args.proofType === "review_commercial") {
+    return { successCost: 1, failureCost: 1 };
+  }
+
+  return { successCost: 2, failureCost: 1 };
+}
+
 function getOutcomeStage(summary: ProductSummary): OutcomeStage {
   if (summary.proof.counts.verify > 0) {
     return "proved";
@@ -1160,8 +1465,9 @@ export default function DashboardClient({
 }) {
   const copy = getDashboardCopy(locale);
   const proofCopy = getProofBoardCopy(locale);
-  const todayBriefCopy = getTodayBriefCopy(locale);
   const outcomeCopy = getOutcomeLadderCopy(locale);
+  const workflowCopy = copy.workflow;
+  const taskQueueCopy = copy.tasks;
   const router = useRouter();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [name, setName] = useState("");
@@ -1455,6 +1761,210 @@ export default function DashboardClient({
     featuredProduct && isLaunchAction(featuredProduct.primaryAction)
       ? featuredProduct.primaryAction
       : null;
+  const workspaceTasks = productSummaries
+    .flatMap((summary) => {
+      const tasks: WorkspaceTask[] = [];
+      const baseHref = `/dashboard/product/${summary.product.id}`;
+
+      if (summary.submissions.length === 0) {
+        const economics = taskEconomics({ kind: "profile" });
+        tasks.push({
+          id: `profile:${summary.product.id}`,
+          productId: summary.product.id,
+          productName: summary.product.name,
+          kind: "profile",
+          stage: summary.product.status === "draft" ? "pending" : "planned",
+          title:
+            locale === "zh"
+              ? `登记 ${summary.product.name}`
+              : `Set up ${summary.product.name}`,
+          preview:
+            summary.product.description ||
+            (locale === "zh"
+              ? "先确认首页解析结果，再进入第一条渠道。"
+              : "Confirm the parsed homepage profile before launching the first lane."),
+          href: baseHref,
+          updatedAt: summary.product.created_at,
+          ...economics,
+        });
+      }
+
+      summary.submissions.slice(0, 2).forEach((submission) => {
+        const channel =
+          CHANNELS.find((item) => item.id === submission.channel) || null;
+        const localizedChannel = channel
+          ? getLocalizedChannel(channel, locale).name
+          : submission.channel;
+        const economics = taskEconomics({
+          kind: "submission",
+          channelId: submission.channel,
+        });
+        const stage = submissionTaskStage(summary, submission);
+        const preview =
+          stage === "pending"
+            ? locale === "zh"
+              ? `${localizedChannel} 已排入队列，等待开始。`
+              : `${localizedChannel} is queued and waiting to start.`
+            : stage === "planned"
+              ? locale === "zh"
+                ? `${submission.completed_sites}/${submission.total_sites} 已处理，任务还在推进。`
+                : `${submission.completed_sites}/${submission.total_sites} processed and still moving.`
+              : stage === "awaiting_effect"
+                ? locale === "zh"
+                  ? `${submission.success_sites} 个成功动作已落地，接下来等回复或公开结果。`
+                  : `${submission.success_sites} successful actions landed. Now wait for replies or public proof.`
+                : locale === "zh"
+                  ? `这批 ${localizedChannel} 已经进入结果层。`
+                  : `This ${localizedChannel} batch is already feeding the result layer.`;
+
+        tasks.push({
+          id: `submission:${submission.id}`,
+          productId: summary.product.id,
+          productName: summary.product.name,
+          kind: "submission",
+          stage,
+          title:
+            locale === "zh"
+              ? `${localizedChannel} 批任务`
+              : `${localizedChannel} batch`,
+          preview,
+          href: `${baseHref}#submission-history`,
+          updatedAt: submission.created_at,
+          ...economics,
+        });
+      });
+
+      const proofTask = summary.proof.activeTask || summary.proof.latestTask;
+      if (proofTask) {
+        const economics = taskEconomics({
+          kind: "proof",
+          proofType: proofTask.type,
+        });
+
+        tasks.push({
+          id: `proof:${summary.product.id}:${proofTask.id}`,
+          productId: summary.product.id,
+          productName: summary.product.name,
+          kind: "proof",
+          stage: proofTaskStage(proofTask.status),
+          title: proofTaskTitle(proofTask.type, locale),
+          preview:
+            summary.proof.candidateLabels[0] ||
+            (locale === "zh"
+              ? "把最接近结果的线程往前推进。"
+              : "Push the thread that is closest to a visible result."),
+          href: `${baseHref}#proof-pipeline`,
+          updatedAt: proofTask.updatedAt || proofTask.createdAt,
+          ...economics,
+        });
+      }
+
+      return tasks;
+    })
+    .slice()
+    .sort((left, right) => {
+      const stageDelta =
+        workspaceTaskStageRank(left.stage) - workspaceTaskStageRank(right.stage);
+
+      if (stageDelta !== 0) {
+        return stageDelta;
+      }
+
+      return right.updatedAt.localeCompare(left.updatedAt);
+    })
+    .slice(0, 8);
+
+  const workflowSteps = [
+    {
+      id: "register",
+      status:
+        products.length === 0
+          ? ("blocked" as const)
+          : featuredProduct
+            ? ("done" as const)
+            : ("ready" as const),
+      title: workflowCopy.steps.register.title,
+      body:
+        products.length === 0
+          ? workflowCopy.steps.register.empty
+          : workflowCopy.steps.register.done,
+      href:
+        products.length === 0
+          ? null
+          : `/dashboard/product/${featuredProduct?.product.id || products[0].id}`,
+      actionLabel:
+        products.length === 0
+          ? workflowCopy.steps.register.actionAdd
+          : workflowCopy.steps.register.actionOpen,
+    },
+    {
+      id: "plan",
+      status:
+        products.length === 0
+          ? ("blocked" as const)
+          : operationalInsights.discovery_counted_new_worthy_root_domain_count > 0 ||
+              liveChannelsForPlan.length > 0
+            ? ("ready" as const)
+            : ("active" as const),
+      title: workflowCopy.steps.plan.title,
+      body:
+        products.length === 0
+          ? workflowCopy.steps.plan.empty
+          : `${workflowCopy.steps.plan.ready} ${copy.discovery.progressLabel}: ${discoveryProgressCount}/${discoveryProgressTarget || 0}.`,
+      href: products.length === 0 ? null : "#launch-board",
+      actionLabel: workflowCopy.steps.plan.action,
+    },
+    {
+      id: "launch",
+      status:
+        products.length === 0
+          ? ("blocked" as const)
+          : activeLaunches > 0
+            ? ("active" as const)
+            : featuredLaunchAction
+              ? ("ready" as const)
+              : submissions.length > 0
+                ? ("done" as const)
+                : ("ready" as const),
+      title: workflowCopy.steps.launch.title,
+      body:
+        products.length === 0
+          ? workflowCopy.steps.launch.empty
+          : activeLaunches > 0
+            ? workflowCopy.steps.launch.running
+            : workflowCopy.steps.launch.ready,
+      href:
+        products.length === 0
+          ? null
+          : activeLaunches > 0
+            ? "#task-queue"
+            : featuredLaunchAction && featuredProduct
+              ? `/dashboard/product/${featuredProduct.product.id}#submission-history`
+              : "#task-queue",
+      actionLabel:
+        activeLaunches > 0
+          ? workflowCopy.steps.launch.actionQueue
+          : workflowCopy.steps.launch.actionLaunch,
+    },
+    {
+      id: "track",
+      status:
+        workspaceProofStats.verify > 0
+          ? ("live" as const)
+          : workspaceTasks.length > 0
+            ? ("active" as const)
+            : ("blocked" as const),
+      title: workflowCopy.steps.track.title,
+      body:
+        workspaceProofStats.verify > 0
+          ? workflowCopy.steps.track.live
+          : workspaceTasks.length > 0
+            ? workflowCopy.steps.track.active
+            : workflowCopy.steps.track.empty,
+      href: workspaceTasks.length > 0 ? "#task-queue" : null,
+      actionLabel: workflowCopy.steps.track.action,
+    },
+  ];
 
   let heroTitle = copy.hero.readyTitle;
   let heroBody = copy.hero.readyBody;
@@ -1468,74 +1978,6 @@ export default function DashboardClient({
   } else if (activeLaunches > 0) {
     heroTitle = copy.hero.activeTitle;
     heroBody = copy.hero.activeBody;
-  }
-
-  const topSignalSummary =
-    topProofProducts[0] ||
-    productSummaries.find((summary) => summary.activeSubmission) ||
-    featuredProduct ||
-    null;
-  const topSignalTitle = !topSignalSummary
-    ? todayBriefCopy.emptySignalTitle
-    : topProofProducts[0]
-      ? topSignalSummary.product.name
-      : todayBriefCopy.activeSignalTitle;
-  const topSignalBody = !topSignalSummary
-    ? todayBriefCopy.emptySignalBody
-    : topProofProducts[0]
-      ? `${
-          proofCopy.priorities[topSignalSummary.proof.priority].body
-        }${
-          topSignalSummary.proof.candidateLabels[0]
-            ? ` ${proofCopy.candidates}: ${topSignalSummary.proof.candidateLabels[0]}.`
-            : ""
-        }`
-      : topSignalSummary.activeSubmission
-        ? `${
-            todayBriefCopy.activeSignalBody
-          } ${topSignalSummary.activeSubmission.completed_sites}/${
-            topSignalSummary.activeSubmission.total_sites
-          }.`
-        : todayBriefCopy.readySignalBody;
-
-  let blockerTitle = todayBriefCopy.proofBlockerTitle;
-  let blockerBody = todayBriefCopy.proofBlockerBody;
-
-  if (products.length === 0) {
-    blockerTitle = todayBriefCopy.noProductBlockerTitle;
-    blockerBody = todayBriefCopy.noProductBlockerBody;
-  } else if (!isPaid) {
-    blockerTitle = todayBriefCopy.freeBlockerTitle;
-    blockerBody = todayBriefCopy.freeBlockerBody;
-  } else if (isPlanSyncPending) {
-    blockerTitle = todayBriefCopy.syncBlockerTitle;
-    blockerBody = todayBriefCopy.syncBlockerBody;
-  } else if (operationalInsights.discovery_remaining_to_target > 0) {
-    blockerTitle = todayBriefCopy.discoveryBlockerTitle;
-    blockerBody = `${todayBriefCopy.discoveryBlockerBody} ${copy.discovery.gapLabel}: ${operationalInsights.discovery_remaining_to_target}.`;
-  }
-
-  let actionTitle = todayBriefCopy.actionReviewTitle;
-  let actionBody = todayBriefCopy.actionReviewBody;
-
-  if (products.length === 0) {
-    actionTitle = todayBriefCopy.actionSetupTitle;
-    actionBody = todayBriefCopy.actionSetupBody;
-  } else if (!isPaid) {
-    actionTitle = todayBriefCopy.actionUnlockTitle;
-    actionBody = todayBriefCopy.actionUnlockBody;
-  } else if (isPlanSyncPending) {
-    actionTitle = todayBriefCopy.actionSyncTitle;
-    actionBody = todayBriefCopy.actionSyncBody;
-  } else if (featuredProofAction && featuredProduct) {
-    actionTitle = todayBriefCopy.actionProofTitle;
-    actionBody = `${todayBriefCopy.actionProofBody} ${featuredProduct.product.name}.`;
-  } else if (featuredLaunchAction && featuredProduct) {
-    actionTitle = todayBriefCopy.actionLaunchTitle;
-    actionBody = `${todayBriefCopy.actionLaunchBody} ${featuredProduct.product.name}.`;
-  } else if (featuredProduct) {
-    actionTitle = todayBriefCopy.actionReviewTitle;
-    actionBody = `${todayBriefCopy.actionReviewBody} ${featuredProduct.product.name}.`;
   }
 
   async function handleWorkspaceLaunch(productId: string, channelId: string) {
@@ -1926,126 +2368,174 @@ export default function DashboardClient({
         <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              {todayBriefCopy.eyebrow}
+              {workflowCopy.eyebrow}
             </p>
             <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-              {todayBriefCopy.title}
+              {workflowCopy.title}
             </h2>
             <p className="mt-4 text-sm leading-7 text-stone-400">
-              {todayBriefCopy.body}
+              {workflowCopy.body}
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 xl:grid-cols-3">
-            <div className="rounded-[1.35rem] border border-emerald-300/15 bg-emerald-300/[0.07] p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-emerald-100/70">
-                {todayBriefCopy.cards.signal}
-              </div>
-              <h3 className="mt-3 text-xl font-semibold text-white">
-                {topSignalTitle}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-stone-200">
-                {topSignalBody}
-              </p>
-            </div>
-
-            <div className="rounded-[1.35rem] border border-amber-300/15 bg-amber-300/[0.08] p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-amber-100/70">
-                {todayBriefCopy.cards.blocker}
-              </div>
-              <h3 className="mt-3 text-xl font-semibold text-white">
-                {blockerTitle}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-stone-200">
-                {blockerBody}
-              </p>
-            </div>
-
-            <div className="rounded-[1.35rem] border border-sky-300/15 bg-sky-300/[0.08] p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-sky-100/70">
-                {todayBriefCopy.cards.move}
-              </div>
-              <h3 className="mt-3 text-xl font-semibold text-white">
-                {actionTitle}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-stone-200">
-                {actionBody}
-              </p>
-
-              <div className="mt-5 flex flex-wrap gap-3">
-                {products.length === 0 ? (
-                  <button
-                    onClick={openAddProduct}
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.onboarding.primary}
-                  </button>
-                ) : !isPaid ? (
-                  <a
-                    href="/api/stripe/checkout?plan=starter"
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.hero.primaryUnlock}
-                  </a>
-                ) : isPlanSyncPending ? (
-                  <button
-                    type="button"
-                    onClick={() => router.refresh()}
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {todayBriefCopy.refresh}
-                  </button>
-                ) : featuredProofAction && featuredProduct ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleWorkspaceProofAction(
-                        featuredProduct.product.id,
-                        featuredProofAction
-                      )
-                    }
-                    disabled={
-                      proofActionKey ===
-                      `${featuredProduct.product.id}:${featuredProofAction.taskType}`
-                    }
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                  >
-                    {proofActionKey ===
-                    `${featuredProduct.product.id}:${featuredProofAction.taskType}`
-                      ? copy.productCard.starting
-                      : featuredProofAction.label}
-                  </button>
-                ) : featuredLaunchAction && featuredProduct ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleWorkspaceLaunch(
-                        featuredProduct.product.id,
-                        featuredLaunchAction.channelId
-                      )
-                    }
-                    disabled={
-                      launchingKey ===
+          <div className="mt-6 grid gap-4 xl:grid-cols-4">
+            {workflowSteps.map((step) => (
+              <div
+                key={step.id}
+                className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
+              >
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-medium ${workflowStatusClasses(
+                    step.status
+                  )}`}
+                >
+                  {workflowCopy.statuses[step.status]}
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-white">
+                  {step.title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-300">{step.body}</p>
+                <div className="mt-5">
+                  {step.id === "register" && products.length === 0 ? (
+                    <button
+                      onClick={openAddProduct}
+                      className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                    >
+                      {step.actionLabel}
+                    </button>
+                  ) : step.id === "launch" && featuredLaunchAction && featuredProduct ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceLaunch(
+                          featuredProduct.product.id,
+                          featuredLaunchAction.channelId
+                        )
+                      }
+                      disabled={
+                        launchingKey ===
+                        `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                      }
+                      className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                    >
+                      {launchingKey ===
                       `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
-                    }
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                  >
-                    {launchingKey ===
-                    `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
-                      ? copy.productCard.starting
-                      : copy.checkout.startNow}
-                  </button>
-                ) : featuredProduct ? (
-                  <Link
-                    href={`/dashboard/product/${featuredProduct.product.id}`}
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {todayBriefCopy.openProduct}
-                  </Link>
-                ) : null}
+                        ? copy.productCard.starting
+                        : step.actionLabel}
+                    </button>
+                  ) : step.href ? (
+                    <Link
+                      href={step.href}
+                      className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                    >
+                      {step.actionLabel}
+                    </Link>
+                  ) : (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm text-stone-500">
+                      {step.actionLabel}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+
+          <p className="mt-6 text-sm leading-7 text-stone-500">{workflowCopy.note}</p>
+        </section>
+
+        <section
+          id="task-queue"
+          className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {taskQueueCopy.eyebrow}
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                {taskQueueCopy.title}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-stone-400">
+                {taskQueueCopy.body}
+              </p>
+            </div>
+            <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
+              {taskQueueCopy.previewBadge}
+            </span>
+          </div>
+
+          {workspaceTasks.length > 0 ? (
+            <div className="mt-6 grid gap-4">
+              {workspaceTasks.map((task) => (
+                <article
+                  key={task.id}
+                  className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                >
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="max-w-3xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-stone-300">
+                          {taskQueueCopy.kinds[task.kind]}
+                        </span>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceTaskStageClasses(
+                            task.stage
+                          )}`}
+                        >
+                          {taskQueueCopy.stages[task.stage]}
+                        </span>
+                        <span className="text-sm text-stone-500">{task.productName}</span>
+                      </div>
+
+                      <h3 className="mt-4 text-xl font-semibold text-white">
+                        {task.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-stone-300">
+                        {task.preview}
+                      </p>
+                    </div>
+
+                    <div className="w-full max-w-sm space-y-3">
+                      <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                        <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                          {taskQueueCopy.labels.economics}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-sm text-stone-200">
+                          <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1.5">
+                            {taskQueueCopy.labels.success}: {task.successCost}
+                          </span>
+                          <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.08] px-3 py-1.5">
+                            {taskQueueCopy.labels.failure}: {task.failureCost}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="text-xs text-stone-500">
+                          {taskQueueCopy.labels.updatedAt}:{" "}
+                          {formatDashboardDate(task.updatedAt, locale)}
+                        </div>
+                        <Link
+                          href={task.href}
+                          className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                        >
+                          {taskQueueCopy.labels.open}
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-6 text-sm leading-7 text-stone-400">
+              {taskQueueCopy.empty}
+            </p>
+          )}
+
+          <p className="mt-6 text-sm leading-7 text-stone-500">
+            {taskQueueCopy.footer}
+          </p>
         </section>
 
         {products.length > 0 ? (
@@ -2313,7 +2803,8 @@ export default function DashboardClient({
           </section>
         ) : null}
 
-        <section className="mt-12 grid gap-8 xl:grid-cols-[0.94fr_1.06fr]">
+        {products.length > 0 ? (
+          <section className="mt-12 grid gap-8 xl:grid-cols-[0.94fr_1.06fr]">
           <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(208,166,90,0.12),rgba(255,255,255,0.04))] p-7">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
               {copy.discovery.eyebrow}
@@ -2466,7 +2957,8 @@ export default function DashboardClient({
               )}
             </div>
           </div>
-        </section>
+          </section>
+        ) : null}
 
         {products.length > 0 ? (
           <section className="mt-12 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
