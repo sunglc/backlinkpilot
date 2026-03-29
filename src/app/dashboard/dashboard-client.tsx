@@ -94,6 +94,11 @@ interface ProductProofSummaryRow extends ProductProofSummary {
   productId: string;
 }
 
+type ProductProofAction = {
+  href: string;
+  label: string;
+};
+
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
 const PLAN_ORDER = ["free", "starter", "growth", "scale"] as const;
 
@@ -468,8 +473,18 @@ function getProofBoardCopy(locale: Locale) {
         "当前还没有明显接近结果的产品。先继续跑 live 渠道，把结果信号做厚。",
       noCandidates: "还没有明确候选",
       openProduct: "打开产品",
+      openTopProduct: "打开全局优先产品",
       latestSignal: "最近信号",
       candidates: "候选",
+      actionLabels: {
+        verify_published: "验证结果",
+        protect_publication: "推进接近发布",
+        send_materials: "补齐资料",
+        review_commercial: "评估商务条件",
+        hold_review: "继续跟进",
+        push_receipts: "推进回执证明",
+        build_signal: "打开产品",
+      },
       priorities: {
         verify_published: {
           title: "先验证最接近上线的产品",
@@ -519,8 +534,18 @@ function getProofBoardCopy(locale: Locale) {
       "There are no obvious proof-front products yet. Keep running live lanes until the result layer gets thicker.",
     noCandidates: "No named candidates yet",
     openProduct: "Open Product",
+    openTopProduct: "Open top proof product",
     latestSignal: "Latest signal",
     candidates: "Candidates",
+    actionLabels: {
+      verify_published: "Verify result",
+      protect_publication: "Protect publication",
+      send_materials: "Send materials",
+      review_commercial: "Review terms",
+      hold_review: "Follow up",
+      push_receipts: "Push receipts",
+      build_signal: "Open product",
+    },
     priorities: {
       verify_published: {
         title: "Verify the products closest to going live",
@@ -568,6 +593,60 @@ function proofPriorityClasses(priority: ProductProofPriority) {
   };
 
   return classes[priority];
+}
+
+function proofActionForSummary(
+  summary: ProductSummary,
+  proofCopy: ReturnType<typeof getProofBoardCopy>
+): ProductProofAction {
+  const baseHref = `/dashboard/product/${summary.product.id}`;
+
+  if (summary.proof.priority === "verify_published") {
+    return {
+      href: `${baseHref}#proof-pipeline`,
+      label: proofCopy.actionLabels.verify_published,
+    };
+  }
+
+  if (summary.proof.priority === "protect_publication") {
+    return {
+      href: `${baseHref}#managed-inbox`,
+      label: proofCopy.actionLabels.protect_publication,
+    };
+  }
+
+  if (summary.proof.priority === "send_materials") {
+    return {
+      href: `${baseHref}#managed-inbox`,
+      label: proofCopy.actionLabels.send_materials,
+    };
+  }
+
+  if (summary.proof.priority === "review_commercial") {
+    return {
+      href: `${baseHref}#managed-inbox`,
+      label: proofCopy.actionLabels.review_commercial,
+    };
+  }
+
+  if (summary.proof.priority === "hold_review") {
+    return {
+      href: `${baseHref}#managed-inbox`,
+      label: proofCopy.actionLabels.hold_review,
+    };
+  }
+
+  if (summary.proof.priority === "push_receipts") {
+    return {
+      href: `${baseHref}#proof-pipeline`,
+      label: proofCopy.actionLabels.push_receipts,
+    };
+  }
+
+  return {
+    href: baseHref,
+    label: proofCopy.actionLabels.build_signal,
+  };
 }
 
 function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
@@ -951,6 +1030,14 @@ export default function DashboardClient({
     productSummaries.find((summary) => summary.stage === "unlock") ||
     productSummaries[0] ||
     null;
+  const topProofAction =
+    topProofProducts[0]
+      ? proofActionForSummary(topProofProducts[0], proofCopy)
+      : null;
+  const featuredProofAction =
+    featuredProduct && featuredProduct.proof.priority !== "build_signal"
+      ? proofActionForSummary(featuredProduct, proofCopy)
+      : null;
   const featuredLaunchAction =
     featuredProduct && isLaunchAction(featuredProduct.primaryAction)
       ? featuredProduct.primaryAction
@@ -1212,6 +1299,21 @@ export default function DashboardClient({
                     {copy.hero.secondaryAdd}
                   </button>
                 </>
+              ) : featuredProofAction ? (
+                <>
+                  <Link
+                    href={featuredProofAction.href}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {featuredProofAction.label}
+                  </Link>
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryAdd}
+                  </button>
+                </>
               ) : featuredProduct ? (
                 <>
                   <Link
@@ -1318,6 +1420,13 @@ export default function DashboardClient({
                       >
                         {copy.checkout.refresh}
                       </button>
+                    ) : featuredProofAction ? (
+                      <Link
+                        href={featuredProofAction.href}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {featuredProofAction.label}
+                      </Link>
                     ) : featuredProduct && featuredLaunchAction ? (
                       <button
                         type="button"
@@ -1427,6 +1536,16 @@ export default function DashboardClient({
                 <p className="mt-3 text-sm leading-7 text-stone-200">
                   {proofCopy.priorities[globalProofPriority].body}
                 </p>
+                {topProofAction ? (
+                  <div className="mt-5">
+                    <Link
+                      href={topProofAction.href}
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
+                    >
+                      {topProofAction.label}
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -1440,58 +1559,70 @@ export default function DashboardClient({
 
               {topProofProducts.length > 0 ? (
                 <div className="mt-6 grid gap-4">
-                  {topProofProducts.map((summary) => (
-                    <div
-                      key={summary.product.id}
-                      className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
-                            summary.proof.priority
-                          )}`}
-                        >
-                          {proofCopy.priorities[summary.proof.priority].title}
-                        </span>
-                        <div className="text-lg font-semibold text-white">
-                          {summary.product.name}
+                  {topProofProducts.map((summary) => {
+                    const proofAction = proofActionForSummary(summary, proofCopy);
+
+                    return (
+                      <div
+                        key={summary.product.id}
+                        className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
+                              summary.proof.priority
+                            )}`}
+                          >
+                            {proofCopy.priorities[summary.proof.priority].title}
+                          </span>
+                          <div className="text-lg font-semibold text-white">
+                            {summary.product.name}
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {proofCopy.priorities[summary.proof.priority].body}
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
+                          {summary.proof.candidateLabels.length > 0 ? (
+                            summary.proof.candidateLabels.map((label) => (
+                              <span
+                                key={`${summary.product.id}-${label}`}
+                                className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
+                              >
+                                {proofCopy.candidates}: {label}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
+                              {proofCopy.noCandidates}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
+                          <span>
+                            {proofCopy.latestSignal}:{" "}
+                            {summary.proof.lastSignalAt
+                              ? formatDashboardDate(summary.proof.lastSignalAt, locale)
+                              : "—"}
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={proofAction.href}
+                              className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                            >
+                              {proofAction.label}
+                            </Link>
+                            <Link
+                              href={`/dashboard/product/${summary.product.id}`}
+                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                            >
+                              {proofCopy.openProduct}
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                      <p className="mt-3 text-sm leading-7 text-stone-300">
-                        {proofCopy.priorities[summary.proof.priority].body}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
-                        {summary.proof.candidateLabels.length > 0 ? (
-                          summary.proof.candidateLabels.map((label) => (
-                            <span
-                              key={`${summary.product.id}-${label}`}
-                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
-                            >
-                              {proofCopy.candidates}: {label}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
-                            {proofCopy.noCandidates}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
-                        <span>
-                          {proofCopy.latestSignal}:{" "}
-                          {summary.proof.lastSignalAt
-                            ? formatDashboardDate(summary.proof.lastSignalAt, locale)
-                            : "—"}
-                        </span>
-                        <Link
-                          href={`/dashboard/product/${summary.product.id}`}
-                          className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                        >
-                          {proofCopy.openProduct}
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="mt-6 text-sm leading-7 text-stone-400">
@@ -1686,6 +1817,10 @@ export default function DashboardClient({
                   const linkAction = isLinkAction(summary.primaryAction)
                     ? summary.primaryAction
                     : null;
+                  const proofAction =
+                    summary.proof.priority !== "build_signal"
+                      ? proofActionForSummary(summary, proofCopy)
+                      : null;
 
                   return (
                     <article
@@ -1833,6 +1968,14 @@ export default function DashboardClient({
                           </div>
 
                           <div className="mt-5 flex flex-wrap gap-3">
+                            {proofAction ? (
+                              <Link
+                                href={proofAction.href}
+                                className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15"
+                              >
+                                {proofAction.label}
+                              </Link>
+                            ) : null}
                             {launchAction ? (
                               <button
                                 type="button"

@@ -2385,7 +2385,7 @@ export default function ProductDetail({
           </div>
         </section>
 
-        <section className="mt-12">
+        <section id="managed-inbox" className="mt-12 scroll-mt-24">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
               {managedInboxCopy.eyebrow}
@@ -3115,7 +3115,7 @@ export default function ProductDetail({
         </section>
 
         {latestResolvedSubmission || managedLaunchPackets.length > 0 ? (
-          <section className="mt-12">
+          <section id="proof-pipeline" className="mt-12 scroll-mt-24">
             <div className="max-w-3xl">
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
                 {copy.proofPipeline.title}
