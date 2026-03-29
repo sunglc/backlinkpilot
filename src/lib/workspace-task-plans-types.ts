@@ -35,6 +35,7 @@ export interface WorkspaceTaskPlan {
   id: string;
   productId: string;
   userId: string;
+  sourcePlanId: string | null;
   mode: WorkspaceTaskPlanMode;
   granularity: WorkspaceTaskPlanGranularity;
   stage: WorkspaceTaskPlanStage;

@@ -120,6 +120,7 @@ function normalizePlan(
     id: input.id,
     productId: input.productId,
     userId: input.userId,
+    sourcePlanId: input.sourcePlanId || null,
     mode: normalizeMode(input.mode),
     granularity: input.granularity || "batch",
     stage: normalizeStage(input.stage),
@@ -138,6 +139,19 @@ function normalizePlan(
 async function writePlans(productId: string, plans: WorkspaceTaskPlan[]) {
   await ensureStorage();
   await writeFile(planPath(productId), JSON.stringify(plans, null, 2));
+}
+
+function dedupePlans(plans: WorkspaceTaskPlan[]) {
+  const seen = new Set<string>();
+
+  return plans.filter((plan) => {
+    if (seen.has(plan.id)) {
+      return false;
+    }
+
+    seen.add(plan.id);
+    return true;
+  });
 }
 
 export async function readWorkspaceTaskPlans(args: {
@@ -194,6 +208,17 @@ function economicsForChannels(channels: ChannelContract[]) {
 function channelsForCurrentPlan(plan: string) {
   const effectivePlan = plan === "free" ? "starter" : plan;
   return CHANNELS.filter((channel) => channel.plans.includes(effectivePlan));
+}
+
+function liveExecutionChannelsForPlan(plan: string) {
+  if (!plan || plan === "free") {
+    return [] as ChannelContract[];
+  }
+
+  return CHANNELS.filter(
+    (channel) =>
+      channel.support_status === "live" && channel.plans.includes(plan)
+  );
 }
 
 function recommendedCoverageChannels(args: {
@@ -501,4 +526,117 @@ export async function createCompetitorCoverageTaskPlan(args: {
 
   await writePlans(args.product.id, [nextPlan, ...existingPlans].slice(0, 20));
   return nextPlan;
+}
+
+export async function materializeCompetitorCoveragePlan(args: {
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  planId: string;
+  currentPlan: string;
+  submissions: Array<{ channel: string }>;
+  operationalInsights: OperationalInsights;
+}) {
+  const existingPlans = await readWorkspaceTaskPlans({
+    productId: args.product.id,
+    userId: args.actor.userId,
+  });
+  const targetPlan = existingPlans.find((plan) => plan.id === args.planId);
+
+  if (!targetPlan || targetPlan.mode !== "competitor_map") {
+    throw new Error("Competitor coverage plan not found.");
+  }
+
+  if (targetPlan.stage !== "planned") {
+    return {
+      plan: targetPlan,
+      launchChannelIds: [],
+      createdPlanIds: [],
+    };
+  }
+
+  const existingChannels = new Set(args.submissions.map((submission) => submission.channel));
+  const executableChannelIds = new Set(
+    liveExecutionChannelsForPlan(args.currentPlan).map((channel) => channel.id)
+  );
+  const launchChannelIds = targetPlan.recommendedChannelIds.filter((channelId) => {
+    return executableChannelIds.has(channelId) && !existingChannels.has(channelId);
+  });
+
+  const paidTargets = args.operationalInsights.top_paid_targets.slice(0, 5);
+  const followUpPlans: WorkspaceTaskPlan[] = [];
+  const existingPaidWatchlist = existingPlans.find(
+    (plan) =>
+      plan.sourcePlanId === targetPlan.id &&
+      plan.mode === "import_list" &&
+      plan.title === "Paid opportunity watchlist"
+  );
+
+  if (paidTargets.length > 0 && !existingPaidWatchlist) {
+    const createdAt = nowIso();
+    const paidPlan = normalizePlan({
+      id: `plan-${args.product.id.slice(0, 8)}-${Date.now()
+        .toString()
+        .slice(-6)}-paid`,
+      productId: args.product.id,
+      userId: args.actor.userId,
+      sourcePlanId: targetPlan.id,
+      mode: "import_list",
+      granularity: "per_target",
+      stage: "planned",
+      title: "Paid opportunity watchlist",
+      summary: `Track ${paidTargets.length} paid or commercial placements that competitors may justify but should stay separate from the default free-send path.`,
+      createdAt,
+      updatedAt: createdAt,
+      recommendedChannelIds: [],
+      targets: paidTargets.map((target, index) => ({
+        id: `paid-${index}-${target.root_domain}`,
+        label: target.platform_name,
+        detail: `${target.root_domain} · ${target.why_now || target.recommended_action}`,
+        url: target.submit_url || target.platform_url || null,
+        host: target.root_domain || null,
+      })),
+      coverageBreakdown: null,
+      successCost: 1,
+      failureCost: 1,
+    });
+
+    followUpPlans.push(paidPlan);
+  }
+
+  const updatedAt = nowIso();
+  const hasNewFollowUp =
+    launchChannelIds.length > 0 || followUpPlans.length > 0;
+  const updatedPlan = normalizePlan({
+    ...targetPlan,
+    stage: hasNewFollowUp ? "pending" : "live",
+    updatedAt,
+    summary:
+      launchChannelIds.length > 0
+        ? `Queued ${launchChannelIds
+            .map((channelId) => localizedChannelName(channelId))
+            .join(", ")} from this competitor gap plan. Paid watchlist ${
+            paidTargets.length > 0
+              ? existingPaidWatchlist
+                ? "already existed."
+                : "also created."
+              : "not needed."
+          }`
+        : `All live lanes from this competitor gap plan are already in motion. ${
+            paidTargets.length > 0 && !existingPaidWatchlist
+              ? "A paid opportunity watchlist was still created."
+              : "No additional follow-up tasks were needed."
+          }`,
+  });
+
+  const nextPlans = dedupePlans([updatedPlan, ...followUpPlans, ...existingPlans]).slice(
+    0,
+    25
+  );
+  await writePlans(args.product.id, nextPlans);
+
+  return {
+    plan: updatedPlan,
+    launchChannelIds,
+    createdPlanIds: followUpPlans.map((plan) => plan.id),
+  };
 }

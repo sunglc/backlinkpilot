@@ -115,6 +115,8 @@ interface WorkspaceTask {
   productId: string;
   productName: string;
   kind: WorkspaceTaskKind;
+  taskPlanId?: string | null;
+  taskPlanMode?: WorkspaceTaskPlan["mode"] | null;
   stage: WorkspaceTaskStage;
   title: string;
   preview: string;
@@ -396,6 +398,9 @@ function getDashboardCopy(locale: Locale) {
           updatedAt: "最近更新",
           success: "成功",
           failure: "失败/辛苦费",
+          createNextTasks: "生成下一批任务",
+          creatingTasks: "生成中...",
+          unlockToCreateTasks: "升级后生成任务",
           open: "打开",
           directories: "该补哪些目录",
           outreach: "该跟哪些外联",
@@ -717,6 +722,9 @@ function getDashboardCopy(locale: Locale) {
         updatedAt: "Updated",
         success: "Success",
         failure: "Failure / ops fee",
+        createNextTasks: "Create next tasks",
+        creatingTasks: "Creating...",
+        unlockToCreateTasks: "Unlock to create tasks",
         open: "Open",
         directories: "Directory gaps",
         outreach: "Outreach lanes",
@@ -1566,6 +1574,9 @@ export default function DashboardClient({
     "auto" | "competitor" | "import" | null
   >(null);
   const [builderError, setBuilderError] = useState("");
+  const [materializingPlanId, setMaterializingPlanId] = useState<string | null>(
+    null
+  );
 
   const isPaid = subscription?.status === "active";
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
@@ -1873,6 +1884,8 @@ export default function DashboardClient({
               productId: summary.product.id,
               productName: summary.product.name,
               kind: "coverage",
+              taskPlanId: plan.id,
+              taskPlanMode: plan.mode,
               stage: plan.stage,
               title:
                 locale === "zh"
@@ -1894,6 +1907,8 @@ export default function DashboardClient({
           productId: summary.product.id,
           productName: summary.product.name,
           kind: "coverage",
+          taskPlanId: plan.id,
+          taskPlanMode: plan.mode,
           stage: plan.stage,
           title: plan.title,
           preview: plan.summary,
@@ -1912,6 +1927,8 @@ export default function DashboardClient({
           productId: summary.product.id,
           productName: summary.product.name,
           kind: "profile",
+          taskPlanId: null,
+          taskPlanMode: null,
           stage: summary.product.status === "draft" ? "pending" : "planned",
           title:
             locale === "zh"
@@ -1962,6 +1979,8 @@ export default function DashboardClient({
           productId: summary.product.id,
           productName: summary.product.name,
           kind: "submission",
+          taskPlanId: null,
+          taskPlanMode: null,
           stage,
           title:
             locale === "zh"
@@ -1987,6 +2006,8 @@ export default function DashboardClient({
           productId: summary.product.id,
           productName: summary.product.name,
           kind: "proof",
+          taskPlanId: null,
+          taskPlanMode: null,
           stage: proofTaskStage(proofTask.status),
           title: proofTaskTitle(proofTask.type, locale),
           preview:
@@ -2276,6 +2297,42 @@ export default function DashboardClient({
       );
     } finally {
       setBuilderAction(null);
+    }
+  }
+
+  async function handleMaterializeCompetitorPlan(
+    productId: string,
+    planId: string
+  ) {
+    setMaterializingPlanId(planId);
+    setWorkspaceActionError("");
+
+    try {
+      const response = await fetch(`/api/products/${productId}/task-plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "materialize_competitor_plan",
+          planId,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | {
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(data?.error || copy.errors.saveFailed);
+      }
+
+      router.refresh();
+    } catch (error) {
+      setWorkspaceActionError(
+        error instanceof Error ? error.message : copy.errors.saveFailed
+      );
+    } finally {
+      setMaterializingPlanId(null);
     }
   }
 
@@ -2942,12 +2999,44 @@ export default function DashboardClient({
                           {taskQueueCopy.labels.updatedAt}:{" "}
                           {formatDashboardDate(task.updatedAt, locale)}
                         </div>
-                        <Link
-                          href={task.href}
-                          className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                        >
-                          {taskQueueCopy.labels.open}
-                        </Link>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {task.kind === "coverage" &&
+                          task.taskPlanMode === "competitor_map" &&
+                          task.taskPlanId ? (
+                            isPaid ? (
+                              task.stage === "planned" ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleMaterializeCompetitorPlan(
+                                      task.productId,
+                                      task.taskPlanId || ""
+                                    )
+                                  }
+                                  disabled={materializingPlanId === task.taskPlanId}
+                                  className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                                >
+                                  {materializingPlanId === task.taskPlanId
+                                    ? taskQueueCopy.labels.creatingTasks
+                                    : taskQueueCopy.labels.createNextTasks}
+                                </button>
+                              ) : null
+                            ) : (
+                              <a
+                                href="/api/stripe/checkout?plan=starter"
+                                className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                              >
+                                {taskQueueCopy.labels.unlockToCreateTasks}
+                              </a>
+                            )
+                          ) : null}
+                          <Link
+                            href={task.href}
+                            className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                          >
+                            {taskQueueCopy.labels.open}
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

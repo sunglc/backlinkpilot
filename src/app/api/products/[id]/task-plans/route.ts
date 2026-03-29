@@ -3,6 +3,7 @@ import {
   createAutoCoverageTaskPlan,
   createCompetitorCoverageTaskPlan,
   createImportedTaskPlan,
+  materializeCompetitorCoveragePlan,
   readWorkspaceTaskPlans,
 } from "@/lib/workspace-task-plans";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
@@ -74,9 +75,10 @@ export async function POST(
   const body = (await request.json().catch(() => null)) as
     | {
         action?: string;
-    rawList?: string;
+        rawList?: string;
         competitorList?: string;
         granularity?: string;
+        planId?: string;
       }
     | null;
 
@@ -174,6 +176,76 @@ export async function POST(
             error instanceof Error
               ? error.message
               : "Could not create the competitor coverage plan.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (body.action === "materialize_competitor_plan") {
+    if (!body.planId?.trim()) {
+      return NextResponse.json({ error: "Missing planId." }, { status: 400 });
+    }
+
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .single();
+    const currentPlan =
+      subscription?.status === "active" ? subscription.plan || "starter" : "free";
+
+    if (currentPlan === "free") {
+      return NextResponse.json(
+        { error: "Upgrade to Starter before turning this competitor gap into live tasks." },
+        { status: 400 }
+      );
+    }
+
+    const { data: submissions } = await supabase
+      .from("submissions")
+      .select("channel")
+      .eq("product_id", id);
+
+    try {
+      const result = await materializeCompetitorCoveragePlan({
+        product,
+        actor: {
+          userId: user.id,
+          userEmail: user.email || null,
+        },
+        planId: body.planId.trim(),
+        currentPlan,
+        submissions: submissions || [],
+        operationalInsights: await readSaasOperationalInsights(),
+      });
+
+      if (result.launchChannelIds.length > 0) {
+        const { error } = await supabase.from("submissions").insert(
+          result.launchChannelIds.map((channelId) => ({
+            user_id: user.id,
+            product_id: id,
+            channel: channelId,
+            status: "queued",
+          }))
+        );
+
+        if (error) {
+          return NextResponse.json(
+            { error: error.message || "Could not queue follow-up submissions." },
+            { status: 400 }
+          );
+        }
+      }
+
+      return NextResponse.json(result);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Could not materialize the competitor plan.",
         },
         { status: 400 }
       );
