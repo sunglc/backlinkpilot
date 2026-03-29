@@ -7,6 +7,7 @@ import {
 import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import { summarizeProductProofPipeline } from "@/lib/proof-pipeline";
+import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import DashboardClient from "./dashboard-client";
 
 type DashboardSearchParams = Promise<{
@@ -59,6 +60,7 @@ export default async function Dashboard({
         .in("product_id", productIds)
         .order("created_at", { ascending: false })
     : { data: [] };
+  const operationalInsights = await readSaasOperationalInsights();
   const productProofSummaries = await Promise.all(
     (products || []).map(async (product) => {
       const initialManagedInboxRecord = await getManagedInboxRecord({
@@ -95,6 +97,7 @@ export default async function Dashboard({
       products={products || []}
       submissions={submissions || []}
       productProofSummaries={productProofSummaries}
+      operationalInsights={operationalInsights}
       checkoutState={checkoutState}
     />
   );

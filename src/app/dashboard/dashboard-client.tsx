@@ -16,6 +16,7 @@ import type {
   ProductProofPriority,
   ProductProofSummary,
 } from "@/lib/proof-pipeline";
+import type { OperationalInsights } from "@/lib/saas-operational-insights";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -275,6 +276,30 @@ function getDashboardCopy(locale: Locale) {
         body: "先补齐产品信息，我们就可以开始把它送进真正的外链执行链。",
         cta: "+ 添加产品",
       },
+      discovery: {
+        eyebrow: "Discovery Engine",
+        title: "把目标供给和收费情报抬成正式产品层。",
+        body:
+          "这不是运营侧自嗨数据。系统每天都会持续发现新的可发目标站，同时把收费型和商务型外链机会沉淀成单独资产层。",
+        progressLabel: "今日发现进度",
+        targetLabel: "今日硬目标",
+        gapLabel: "今日剩余缺口",
+        paidBacklogLabel: "收费目标库存",
+        paidRootsLabel: "收费目标根域",
+        paidNewLabel: "今日新增收费目标",
+        progressReached: "今日供给地板已达成",
+        progressRunning: "今日还在持续补货",
+        supplyTitle: "发现供给层",
+        supplyBody:
+          "用户可以直接看到系统今天已经补进多少新目标、距离每日 100 个值得发的新根域目标还差多少。",
+        inventoryTitle: "收费情报层",
+        inventoryBody:
+          "收费型和商务型机会会持续被收集，但不会混进默认免费执行队列，避免执行量污染策略质量。",
+        sampleTitle: "代表性收费目标",
+        sampleEmpty: "当前还没有代表性收费目标样例，下一轮巡航后会自动出现。",
+        openTarget: "查看目标",
+        sourceLabel: "发现来源",
+      },
       detectedLabel: "识别自",
     };
   }
@@ -452,6 +477,31 @@ function getDashboardCopy(locale: Locale) {
       title: "Add your first product",
       body: "Add the product details and we can move it into live backlink execution.",
       cta: "+ Add Product",
+    },
+    discovery: {
+      eyebrow: "Discovery Engine",
+      title: "Turn target supply and paid intelligence into a first-class product layer.",
+      body:
+        "This is not ops-only telemetry. The system keeps discovering new worthwhile backlink targets every day while collecting paid and commercial opportunities into a separate asset layer.",
+      progressLabel: "Today's discovery progress",
+      targetLabel: "Daily floor",
+      gapLabel: "Remaining gap today",
+      paidBacklogLabel: "Paid target backlog",
+      paidRootsLabel: "Paid target root domains",
+      paidNewLabel: "New paid targets today",
+      progressReached: "Today's supply floor is already met",
+      progressRunning: "The system is still replenishing today's supply",
+      supplyTitle: "Discovery supply layer",
+      supplyBody:
+        "Users can see how much fresh target supply has already been discovered today and how far the engine still is from the 100-worthy-root-domain floor.",
+      inventoryTitle: "Paid intelligence layer",
+      inventoryBody:
+        "Paid and commercial opportunities are collected continuously, but kept separate from the default free-send queue so strategic quality does not get polluted by raw volume.",
+      sampleTitle: "Representative paid targets",
+      sampleEmpty:
+        "There are no representative paid targets yet. The next discovery run should fill them in automatically.",
+      openTarget: "Open target",
+      sourceLabel: "Discovery source",
     },
     detectedLabel: "Detected from",
   };
@@ -874,6 +924,7 @@ export default function DashboardClient({
   products,
   submissions,
   productProofSummaries,
+  operationalInsights,
   checkoutState,
 }: {
   locale: Locale;
@@ -882,6 +933,7 @@ export default function DashboardClient({
   products: Product[];
   submissions: Submission[];
   productProofSummaries: ProductProofSummaryRow[];
+  operationalInsights: OperationalInsights;
   checkoutState: CheckoutState;
 }) {
   const copy = getDashboardCopy(locale);
@@ -923,6 +975,17 @@ export default function DashboardClient({
   const isCheckoutSuccess = checkoutState === "success";
   const isCheckoutCancelled = checkoutState === "cancelled";
   const isPlanSyncPending = isCheckoutSuccess && !isPaid;
+  const discoveryProgressTarget =
+    operationalInsights.discovery_target_new_worthy_root_domains;
+  const discoveryProgressCount =
+    operationalInsights.discovery_counted_new_worthy_root_domain_count;
+  const discoveryProgressPercent =
+    discoveryProgressTarget > 0
+      ? Math.min(
+          100,
+          Math.round((discoveryProgressCount / discoveryProgressTarget) * 100)
+        )
+      : 0;
 
   const productSummaries: ProductSummary[] = products.map((product) => {
     const productSubmissions = submissions.filter(
@@ -1648,6 +1711,161 @@ export default function DashboardClient({
             </div>
           </section>
         ) : null}
+
+        <section className="mt-12 grid gap-8 xl:grid-cols-[0.94fr_1.06fr]">
+          <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(208,166,90,0.12),rgba(255,255,255,0.04))] p-7">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.discovery.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {copy.discovery.title}
+            </h2>
+            <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
+              {copy.discovery.body}
+            </p>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {(
+                [
+                  [
+                    copy.discovery.progressLabel,
+                    `${discoveryProgressCount}/${discoveryProgressTarget || 0}`,
+                    operationalInsights.discovery_target_reached
+                      ? copy.discovery.progressReached
+                      : copy.discovery.progressRunning,
+                  ],
+                  [
+                    copy.discovery.gapLabel,
+                    `${operationalInsights.discovery_remaining_to_target}`,
+                    copy.discovery.supplyBody,
+                  ],
+                  [
+                    copy.discovery.paidBacklogLabel,
+                    `${operationalInsights.paid_target_backlog_count}`,
+                    copy.discovery.inventoryBody,
+                  ],
+                  [
+                    copy.discovery.paidRootsLabel,
+                    `${operationalInsights.paid_target_root_domain_count}`,
+                    copy.discovery.inventoryBody,
+                  ],
+                  [
+                    copy.discovery.paidNewLabel,
+                    `${operationalInsights.paid_target_new_today_count}`,
+                    copy.discovery.inventoryBody,
+                  ],
+                  [
+                    copy.discovery.targetLabel,
+                    `${discoveryProgressTarget || 0}`,
+                    copy.discovery.supplyBody,
+                  ],
+                ] as const
+              ).map(([label, value, note]) => (
+                <div
+                  key={label}
+                  className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                >
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {label}
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+                  <div className="mt-2 text-xs leading-6 text-stone-500">{note}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.discovery.supplyTitle}
+                  </div>
+                  <div className="mt-2 text-sm leading-7 text-stone-300">
+                    {copy.discovery.supplyBody}
+                  </div>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-200">
+                  {operationalInsights.discovery_target_reached
+                    ? copy.discovery.progressReached
+                    : copy.discovery.progressRunning}
+                </span>
+              </div>
+              <div className="mt-5">
+                <div className="mb-2 flex items-center justify-between text-xs text-stone-400">
+                  <span>
+                    {copy.discovery.progressLabel} {discoveryProgressCount}/
+                    {discoveryProgressTarget || 0}
+                  </span>
+                  <span>{discoveryProgressPercent}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-stone-800">
+                  <div
+                    className="h-2 rounded-full bg-[var(--accent-500)] transition-all duration-500"
+                    style={{ width: `${discoveryProgressPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.discovery.eyebrow}
+            </p>
+            <h3 className="mt-4 text-2xl font-semibold text-white">
+              {copy.discovery.inventoryTitle}
+            </h3>
+            <p className="mt-4 text-base leading-7 text-stone-300">
+              {copy.discovery.inventoryBody}
+            </p>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.discovery.sampleTitle}
+              </div>
+
+              {operationalInsights.top_paid_targets.length > 0 ? (
+                <div className="mt-4 grid gap-3">
+                  {operationalInsights.top_paid_targets.slice(0, 3).map((target) => (
+                    <div
+                      key={target.opportunity_id}
+                      className="rounded-[1.05rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-white">
+                            {target.platform_name}
+                          </div>
+                          <div className="mt-1 text-xs text-stone-500">
+                            {target.root_domain}
+                          </div>
+                        </div>
+                        <a
+                          href={target.submit_url || target.platform_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/[0.08]"
+                        >
+                          {copy.discovery.openTarget}
+                        </a>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-stone-300">
+                        {target.why_now || target.recommended_action}
+                      </p>
+                      <div className="mt-3 text-xs text-stone-500">
+                        {copy.discovery.sourceLabel}: {target.discovery_source}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {copy.discovery.sampleEmpty}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
 
         {products.length > 0 ? (
           <section className="mt-12 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
