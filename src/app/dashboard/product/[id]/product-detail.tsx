@@ -985,6 +985,15 @@ function managedPacketStateClasses(state: "prepared" | "claimed" | "sent") {
   return classes[state];
 }
 
+function managedPacketReplyStateClasses(state: "awaiting" | "replied") {
+  const classes = {
+    awaiting: "border-sky-300/15 bg-sky-300/10 text-sky-200",
+    replied: "border-emerald-300/15 bg-emerald-300/10 text-emerald-200",
+  } as const;
+
+  return classes[state];
+}
+
 function managedLaunchLaneLabel(
   lane: "resource_page" | "editorial_contact",
   locale: Locale
@@ -1034,17 +1043,24 @@ function getManagedInboxCopy(locale: Locale) {
           prepared: "待发送",
           claimed: "已认领",
           sent: "已发送",
+          replied: "已回复",
         },
         packetState: {
           prepared: "待发送",
           claimed: "已认领",
           sent: "已发送",
         },
+        packetReplyState: {
+          awaiting: "等待回复",
+          replied: "已收到回复",
+        },
         packetSubjectLabel: "建议主题",
         packetNextStepLabel: "下一步",
         packetOwnerLabel: "执行人",
         packetSentAtLabel: "发送时间",
         packetReceiptLabel: "发送回执",
+        packetReplyFromLabel: "回复来自",
+        packetReplySnippetLabel: "回复摘要",
         openTarget: "打开目标",
       },
       byo: {
@@ -1140,17 +1156,24 @@ function getManagedInboxCopy(locale: Locale) {
         prepared: "Prepared",
         claimed: "Claimed",
         sent: "Sent",
+        replied: "Replied",
       },
       packetState: {
         prepared: "Prepared",
         claimed: "Claimed",
         sent: "Sent",
       },
+      packetReplyState: {
+        awaiting: "Awaiting reply",
+        replied: "Replied",
+      },
       packetSubjectLabel: "Suggested subject",
       packetNextStepLabel: "Next step",
       packetOwnerLabel: "Owner",
       packetSentAtLabel: "Sent at",
       packetReceiptLabel: "Send receipt",
+      packetReplyFromLabel: "Reply from",
+      packetReplySnippetLabel: "Reply snippet",
       openTarget: "Open target",
     },
     byo: {
@@ -1449,6 +1472,9 @@ export default function ProductDetail({
     claimed:
       managedLaunchRequest?.packets.filter((packet) => packet.state === "claimed").length || 0,
     sent: managedLaunchRequest?.packets.filter((packet) => packet.state === "sent").length || 0,
+    replied:
+      managedLaunchRequest?.packets.filter((packet) => packet.replyStatus === "replied").length ||
+      0,
   };
   const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
@@ -2263,12 +2289,13 @@ export default function ProductDetail({
                           <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                             {managedInboxCopy.managed.packetsLabel}
                           </div>
-                          <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             {(
                               [
                                 ["prepared", packetStats.prepared],
                                 ["claimed", packetStats.claimed],
                                 ["sent", packetStats.sent],
+                                ["replied", packetStats.replied],
                               ] as const
                             ).map(([state, value]) => (
                               <div
@@ -2298,6 +2325,15 @@ export default function ProductDetail({
                                   >
                                     {managedInboxCopy.managed.packetState[packet.state]}
                                   </span>
+                                  {packet.replyStatus !== "none" ? (
+                                    <span
+                                      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketReplyStateClasses(
+                                        packet.replyStatus
+                                      )}`}
+                                    >
+                                      {managedInboxCopy.managed.packetReplyState[packet.replyStatus]}
+                                    </span>
+                                  ) : null}
                                   <div className="text-sm font-semibold text-white">
                                     {packet.title}
                                   </div>
@@ -2323,6 +2359,22 @@ export default function ProductDetail({
                                   <div className="mt-2 text-xs text-stone-500">
                                     {managedInboxCopy.managed.packetReceiptLabel}:{" "}
                                     {pathTail(packet.sendReceiptPath)}
+                                  </div>
+                                ) : null}
+                                {packet.lastReplyFrom ? (
+                                  <div className="mt-2 text-xs text-stone-500">
+                                    {managedInboxCopy.managed.packetReplyFromLabel}:{" "}
+                                    {packet.lastReplyFrom}
+                                  </div>
+                                ) : null}
+                                {packet.lastReplySnippet ? (
+                                  <div className="mt-3 rounded-[0.85rem] border border-emerald-300/10 bg-emerald-300/[0.04] p-3 text-xs leading-6 text-stone-300">
+                                    <div className="uppercase tracking-[0.18em] text-emerald-200/80">
+                                      {managedInboxCopy.managed.packetReplySnippetLabel}
+                                    </div>
+                                    <div className="mt-2">
+                                      {packet.lastReplySnippet}
+                                    </div>
                                   </div>
                                 ) : null}
                                 <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">

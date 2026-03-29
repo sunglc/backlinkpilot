@@ -5,8 +5,10 @@ import path from "node:path";
 import { generateManagedInboxLaunchPackets } from "@/lib/managed-inbox-launch-packets";
 import { getManagedInboxLaunchShortlist } from "@/lib/managed-inbox-launch-shortlist";
 import {
+  getManagedInboxReplyRows,
   getManagedInboxRelevantSendRows,
   parseLogDate,
+  type ManagedInboxReplyLogRow,
   type ManagedInboxSendLogRow,
 } from "@/lib/managed-inbox-live-activity";
 import { runtimeConfig } from "@/lib/runtime-config";
@@ -172,12 +174,18 @@ function normalizeRecord(
                 targetDomain: packet.targetDomain || normalizeHost(packet.title || ""),
                 targetUrl: packet.targetUrl || "",
                 targetContactValue: packet.targetContactValue || null,
+                syncedSendId: packet.syncedSendId || null,
                 sourceReferencePath: packet.sourceReferencePath || null,
                 state: packet.state || "prepared",
                 claimedAt: packet.claimedAt || null,
                 claimedBy: packet.claimedBy || null,
                 sentAt: packet.sentAt || null,
                 sendReceiptPath: packet.sendReceiptPath || null,
+                replyStatus: packet.replyStatus || "none",
+                lastReplyAt: packet.lastReplyAt || null,
+                lastReplyFrom: packet.lastReplyFrom || null,
+                lastReplySubject: packet.lastReplySubject || null,
+                lastReplySnippet: packet.lastReplySnippet || null,
               }))
             : [],
         }
@@ -198,14 +206,20 @@ function mergePacketProgress(
     if (!previous) {
       return packet;
     }
-  return {
-    ...packet,
-    state: previous.state,
-    claimedAt: previous.claimedAt,
-    claimedBy: previous.claimedBy,
-    sentAt: previous.sentAt,
-    sendReceiptPath: previous.sendReceiptPath,
-  };
+    return {
+      ...packet,
+      state: previous.state,
+      claimedAt: previous.claimedAt,
+      claimedBy: previous.claimedBy,
+      sentAt: previous.sentAt,
+      sendReceiptPath: previous.sendReceiptPath,
+      syncedSendId: previous.syncedSendId,
+      replyStatus: previous.replyStatus,
+      lastReplyAt: previous.lastReplyAt,
+      lastReplyFrom: previous.lastReplyFrom,
+      lastReplySubject: previous.lastReplySubject,
+      lastReplySnippet: previous.lastReplySnippet,
+    };
   });
 }
 
@@ -255,6 +269,23 @@ function packetMatchesSendRow(
   return Boolean(packetDomain && rowHaystack.includes(packetDomain));
 }
 
+function packetReplyRows(
+  packet: ManagedInboxLaunchPacket,
+  replyRows: ManagedInboxReplyLogRow[]
+) {
+  if (!packet.syncedSendId) {
+    return [] as ManagedInboxReplyLogRow[];
+  }
+
+  return replyRows
+    .filter((row) => normalizeText(row.send_id || "") === normalizeText(packet.syncedSendId || ""))
+    .sort((left, right) => {
+      const leftDate = parseLogDate(left.reply_date || left.check_date || "") || "";
+      const rightDate = parseLogDate(right.reply_date || right.check_date || "") || "";
+      return rightDate.localeCompare(leftDate);
+    });
+}
+
 export async function reconcileManagedInboxRecordWithSendLog(args: {
   record: ManagedInboxRecord;
   product: ProductSnapshot;
@@ -282,13 +313,12 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
     return leftDate.localeCompare(rightDate);
   });
 
-  if (eligibleSendRows.length === 0) {
-    return args.record;
-  }
-
   const autoTimeline: ManagedInboxTimelineEvent[] = [];
   let changed = false;
-  const nextPackets = args.record.launchRequest.packets.map((packet) => {
+  const sentSyncedPackets = args.record.launchRequest.packets.map((packet) => {
+    if (eligibleSendRows.length === 0) {
+      return packet;
+    }
     if (packet.state === "sent" && packet.sendReceiptPath) {
       return packet;
     }
@@ -305,6 +335,7 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
       claimedAt: packet.claimedAt || sentAt,
       claimedBy: packet.claimedBy,
       sentAt: packet.sentAt || sentAt,
+      syncedSendId: packet.syncedSendId || matchingRow.send_id || null,
       sendReceiptPath:
         packet.sendReceiptPath || matchingRow.eml_path || matchingRow.pack_path || null,
       nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
@@ -331,6 +362,70 @@ export async function reconcileManagedInboxRecordWithSendLog(args: {
     }
 
     return nextPacket;
+  });
+
+  const replyRows = await getManagedInboxReplyRows();
+  const nextPackets = sentSyncedPackets.map((packet) => {
+    const matchingReplyRows = packetReplyRows(packet, replyRows);
+    if (matchingReplyRows.length === 0) {
+      if (packet.state === "sent" && packet.replyStatus === "none") {
+        const awaitingPacket = {
+          ...packet,
+          replyStatus: "awaiting" as const,
+        };
+        changed = true;
+        return awaitingPacket;
+      }
+      return packet;
+    }
+
+    const latestReplyRow = matchingReplyRows[0];
+    const normalizedOutcome = normalizeText(latestReplyRow.outcome || "");
+    if (normalizedOutcome === "reply_received") {
+      const replyAt =
+        parseLogDate(latestReplyRow.reply_date || latestReplyRow.check_date || "") || nowIso();
+      const repliedPacket: ManagedInboxLaunchPacket = {
+        ...packet,
+        replyStatus: "replied",
+        lastReplyAt: replyAt,
+        lastReplyFrom: latestReplyRow.reply_from || null,
+        lastReplySubject: latestReplyRow.reply_subject || null,
+        lastReplySnippet: latestReplyRow.reply_snippet || null,
+        nextStep: "Review the reply, respond, and keep the thread moving toward publication.",
+      };
+
+      if (
+        repliedPacket.replyStatus !== packet.replyStatus ||
+        repliedPacket.lastReplyAt !== packet.lastReplyAt ||
+        repliedPacket.lastReplySnippet !== packet.lastReplySnippet
+      ) {
+        changed = true;
+        autoTimeline.push(
+          createTimelineEvent({
+            kind: "reply",
+            state: "replied",
+            direction: "inbound",
+            actor: "system",
+            title: `Reply synced from live monitor for ${packet.title}`,
+            body: `${latestReplyRow.reply_subject || "No subject"}\nFrom: ${
+              latestReplyRow.reply_from || "unknown"
+            }\n${latestReplyRow.reply_snippet || "Reply received and synced from the monitor."}`,
+          })
+        );
+      }
+
+      return repliedPacket;
+    }
+
+    if (normalizedOutcome === "no_reply_yet" && packet.replyStatus === "none") {
+      changed = true;
+      return {
+        ...packet,
+        replyStatus: "awaiting" as const,
+      };
+    }
+
+    return packet;
   });
 
   if (!changed) {
@@ -813,6 +908,10 @@ export async function updateManagedLaunchPacket(args: {
       claimedBy: packet.claimedBy || args.actor,
       sentAt: new Date().toISOString(),
       sendReceiptPath: args.receiptPath?.trim() || packet.sendReceiptPath || null,
+      replyStatus:
+        packet.replyStatus === "replied"
+          ? ("replied" as const)
+          : ("awaiting" as const),
       nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
     };
   });

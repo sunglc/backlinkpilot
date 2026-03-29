@@ -54,6 +54,7 @@ export interface ManagedInboxLaunchTarget {
 }
 
 export type ManagedInboxLaunchPacketState = "prepared" | "claimed" | "sent";
+export type ManagedInboxLaunchPacketReplyStatus = "none" | "awaiting" | "replied";
 
 export interface ManagedInboxLaunchPacket {
   id: string;
@@ -61,6 +62,7 @@ export interface ManagedInboxLaunchPacket {
   targetDomain: string;
   targetUrl: string;
   targetContactValue: string | null;
+  syncedSendId: string | null;
   path: string;
   relativePath: string;
   title: string;
@@ -73,6 +75,11 @@ export interface ManagedInboxLaunchPacket {
   claimedBy: string | null;
   sentAt: string | null;
   sendReceiptPath: string | null;
+  replyStatus: ManagedInboxLaunchPacketReplyStatus;
+  lastReplyAt: string | null;
+  lastReplyFrom: string | null;
+  lastReplySubject: string | null;
+  lastReplySnippet: string | null;
 }
 
 export interface ManagedInboxLaunchRequest {

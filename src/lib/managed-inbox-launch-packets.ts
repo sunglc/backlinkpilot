@@ -139,6 +139,7 @@ ${sourceExcerpt}
         targetDomain: target.domain,
         targetUrl: target.url,
         targetContactValue: target.contactValue,
+        syncedSendId: null,
         path: absolutePath,
         relativePath: path.relative(
           path.join(runtimeConfig.workspaceDataRoot, "backlinkpilot-managed-inbox"),
@@ -154,6 +155,11 @@ ${sourceExcerpt}
         claimedBy: null,
         sentAt: null,
         sendReceiptPath: null,
+        replyStatus: "none",
+        lastReplyAt: null,
+        lastReplyFrom: null,
+        lastReplySubject: null,
+        lastReplySnippet: null,
       } satisfies ManagedInboxLaunchPacket;
     })
   );

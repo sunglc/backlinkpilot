@@ -15,6 +15,7 @@ interface ProductSnapshot {
 
 type CsvRow = Record<string, string>;
 export type ManagedInboxSendLogRow = CsvRow;
+export type ManagedInboxReplyLogRow = CsvRow;
 
 const RECORDS_ROOT = path.join(
   runtimeConfig.workspaceDataRoot,
@@ -103,6 +104,10 @@ async function readCsvRows(csvPath: string) {
   } catch {
     return [] as CsvRow[];
   }
+}
+
+export async function getManagedInboxReplyRows() {
+  return readCsvRows(EMAIL_REPLY_LOG_PATH) as Promise<ManagedInboxReplyLogRow[]>;
 }
 
 async function readSmallText(absolutePath: string) {
@@ -239,7 +244,7 @@ function buildReplyEvent(row: CsvRow): ManagedInboxTimelineEvent | null {
 export async function getManagedInboxLiveActivity(product: ProductSnapshot) {
   const [matchingSendRows, replyRows] = await Promise.all([
     getManagedInboxRelevantSendRows(product),
-    readCsvRows(EMAIL_REPLY_LOG_PATH),
+    getManagedInboxReplyRows(),
   ]);
 
   if (matchingSendRows.length === 0) {

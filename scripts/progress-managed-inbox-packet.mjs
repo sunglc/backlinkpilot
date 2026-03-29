@@ -73,6 +73,7 @@ async function main() {
       claimedBy: packet.claimedBy || actor,
       sentAt: nowIso(),
       sendReceiptPath: receiptPath || packet.sendReceiptPath || null,
+      replyStatus: packet.replyStatus === "replied" ? "replied" : "awaiting",
       nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
     };
   });
