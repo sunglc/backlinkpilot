@@ -10,6 +10,22 @@ export function getCanonicalAppUrl() {
   return appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
 }
 
+export function getPublicAppUrl() {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname.trim().toLowerCase();
+
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0"
+    ) {
+      return window.location.origin.replace(/\/$/, "");
+    }
+  }
+
+  return getCanonicalAppUrl();
+}
+
 export function getRequestAppUrl(request: { headers: Headers; url: string }) {
   const requestUrl = new URL(request.url);
   const forwardedHost =

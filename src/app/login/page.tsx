@@ -49,7 +49,7 @@ export default async function LoginPage({
       locale={locale}
       nextPath={nextPath}
       authIntent={authIntent}
-      initialError={errorParam === "auth_failed" ? "auth_failed" : ""}
+      initialError={errorParam ?? ""}
     />
   );
 }

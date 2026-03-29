@@ -1,3 +1,5 @@
+import { getPublicAppUrl } from "@/lib/app-url";
+
 export type AuthIntent =
   | "default"
   | "dashboard"
@@ -77,4 +79,10 @@ export function loginHrefForNext(nextPath: string) {
 
 export function signupHrefForNext(nextPath: string) {
   return `/signup?next=${encodeURIComponent(nextPath)}`;
+}
+
+export function buildAuthCallbackUrl(nextPath?: string | null) {
+  const callbackUrl = new URL("/auth/callback", getPublicAppUrl());
+  callbackUrl.searchParams.set("next", normalizeNextPath(nextPath));
+  return callbackUrl.toString();
 }

@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
 import {
+  buildAuthCallbackUrl,
   signupHrefForNext,
   type AuthIntent,
 } from "@/lib/auth-return";
@@ -59,6 +60,7 @@ function getLoginCopy(locale: Locale, authIntent: AuthIntent) {
       password: "密码",
       submit: "登录",
       submitting: "登录中...",
+      googleSubmitting: "正在跳转到 Google...",
       authFailed: "登录回调没有成功完成，请重新试一次。",
       noAccount: "还没有账号？",
       signup: "注册",
@@ -111,6 +113,7 @@ function getLoginCopy(locale: Locale, authIntent: AuthIntent) {
     password: "Password",
     submit: "Log in",
     submitting: "Logging in...",
+    googleSubmitting: "Redirecting to Google...",
     authFailed: "The sign-in callback did not finish correctly. Please try again.",
     noAccount: "Don't have an account?",
     signup: "Sign up",
@@ -135,12 +138,14 @@ export default function LoginClient({
   const [error, setError] = useState(
     initialError === "auth_failed" ? copy.authFailed : initialError
   );
-  const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState<"password" | "google" | null>(
+    null
+  );
   const router = useRouter();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    setLoadingMode("password");
     setError("");
 
     const supabase = createClient();
@@ -151,7 +156,7 @@ export default function LoginClient({
 
     if (loginError) {
       setError(loginError.message);
-      setLoading(false);
+      setLoadingMode(null);
       return;
     }
 
@@ -160,16 +165,28 @@ export default function LoginClient({
   }
 
   async function handleGoogleLogin() {
+    setLoadingMode("google");
+    setError("");
     const supabase = createClient();
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", nextPath);
 
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
-    });
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: buildAuthCallbackUrl(nextPath),
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message);
+        setLoadingMode(null);
+      }
+    } catch (oauthError) {
+      setError(
+        oauthError instanceof Error ? oauthError.message : copy.authFailed
+      );
+      setLoadingMode(null);
+    }
   }
 
   return (
@@ -223,8 +240,10 @@ export default function LoginClient({
             <h2 className="text-2xl font-semibold text-stone-50">{copy.title}</h2>
 
             <button
+              type="button"
               onClick={handleGoogleLogin}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+              disabled={loadingMode !== null}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -244,7 +263,7 @@ export default function LoginClient({
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              {copy.google}
+              {loadingMode === "google" ? copy.googleSubmitting : copy.google}
             </button>
 
             <div className="my-6 flex items-center gap-3">
@@ -283,10 +302,10 @@ export default function LoginClient({
               {error ? <p className="text-sm text-red-300">{error}</p> : null}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loadingMode !== null}
                 className="w-full rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
               >
-                {loading ? copy.submitting : copy.submit}
+                {loadingMode === "password" ? copy.submitting : copy.submit}
               </button>
             </form>
 

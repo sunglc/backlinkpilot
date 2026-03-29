@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
 import {
+  buildAuthCallbackUrl,
   loginHrefForNext,
   type AuthIntent,
 } from "@/lib/auth-return";
@@ -52,6 +53,8 @@ function getSignupCopy(locale: Locale, authIntent: AuthIntent) {
       password: "密码",
       submit: "创建账号",
       submitting: "创建中...",
+      googleSubmitting: "正在跳转到 Google...",
+      googleFailed: "Google 登录没有成功发起，请重试。",
       hasAccount: "已经有账号？",
       login: "登录",
       backHome: "返回首页",
@@ -96,6 +99,8 @@ function getSignupCopy(locale: Locale, authIntent: AuthIntent) {
     password: "Password",
     submit: "Create account",
     submitting: "Creating account...",
+    googleSubmitting: "Redirecting to Google...",
+    googleFailed: "Google sign-in could not start. Please try again.",
     hasAccount: "Already have an account?",
     login: "Log in",
     backHome: "Back to home",
@@ -115,12 +120,14 @@ export default function SignupClient({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState<"password" | "google" | null>(
+    null
+  );
   const router = useRouter();
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    setLoadingMode("password");
     setError("");
 
     const supabase = createClient();
@@ -128,13 +135,13 @@ export default function SignupClient({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: buildAuthCallbackUrl(nextPath),
       },
     });
 
     if (signupError) {
       setError(signupError.message);
-      setLoading(false);
+      setLoadingMode(null);
       return;
     }
 
@@ -143,16 +150,28 @@ export default function SignupClient({
   }
 
   async function handleGoogleLogin() {
+    setLoadingMode("google");
+    setError("");
     const supabase = createClient();
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", nextPath);
 
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
-    });
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: buildAuthCallbackUrl(nextPath),
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message);
+        setLoadingMode(null);
+      }
+    } catch (oauthError) {
+      setError(
+        oauthError instanceof Error ? oauthError.message : copy.googleFailed
+      );
+      setLoadingMode(null);
+    }
   }
 
   return (
@@ -206,8 +225,10 @@ export default function SignupClient({
             <h2 className="text-2xl font-semibold text-stone-50">{copy.title}</h2>
 
             <button
+              type="button"
               onClick={handleGoogleLogin}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+              disabled={loadingMode !== null}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -227,7 +248,7 @@ export default function SignupClient({
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              {copy.google}
+              {loadingMode === "google" ? copy.googleSubmitting : copy.google}
             </button>
 
             <div className="my-6 flex items-center gap-3">
@@ -267,10 +288,10 @@ export default function SignupClient({
               {error ? <p className="text-sm text-red-300">{error}</p> : null}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loadingMode !== null}
                 className="w-full rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
               >
-                {loading ? copy.submitting : copy.submit}
+                {loadingMode === "password" ? copy.submitting : copy.submit}
               </button>
             </form>
 
