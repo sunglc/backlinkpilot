@@ -4012,6 +4012,10 @@ export default function DashboardClient({
         true
       )
     : null;
+  const withWorkspaceLeadPriority = (href: string) =>
+    workspaceStrategyLead
+      ? withPriorityContext(href, workspaceStrategyLead.product.id, true)
+      : href;
   const orderedProductSummaries = workspaceStrategyLead
     ? [
         workspaceStrategyLead,
@@ -4092,7 +4096,13 @@ export default function DashboardClient({
     }
 
     setLaunchingKey(null);
-    router.push(`/dashboard/product/${productId}#submission-history`);
+    router.push(
+      withPriorityContext(
+        `/dashboard/product/${productId}#submission-history`,
+        productId,
+        workspaceStrategyLead?.product.id === productId
+      )
+    );
     router.refresh();
   }
 
@@ -4102,7 +4112,13 @@ export default function DashboardClient({
   ) {
     if (action.mode === "open") {
       setWorkspaceActionError("");
-      router.push(action.href);
+      router.push(
+        withPriorityContext(
+          action.href,
+          productId,
+          workspaceStrategyLead?.product.id === productId
+        )
+      );
       return;
     }
 
@@ -4142,7 +4158,13 @@ export default function DashboardClient({
         throw new Error(data?.error || "Could not queue the proof task.");
       }
 
-      router.push(action.href);
+      router.push(
+        withPriorityContext(
+          action.href,
+          productId,
+          workspaceStrategyLead?.product.id === productId
+        )
+      );
       router.refresh();
     } catch (error) {
       setWorkspaceActionError(
@@ -4704,7 +4726,7 @@ export default function DashboardClient({
                     </button>
                   ) : step.href ? (
                     <Link
-                      href={step.href}
+                      href={withWorkspaceLeadPriority(step.href)}
                       className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                     >
                       {step.actionLabel}
@@ -5562,7 +5584,7 @@ export default function DashboardClient({
                             )
                           ) : null}
                           <Link
-                            href={task.href}
+                            href={withWorkspaceLeadPriority(task.href)}
                             className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                           >
                             {taskQueueCopy.labels.open}
