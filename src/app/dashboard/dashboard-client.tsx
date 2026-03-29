@@ -95,6 +95,22 @@ type ProductBudgetDecisionKey =
   | "prove_first"
   | "upgrade_now"
   | "hold_premium";
+type BudgetAction =
+  | {
+      kind: "launch";
+      label: string;
+      channelId: string;
+    }
+  | {
+      kind: "proof";
+      label: string;
+      proofAction: ProductProofAction;
+    }
+  | {
+      kind: "link";
+      label: string;
+      href: string;
+    };
 
 interface WorkspaceTaskBillingRule {
   type: WorkspaceTaskBillingType;
@@ -232,6 +248,7 @@ function getDashboardCopy(locale: Locale) {
         weeklyBurn: "本周 credits 预估",
         weeklyBurnNote: "仅普通 credits",
         budgetCall: "预算建议",
+        budgetAction: "建议动作",
         channelsReady: "当前可跑渠道",
         progress: "当前进度",
         latestLane: "最近渠道",
@@ -273,6 +290,13 @@ function getDashboardCopy(locale: Locale) {
             "当前 burn 和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
           hold_premium:
             "付费机会先留在高级服务层，等普通 credits 路线先跑出 proof 再接入。",
+        },
+        budgetActions: {
+          build_queue: "继续建任务",
+          watch_effect: "查看执行进度",
+          prove_first: "推进结果",
+          upgrade_now: "升级到增长版",
+          hold_premium: "查看高级机会",
         },
       },
       checkout: {
@@ -595,6 +619,7 @@ function getDashboardCopy(locale: Locale) {
         weeklyBurn: "Weekly credit estimate",
         weeklyBurnNote: "Credits only",
         budgetCall: "Budget call",
+        budgetAction: "Recommended action",
         channelsReady: "Live lanes today",
         progress: "Progress",
         latestLane: "Latest lane",
@@ -639,6 +664,13 @@ function getDashboardCopy(locale: Locale) {
             "The current burn and execution density are pushing past a comfortable Starter cadence. Upgrade before expanding further.",
           hold_premium:
             "Keep paid opportunities in the premium lane until the normal credit path produces proof first.",
+        },
+        budgetActions: {
+          build_queue: "Keep building tasks",
+          watch_effect: "Watch execution",
+          prove_first: "Push toward proof",
+          upgrade_now: "Upgrade to Growth",
+          hold_premium: "Review premium work",
         },
       },
     checkout: {
@@ -1474,6 +1506,82 @@ function productBudgetDecisionClasses(decision: ProductBudgetDecisionKey) {
     upgrade_now: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
     hold_premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
   }[decision];
+}
+
+function budgetActionForSummary(args: {
+  locale: Locale;
+  summary: ProductSummary;
+  decision: ProductBudgetDecision;
+  currentPlan: string;
+}): BudgetAction {
+  const proofAction =
+    args.summary.proof.priority !== "build_signal"
+      ? proofActionForSummary(args.summary, getProofBoardCopy(args.locale))
+      : null;
+  const launchAction = isLaunchAction(args.summary.primaryAction)
+    ? args.summary.primaryAction
+    : null;
+  const linkAction = isLinkAction(args.summary.primaryAction)
+    ? args.summary.primaryAction
+    : null;
+  const budgetLabels = getDashboardCopy(args.locale).productCard.budgetActions;
+
+  if (args.decision.key === "upgrade_now") {
+    return {
+      kind: "link",
+      label: budgetLabels.upgrade_now,
+      href:
+        args.currentPlan === "starter"
+          ? "/api/stripe/checkout?plan=growth"
+          : "/api/stripe/checkout?plan=starter",
+    };
+  }
+
+  if (args.decision.key === "prove_first") {
+    if (proofAction) {
+      return {
+        kind: "proof",
+        label: budgetLabels.prove_first,
+        proofAction,
+      };
+    }
+
+    return {
+      kind: "link",
+      label: budgetLabels.prove_first,
+      href: `/dashboard/product/${args.summary.product.id}#proof-pipeline`,
+    };
+  }
+
+  if (args.decision.key === "watch_effect") {
+    return {
+      kind: "link",
+      label: budgetLabels.watch_effect,
+      href: `/dashboard/product/${args.summary.product.id}#submission-history`,
+    };
+  }
+
+  if (args.decision.key === "hold_premium") {
+    return {
+      kind: "link",
+      label: budgetLabels.hold_premium,
+      href: "#task-queue",
+    };
+  }
+
+  if (launchAction) {
+    return {
+      kind: "launch",
+      label: budgetLabels.build_queue,
+      channelId: launchAction.channelId,
+    };
+  }
+
+  return {
+    kind: "link",
+    label: budgetLabels.build_queue,
+    href: linkAction?.href || `/dashboard/product/${args.summary.product.id}`,
+  };
 }
 
 function proofTaskTitle(
@@ -4434,6 +4542,12 @@ export default function DashboardClient({
                     productBudgetDecisionById.get(summary.product.id) || {
                       key: "build_queue" as const,
                     };
+                  const budgetAction = budgetActionForSummary({
+                    locale,
+                    summary,
+                    decision: budgetDecision,
+                    currentPlan,
+                  });
                   const latestChannel = summary.latestSubmission
                     ? CHANNELS.find(
                         (channel) => channel.id === summary.latestSubmission?.channel
@@ -4612,6 +4726,68 @@ export default function DashboardClient({
                               </div>
                               <div className="mt-3 text-sm leading-7 text-stone-300">
                                 {copy.productCard.budgetBodies[budgetDecision.key]}
+                              </div>
+                              <div className="mt-4">
+                                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                  {copy.productCard.budgetAction}
+                                </div>
+                                <div className="mt-3">
+                                  {budgetAction.kind === "proof" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleWorkspaceProofAction(
+                                          summary.product.id,
+                                          budgetAction.proofAction
+                                        )
+                                      }
+                                      disabled={
+                                        proofActionKey ===
+                                        `${summary.product.id}:${budgetAction.proofAction.taskType}`
+                                      }
+                                      className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                                    >
+                                      {proofActionKey ===
+                                      `${summary.product.id}:${budgetAction.proofAction.taskType}`
+                                        ? copy.productCard.starting
+                                        : budgetAction.label}
+                                    </button>
+                                  ) : budgetAction.kind === "launch" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleWorkspaceLaunch(
+                                          summary.product.id,
+                                          budgetAction.channelId
+                                        )
+                                      }
+                                      disabled={
+                                        launchingKey ===
+                                        `${summary.product.id}:${budgetAction.channelId}`
+                                      }
+                                      className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                                    >
+                                      {launchingKey ===
+                                      `${summary.product.id}:${budgetAction.channelId}`
+                                        ? copy.productCard.starting
+                                        : budgetAction.label}
+                                    </button>
+                                  ) : budgetAction.href.startsWith("/api/") ? (
+                                    <a
+                                      href={budgetAction.href}
+                                      className="inline-flex rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                                    >
+                                      {budgetAction.label}
+                                    </a>
+                                  ) : (
+                                    <Link
+                                      href={budgetAction.href}
+                                      className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
+                                    >
+                                      {budgetAction.label}
+                                    </Link>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="text-xs uppercase tracking-[0.22em] text-stone-500">
