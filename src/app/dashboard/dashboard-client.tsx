@@ -89,6 +89,12 @@ type WorkspaceTaskBillingType =
   | "included"
   | "credit_on_success"
   | "premium_service";
+type ProductBudgetDecisionKey =
+  | "build_queue"
+  | "watch_effect"
+  | "prove_first"
+  | "upgrade_now"
+  | "hold_premium";
 
 interface WorkspaceTaskBillingRule {
   type: WorkspaceTaskBillingType;
@@ -116,6 +122,10 @@ interface ProductSummary {
   nextStep: string;
   primaryAction: ProductPrimaryAction;
   proof: ProductProofSummary;
+}
+
+interface ProductBudgetDecision {
+  key: ProductBudgetDecisionKey;
 }
 
 interface ProductProofSummaryRow extends ProductProofSummary {
@@ -221,6 +231,7 @@ function getDashboardCopy(locale: Locale) {
         successfulActions: "成功动作",
         weeklyBurn: "本周 credits 预估",
         weeklyBurnNote: "仅普通 credits",
+        budgetCall: "预算建议",
         channelsReady: "当前可跑渠道",
         progress: "当前进度",
         latestLane: "最近渠道",
@@ -246,6 +257,22 @@ function getDashboardCopy(locale: Locale) {
           ready: "最适合先跑的 live 渠道已经标出来，可以直接启动。",
           momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条渠道。",
           setup: "先进入产品页确认档案，再启动第一条渠道。",
+        },
+        budgetLabels: {
+          build_queue: "继续铺任务",
+          watch_effect: "先盯生效",
+          prove_first: "先把结果做出来",
+          upgrade_now: "该升级了",
+          hold_premium: "先别开高级机会",
+        },
+        budgetBodies: {
+          build_queue: "当前预算压力还不高，先把 coverage 和首轮任务铺起来。",
+          watch_effect: "这周 burn 已经起来了，先等这批任务见效，不要同时再开太多新任务。",
+          prove_first: "现在最值钱的是先把 receipt 和 reply 推成 proof，再继续烧 credits。",
+          upgrade_now:
+            "当前 burn 和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
+          hold_premium:
+            "付费机会先留在高级服务层，等普通 credits 路线先跑出 proof 再接入。",
         },
       },
       checkout: {
@@ -559,17 +586,18 @@ function getDashboardCopy(locale: Locale) {
       body:
         "This is not just a product list. It should tell you whether to upgrade, launch, or review a run already in motion.",
     },
-    productCard: {
-      nextStep: "Next step",
-      latestRun: "Latest run",
-      noRunsYet: "No runs yet",
-      launchCount: "Launches",
-      successfulActions: "Successful actions",
-      weeklyBurn: "Weekly credit estimate",
-      weeklyBurnNote: "Credits only",
-      channelsReady: "Live lanes today",
-      progress: "Progress",
-      latestLane: "Latest lane",
+      productCard: {
+        nextStep: "Next step",
+        latestRun: "Latest run",
+        noRunsYet: "No runs yet",
+        launchCount: "Launches",
+        successfulActions: "Successful actions",
+        weeklyBurn: "Weekly credit estimate",
+        weeklyBurnNote: "Credits only",
+        budgetCall: "Budget call",
+        channelsReady: "Live lanes today",
+        progress: "Progress",
+        latestLane: "Latest lane",
       recommendationPrefix: "Recommended lane",
       open: "Open Product",
       unlock: "Unlock Live Lanes",
@@ -586,14 +614,33 @@ function getDashboardCopy(locale: Locale) {
         momentum: "Momentum",
         setup: "Setup",
       },
-      stageBody: {
-        unlock: "The product profile is already staged. Upgrade and it can enter live execution.",
-        running: "A live lane is already processing and the detail page will keep updating.",
-        ready: "The best live lane is identified and can be launched now.",
-        momentum: "This product has already started moving. The next lane should expand the distribution.",
-        setup: "Open the product page, confirm the profile, and launch the first lane after that.",
+        stageBody: {
+          unlock: "The product profile is already staged. Upgrade and it can enter live execution.",
+          running: "A live lane is already processing and the detail page will keep updating.",
+          ready: "The best live lane is identified and can be launched now.",
+          momentum: "This product has already started moving. The next lane should expand the distribution.",
+          setup: "Open the product page, confirm the profile, and launch the first lane after that.",
+        },
+        budgetLabels: {
+          build_queue: "Keep building",
+          watch_effect: "Watch effect",
+          prove_first: "Turn spend into proof",
+          upgrade_now: "Upgrade now",
+          hold_premium: "Hold premium work",
+        },
+        budgetBodies: {
+          build_queue:
+            "Budget pressure is still light, so the right move is filling the coverage and first task queue.",
+          watch_effect:
+            "Weekly burn is already rising. Let the current tasks land before opening too many new ones.",
+          prove_first:
+            "The highest-value move now is turning receipts and replies into proof before burning more credits.",
+          upgrade_now:
+            "The current burn and execution density are pushing past a comfortable Starter cadence. Upgrade before expanding further.",
+          hold_premium:
+            "Keep paid opportunities in the premium lane until the normal credit path produces proof first.",
+        },
       },
-    },
     checkout: {
       successEyebrow: "Payment received",
       successTitle: "Your plan is unlocked. Start the first live lane now.",
@@ -1334,6 +1381,99 @@ function taskWeeklyBurnEstimate(task: WorkspaceTask) {
 
 function formatCreditsEstimate(value: number) {
   return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+}
+
+function productBudgetDecision(args: {
+  summary: ProductSummary;
+  weeklyBurn: number;
+  productTasks: WorkspaceTask[];
+  currentPlan: string;
+}): ProductBudgetDecision {
+  const premiumTaskCount = args.productTasks.filter(
+    (task) => task.billingRule?.type === "premium_service"
+  ).length;
+
+  if (
+    premiumTaskCount > 0 &&
+    args.summary.proof.counts.verify === 0 &&
+    args.summary.proof.counts.close === 0
+  ) {
+    return { key: "hold_premium" };
+  }
+
+  if (
+    args.currentPlan === "starter" &&
+    args.weeklyBurn >= 8 &&
+    (args.summary.launchCount >= 2 || args.summary.activeSubmission)
+  ) {
+    return { key: "upgrade_now" };
+  }
+
+  if (
+    args.weeklyBurn >= 4 &&
+    (args.summary.proof.priority !== "build_signal" ||
+      args.summary.proof.counts.close > 0 ||
+      args.summary.proof.counts.threads > 0)
+  ) {
+    return { key: "prove_first" };
+  }
+
+  if (args.weeklyBurn >= 3 && (args.summary.activeSubmission || args.summary.launchCount > 0)) {
+    return { key: "watch_effect" };
+  }
+
+  return { key: "build_queue" };
+}
+
+function workspaceBurnNote(args: {
+  locale: Locale;
+  productName: string | null;
+  decision: ProductBudgetDecision | null;
+  fallback: string;
+}) {
+  if (!args.productName || !args.decision) {
+    return args.fallback;
+  }
+
+  if (args.locale === "zh") {
+    if (args.decision.key === "upgrade_now") {
+      return `${args.productName} 的 burn 已经顶到升级线，先扩计划再继续加速。`;
+    }
+    if (args.decision.key === "prove_first") {
+      return `先把 ${args.productName} 推成 proof，再继续烧 credits。`;
+    }
+    if (args.decision.key === "hold_premium") {
+      return `${args.productName} 的高级机会先别开，先跑出普通 proof。`;
+    }
+    if (args.decision.key === "watch_effect") {
+      return `先盯 ${args.productName} 这一轮见效，再决定要不要继续加任务。`;
+    }
+  } else {
+    if (args.decision.key === "upgrade_now") {
+      return `${args.productName} is already pushing past a comfortable Starter burn. Upgrade before accelerating further.`;
+    }
+    if (args.decision.key === "prove_first") {
+      return `Turn ${args.productName} into proof before adding more burn.`;
+    }
+    if (args.decision.key === "hold_premium") {
+      return `Keep the premium opportunities on ${args.productName} separate until the normal proof path lands.`;
+    }
+    if (args.decision.key === "watch_effect") {
+      return `Let ${args.productName} land before opening more tasks.`;
+    }
+  }
+
+  return args.fallback;
+}
+
+function productBudgetDecisionClasses(decision: ProductBudgetDecisionKey) {
+  return {
+    build_queue: "border-white/10 bg-white/[0.06] text-stone-200",
+    watch_effect: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    prove_first: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    upgrade_now: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    hold_premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
+  }[decision];
 }
 
 function proofTaskTitle(
@@ -2416,6 +2556,7 @@ export default function DashboardClient({
       return right.updatedAt.localeCompare(left.updatedAt);
     });
   const productWeeklyBurnById = new Map<string, number>();
+  const productTasksById = new Map<string, WorkspaceTask[]>();
 
   allWorkspaceTasks.forEach((task) => {
     const current = productWeeklyBurnById.get(task.productId) || 0;
@@ -2423,6 +2564,9 @@ export default function DashboardClient({
       task.productId,
       Math.round((current + taskWeeklyBurnEstimate(task)) * 10) / 10
     );
+    const productTasks = productTasksById.get(task.productId) || [];
+    productTasks.push(task);
+    productTasksById.set(task.productId, productTasks);
   });
 
   const workspaceWeeklyBurn = Math.round(
@@ -2430,6 +2574,28 @@ export default function DashboardClient({
       10
   ) / 10;
   const workspaceTasks = allWorkspaceTasks.slice(0, 8);
+  const productBudgetDecisionById = new Map(
+    productSummaries.map((summary) => {
+      const weeklyBurn = productWeeklyBurnById.get(summary.product.id) || 0;
+      return [
+        summary.product.id,
+        productBudgetDecision({
+          summary,
+          weeklyBurn,
+          productTasks: productTasksById.get(summary.product.id) || [],
+          currentPlan,
+        }),
+      ] as const;
+    })
+  );
+  const workspaceBudgetLead =
+    productSummaries
+      .slice()
+      .sort((left, right) => {
+        const leftBurn = productWeeklyBurnById.get(left.product.id) || 0;
+        const rightBurn = productWeeklyBurnById.get(right.product.id) || 0;
+        return rightBurn - leftBurn;
+      })[0] || null;
 
   const workflowSteps = [
     {
@@ -3035,7 +3201,14 @@ export default function DashboardClient({
               {
                 label: copy.stats.weeklyBurn,
                 value: `~${formatCreditsEstimate(workspaceWeeklyBurn)}`,
-                note: copy.stats.weeklyBurnNote,
+                note: workspaceBurnNote({
+                  locale,
+                  productName: workspaceBudgetLead?.product.name || null,
+                  decision: workspaceBudgetLead
+                    ? productBudgetDecisionById.get(workspaceBudgetLead.product.id) || null
+                    : null,
+                  fallback: copy.stats.weeklyBurnNote,
+                }),
                 tone: "text-fuchsia-200",
               },
             ].map((item) => (
@@ -4257,6 +4430,10 @@ export default function DashboardClient({
               <div className="mt-8 space-y-4">
                 {productSummaries.map((summary) => {
                   const weeklyBurn = productWeeklyBurnById.get(summary.product.id) || 0;
+                  const budgetDecision =
+                    productBudgetDecisionById.get(summary.product.id) || {
+                      key: "build_queue" as const,
+                    };
                   const latestChannel = summary.latestSubmission
                     ? CHANNELS.find(
                         (channel) => channel.id === summary.latestSubmission?.channel
@@ -4416,6 +4593,27 @@ export default function DashboardClient({
                           </div>
 
                           <div className="mt-4 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4 text-sm leading-7 text-stone-300">
+                            <div className="mb-4 rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {copy.productCard.budgetCall}
+                              </div>
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`rounded-full border px-3 py-1 text-xs font-medium ${productBudgetDecisionClasses(
+                                    budgetDecision.key
+                                  )}`}
+                                >
+                                  {
+                                    copy.productCard.budgetLabels[
+                                      budgetDecision.key
+                                    ]
+                                  }
+                                </span>
+                              </div>
+                              <div className="mt-3 text-sm leading-7 text-stone-300">
+                                {copy.productCard.budgetBodies[budgetDecision.key]}
+                              </div>
+                            </div>
                             <div className="text-xs uppercase tracking-[0.22em] text-stone-500">
                               {summary.latestSubmission
                                 ? copy.productCard.latestRun
