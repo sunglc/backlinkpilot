@@ -9,6 +9,7 @@ import type {
   BringYourOwnSender,
   ManagedInboxEventState,
   ManagedInboxLaunchRequest,
+  ManagedInboxLaunchPacket,
   ManagedInboxRecord,
   ManagedInboxTimelineEvent,
 } from "@/lib/managed-inbox-types";
@@ -151,6 +152,11 @@ function normalizeRecord(
             ? input.launchRequest.packets.map((packet) => ({
                 ...packet,
                 sourceReferencePath: packet.sourceReferencePath || null,
+                state: packet.state || "prepared",
+                claimedAt: packet.claimedAt || null,
+                claimedBy: packet.claimedBy || null,
+                sentAt: packet.sentAt || null,
+                sendReceiptPath: packet.sendReceiptPath || null,
               }))
             : [],
         }
@@ -159,6 +165,27 @@ function normalizeRecord(
     createdAt: input.createdAt || base.createdAt,
     updatedAt: input.updatedAt || base.updatedAt,
   };
+}
+
+function mergePacketProgress(
+  previousPackets: ManagedInboxLaunchPacket[],
+  nextPackets: ManagedInboxLaunchPacket[]
+) {
+  const previousByTarget = new Map(previousPackets.map((packet) => [packet.targetId, packet]));
+  return nextPackets.map((packet) => {
+    const previous = previousByTarget.get(packet.targetId);
+    if (!previous) {
+      return packet;
+    }
+    return {
+      ...packet,
+      state: previous.state,
+      claimedAt: previous.claimedAt,
+      claimedBy: previous.claimedBy,
+      sentAt: previous.sentAt,
+      sendReceiptPath: previous.sendReceiptPath,
+    };
+  });
 }
 
 function buildManagedIdentity(product: ProductSnapshot, domain: string) {
@@ -530,6 +557,10 @@ export async function queueManagedOutreachBatch(args: {
     senderEmail: record.mailboxIdentity.email,
     shortlist,
   });
+  const packetsWithProgress = mergePacketProgress(
+    record.launchRequest?.packets || [],
+    packets
+  );
 
   const launchRequest = await writeLaunchRequest({
     referenceId: launchReferenceId,
@@ -541,7 +572,7 @@ export async function queueManagedOutreachBatch(args: {
     opsBriefRelativePath: opsBrief.relativePath,
     liveActivity: args.liveActivity,
     shortlist,
-    packets,
+    packets: packetsWithProgress,
     previousStatus: record.launchRequest ? "updated" : "queued",
   });
 
@@ -565,6 +596,94 @@ export async function queueManagedOutreachBatch(args: {
     launchRequest,
     timeline,
     updatedAt: nowIso(),
+  };
+
+  await writeRecord(nextRecord);
+  return nextRecord;
+}
+
+export async function updateManagedLaunchPacket(args: {
+  productId: string;
+  packetId: string;
+  action: "claim" | "mark_sent";
+  actor: string;
+  note?: string | null;
+  receiptPath?: string | null;
+}) {
+  const record = await readRecord(args.productId);
+  if (!record) {
+    throw new Error("Managed inbox record not found");
+  }
+  const normalizedRecord = normalizeRecord(
+    record,
+    record.productId || args.productId,
+    record.userId || ""
+  );
+  const launchRequest = normalizedRecord.launchRequest;
+  if (!launchRequest) {
+    throw new Error("Managed launch request not found");
+  }
+
+  let targetTitle = "";
+  let targetSubject = "";
+  const nextPackets = launchRequest.packets.map((packet) => {
+    if (packet.id !== args.packetId) {
+      return packet;
+    }
+
+    targetTitle = packet.title;
+    targetSubject = packet.subject;
+    if (args.action === "claim") {
+      return {
+        ...packet,
+        state: "claimed" as const,
+        claimedAt: new Date().toISOString(),
+        claimedBy: args.actor,
+        nextStep: "Finish the send from the dedicated managed sender identity and then mark the packet as sent.",
+      };
+    }
+
+    return {
+      ...packet,
+      state: "sent" as const,
+      claimedAt: packet.claimedAt || new Date().toISOString(),
+      claimedBy: packet.claimedBy || args.actor,
+      sentAt: new Date().toISOString(),
+      sendReceiptPath: args.receiptPath?.trim() || packet.sendReceiptPath || null,
+      nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
+    };
+  });
+
+  if (!targetTitle) {
+    throw new Error("Managed launch packet not found");
+  }
+
+  const timeline = [
+    createTimelineEvent({
+      kind: args.action === "mark_sent" ? "outbound" : "note",
+      state: args.action === "mark_sent" ? "sent" : "logged",
+      direction: args.action === "mark_sent" ? "outbound" : "internal",
+      actor: "ops",
+      title:
+        args.action === "mark_sent"
+          ? `Packet sent for ${targetTitle}`
+          : `Packet claimed for ${targetTitle}`,
+      body:
+        args.action === "mark_sent"
+          ? `${targetSubject}\nActor: ${args.actor}${args.receiptPath ? `\nReceipt: ${args.receiptPath}` : ""}${args.note ? `\nNote: ${args.note}` : ""}`
+          : `${targetSubject}\nActor: ${args.actor}${args.note ? `\nNote: ${args.note}` : ""}`,
+    }),
+    ...normalizedRecord.timeline,
+  ].slice(0, 40);
+
+  const nextRecord: ManagedInboxRecord = {
+    ...normalizedRecord,
+    launchRequest: {
+      ...launchRequest,
+      packets: nextPackets,
+    },
+    timeline,
+    updatedAt: new Date().toISOString(),
   };
 
   await writeRecord(nextRecord);

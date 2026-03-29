@@ -53,6 +53,8 @@ export interface ManagedInboxLaunchTarget {
   reason: string;
 }
 
+export type ManagedInboxLaunchPacketState = "prepared" | "claimed" | "sent";
+
 export interface ManagedInboxLaunchPacket {
   id: string;
   targetId: string;
@@ -63,6 +65,11 @@ export interface ManagedInboxLaunchPacket {
   opening: string;
   nextStep: string;
   sourceReferencePath: string | null;
+  state: ManagedInboxLaunchPacketState;
+  claimedAt: string | null;
+  claimedBy: string | null;
+  sentAt: string | null;
+  sendReceiptPath: string | null;
 }
 
 export interface ManagedInboxLaunchRequest {

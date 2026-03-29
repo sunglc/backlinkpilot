@@ -968,6 +968,16 @@ function managedEventStateClasses(state: ManagedInboxEventState) {
   return classes[state];
 }
 
+function managedPacketStateClasses(state: "prepared" | "claimed" | "sent") {
+  const classes = {
+    prepared: "border-white/10 bg-white/[0.05] text-stone-200",
+    claimed: "border-amber-300/15 bg-amber-300/10 text-amber-100",
+    sent: "border-emerald-300/15 bg-emerald-300/10 text-emerald-200",
+  } as const;
+
+  return classes[state];
+}
+
 function managedLaunchLaneLabel(
   lane: "resource_page" | "editorial_contact",
   locale: Locale
@@ -1013,8 +1023,20 @@ function getManagedInboxCopy(locale: Locale) {
         shortlistEmpty: "当前还没有自动 shortlist，运营会按现有队列手动补第一批目标。",
         packetsLabel: "首批消息包",
         packetsEmpty: "当前还没有预生成消息包，运营会按 shortlist 手动准备第一批。",
+        packetStats: {
+          prepared: "待发送",
+          claimed: "已认领",
+          sent: "已发送",
+        },
+        packetState: {
+          prepared: "待发送",
+          claimed: "已认领",
+          sent: "已发送",
+        },
         packetSubjectLabel: "建议主题",
         packetNextStepLabel: "下一步",
+        packetOwnerLabel: "执行人",
+        packetSentAtLabel: "发送时间",
         openTarget: "打开目标",
       },
       byo: {
@@ -1106,8 +1128,20 @@ function getManagedInboxCopy(locale: Locale) {
       packetsLabel: "Prepared message packets",
       packetsEmpty:
         "There are no generated packets yet, so ops will prepare the first messages from the shortlist.",
+      packetStats: {
+        prepared: "Prepared",
+        claimed: "Claimed",
+        sent: "Sent",
+      },
+      packetState: {
+        prepared: "Prepared",
+        claimed: "Claimed",
+        sent: "Sent",
+      },
       packetSubjectLabel: "Suggested subject",
       packetNextStepLabel: "Next step",
+      packetOwnerLabel: "Owner",
+      packetSentAtLabel: "Sent at",
       openTarget: "Open target",
     },
     byo: {
@@ -1400,6 +1434,13 @@ export default function ProductDetail({
   const managedInboxReserved =
     managedInbox.senderMode !== "managed" && Boolean(managedInbox.mailboxIdentity);
   const managedLaunchRequest = managedInbox.launchRequest;
+  const packetStats = {
+    prepared:
+      managedLaunchRequest?.packets.filter((packet) => packet.state === "prepared").length || 0,
+    claimed:
+      managedLaunchRequest?.packets.filter((packet) => packet.state === "claimed").length || 0,
+    sent: managedLaunchRequest?.packets.filter((packet) => packet.state === "sent").length || 0,
+  };
   const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
@@ -2213,14 +2254,44 @@ export default function ProductDetail({
                           <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                             {managedInboxCopy.managed.packetsLabel}
                           </div>
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            {(
+                              [
+                                ["prepared", packetStats.prepared],
+                                ["claimed", packetStats.claimed],
+                                ["sent", packetStats.sent],
+                              ] as const
+                            ).map(([state, value]) => (
+                              <div
+                                key={state}
+                                className="rounded-[1rem] border border-white/10 bg-black/15 p-4"
+                              >
+                                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                  {managedInboxCopy.managed.packetStats[state]}
+                                </div>
+                                <div className="mt-2 text-lg font-semibold text-white">
+                                  {value}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                           <div className="grid gap-3">
                             {managedLaunchRequest.packets.slice(0, 3).map((packet) => (
                               <div
                                 key={packet.id}
                                 className="rounded-[1rem] border border-white/10 bg-black/15 p-4"
                               >
-                                <div className="text-sm font-semibold text-white">
-                                  {packet.title}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span
+                                    className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketStateClasses(
+                                      packet.state
+                                    )}`}
+                                  >
+                                    {managedInboxCopy.managed.packetState[packet.state]}
+                                  </span>
+                                  <div className="text-sm font-semibold text-white">
+                                    {packet.title}
+                                  </div>
                                 </div>
                                 <div className="mt-2 text-[11px] uppercase tracking-[0.22em] text-stone-500">
                                   {managedInboxCopy.managed.packetSubjectLabel}
@@ -2228,6 +2299,17 @@ export default function ProductDetail({
                                 <div className="mt-2 text-sm leading-7 text-stone-200">
                                   {packet.subject}
                                 </div>
+                                {packet.claimedBy ? (
+                                  <div className="mt-3 text-xs text-stone-500">
+                                    {managedInboxCopy.managed.packetOwnerLabel}: {packet.claimedBy}
+                                  </div>
+                                ) : null}
+                                {packet.sentAt ? (
+                                  <div className="mt-2 text-xs text-stone-500">
+                                    {managedInboxCopy.managed.packetSentAtLabel}:{" "}
+                                    {formatSubmissionDate(packet.sentAt, locale)}
+                                  </div>
+                                ) : null}
                                 <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">
                                   {managedInboxCopy.managed.packetNextStepLabel}
                                 </div>

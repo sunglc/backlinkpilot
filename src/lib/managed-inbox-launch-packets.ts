@@ -88,7 +88,7 @@ export async function generateManagedInboxLaunchPackets(args: {
   const packets = await Promise.all(
     args.shortlist.slice(0, 4).map(async (target, index) => {
       const slug = sanitizeFragment(target.domain || target.title || target.id) || `target-${index + 1}`;
-      const packetId = `${args.launchReferenceId}-${slug}`;
+      const packetId = `mp-${args.product.id.slice(0, 8)}-${slug}`;
       const absolutePath = path.join(productDir, `${packetId}.md`);
       const subject = subjectForTarget(target, args.product);
       const opening = openingForTarget(target);
@@ -146,6 +146,11 @@ ${sourceExcerpt}
         opening,
         nextStep,
         sourceReferencePath: target.sourceReferencePath,
+        state: "prepared",
+        claimedAt: null,
+        claimedBy: null,
+        sentAt: null,
+        sendReceiptPath: null,
       } satisfies ManagedInboxLaunchPacket;
     })
   );
