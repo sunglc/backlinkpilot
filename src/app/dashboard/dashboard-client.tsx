@@ -4918,7 +4918,11 @@ export default function DashboardClient({
                                   </div>
                                 </div>
                                 <Link
-                                  href={`/dashboard/product/${product.productId}`}
+                                  href={withPriorityContext(
+                                    `/dashboard/product/${product.productId}`,
+                                    product.productId,
+                                    workspaceStrategyLead?.product.id === product.productId
+                                  )}
                                   className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/[0.08]"
                                 >
                                   {workspaceStrategyCopy.laneMetrics.open}
@@ -5667,7 +5671,11 @@ export default function DashboardClient({
                             </button>
                           ) : (
                             <Link
-                              href={`/dashboard/product/${summary.product.id}`}
+                              href={withPriorityContext(
+                                `/dashboard/product/${summary.product.id}`,
+                                summary.product.id,
+                                workspaceStrategyLead?.product.id === summary.product.id
+                              )}
                               className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                             >
                               {outcomeCopy.openProduct}
@@ -5764,7 +5772,10 @@ export default function DashboardClient({
                       </button>
                     ) : featuredProduct ? (
                       <Link
-                        href={`/dashboard/product/${featuredProduct.product.id}`}
+                        href={
+                          featuredProductDetailHref ||
+                          `/dashboard/product/${featuredProduct.product.id}`
+                        }
                         className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                       >
                         {copy.checkout.openProduct}
@@ -6399,7 +6410,11 @@ export default function DashboardClient({
                                 : proofAction.label}
                             </button>
                             <Link
-                              href={`/dashboard/product/${summary.product.id}`}
+                              href={withPriorityContext(
+                                `/dashboard/product/${summary.product.id}`,
+                                summary.product.id,
+                                workspaceStrategyLead?.product.id === summary.product.id
+                              )}
                               className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                             >
                               {proofCopy.openProduct}
