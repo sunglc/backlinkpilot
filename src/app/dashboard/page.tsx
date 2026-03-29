@@ -9,6 +9,7 @@ import { buildWorkspacePolicySnapshot } from "@/lib/workspace-policy";
 import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import { summarizeProductProofPipeline } from "@/lib/proof-pipeline";
+import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import { readWorkspaceTaskPlans } from "@/lib/workspace-task-plans";
 import DashboardClient from "./dashboard-client";
@@ -65,6 +66,7 @@ export default async function Dashboard({
         .in("product_id", productIds)
         .order("created_at", { ascending: false })
     : { data: [] };
+  const capabilityContract = await readSaasCapabilityContract();
   const operationalInsights = await readSaasOperationalInsights();
   const workspacePolicySnapshot = await buildWorkspacePolicySnapshot({
     userId: user.id,
@@ -158,6 +160,7 @@ export default async function Dashboard({
       products={products || []}
       submissions={submissions || []}
       productProofSummaries={productProofSummaries}
+      capabilityContract={capabilityContract}
       operationalInsights={operationalInsights}
       workspaceTaskPlans={workspaceTaskPlans}
       workspacePolicy={workspacePolicy}

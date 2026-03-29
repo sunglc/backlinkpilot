@@ -16,11 +16,18 @@ import type {
   ProductProofPriority,
   ProductProofSummary,
 } from "@/lib/proof-pipeline";
+import {
+  capabilityContractNeedsReview,
+  type SaasCapabilityContract,
+} from "@/lib/saas-capability-contract-types";
 import type {
   WorkspacePolicyClientSnapshot,
   WorkspacePolicyLane,
 } from "@/lib/workspace-policy-types";
-import type { OperationalInsights } from "@/lib/saas-operational-insights";
+import type {
+  OperationalInsights,
+  OperationalInsightsDiscoveryMarket,
+} from "@/lib/saas-operational-insights-types";
 import type {
   WorkspaceTaskPlan,
   WorkspaceTaskPlanCoverageBreakdown,
@@ -160,6 +167,7 @@ interface DashboardClientProps {
   products: Product[];
   submissions: Submission[];
   productProofSummaries: ProductProofSummaryRow[];
+  capabilityContract: SaasCapabilityContract;
   operationalInsights: OperationalInsights;
   workspaceTaskPlans: WorkspaceTaskPlan[];
   workspacePolicy: WorkspacePolicyClientSnapshot;
@@ -658,6 +666,26 @@ function getDashboardCopy(locale: Locale) {
         title: "把目标供给和收费情报抬成正式产品层。",
         body:
           "这不是运营侧自嗨数据。系统每天都会持续发现新的可发目标站，同时把收费型和商务型外链机会沉淀成单独资产层。",
+        contractTitle: "能力合同",
+        contractFresh: "合同已同步",
+        contractChanged: "能力已变化，SaaS 需要同步",
+        contractFreshBody:
+          "当前能力指纹和上一版一致，没有新的 SaaS 同步动作被触发。",
+        contractChangedBody:
+          "能力指纹已变化。先看 required SaaS actions，再更新产品展示、文案和能力说明。",
+        claimRuleTitle: "对外宣称规则",
+        provenTitle: "Proven 市场",
+        buildoutTitle: "Priority buildout 市场",
+        watchlistTitle: "Watchlist 市场",
+        anchorsTitle: "Anchor markets",
+        adaptiveCopyTitle: "语言自适应文案",
+        adaptiveCopyBody:
+          "提交文案和外联消息会按目标语言适配，不再默认只用英文。",
+        noAdaptiveCopyBody:
+          "这项能力还没有进入 proven 合同，不该被当成现成卖点宣传。",
+        reviewActionsTitle: "需要同步的 SaaS 动作",
+        noReviewActions: "当前没有新的 SaaS 同步动作。",
+        fingerprintLabel: "能力指纹",
         progressLabel: "今日发现进度",
         targetLabel: "今日硬目标",
         gapLabel: "今日剩余缺口",
@@ -1147,14 +1175,34 @@ function getDashboardCopy(locale: Locale) {
       body: "Add the product details and we can move it into live backlink execution.",
       cta: "+ Add Product",
     },
-    discovery: {
-      eyebrow: "Discovery Engine",
-      title: "Turn target supply and paid intelligence into a first-class product layer.",
-      body:
-        "This is not ops-only telemetry. The system keeps discovering new worthwhile backlink targets every day while collecting paid and commercial opportunities into a separate asset layer.",
-      progressLabel: "Today's discovery progress",
-      targetLabel: "Daily floor",
-      gapLabel: "Remaining gap today",
+      discovery: {
+        eyebrow: "Discovery Engine",
+        title: "Turn target supply and paid intelligence into a first-class product layer.",
+        body:
+          "This is not ops-only telemetry. The system keeps discovering new worthwhile backlink targets every day while collecting paid and commercial opportunities into a separate asset layer.",
+        contractTitle: "Capability contract",
+        contractFresh: "Contract synced",
+        contractChanged: "Capabilities changed and SaaS needs an update",
+        contractFreshBody:
+          "The current capability fingerprint matches the previous one, so no new SaaS sync work is being triggered right now.",
+        contractChangedBody:
+          "The capability fingerprint changed. Review the required SaaS actions before updating product claims, copy, and capability explanations.",
+        claimRuleTitle: "Claim rule",
+        provenTitle: "Proven markets",
+        buildoutTitle: "Priority buildout markets",
+        watchlistTitle: "Watchlist markets",
+        anchorsTitle: "Anchor markets",
+        adaptiveCopyTitle: "Language-adaptive copy",
+        adaptiveCopyBody:
+          "Submission copy and outreach messaging adapt to the target language instead of defaulting to English-only messaging.",
+        noAdaptiveCopyBody:
+          "This capability is not in the proven contract yet, so it should not be marketed as a live differentiator.",
+        reviewActionsTitle: "Required SaaS actions",
+        noReviewActions: "There are no new SaaS sync actions right now.",
+        fingerprintLabel: "Capability fingerprint",
+        progressLabel: "Today's discovery progress",
+        targetLabel: "Daily floor",
+        gapLabel: "Remaining gap today",
       paidBacklogLabel: "Paid target backlog",
       paidRootsLabel: "Paid target root domains",
       paidNewLabel: "New paid targets today",
@@ -1988,6 +2036,39 @@ function workspaceOwnershipSummary(
     : `This product currently owns the remaining ${label} for this week.`;
 }
 
+function discoveryMarketToneClasses(
+  tone: "proven" | "buildout" | "watchlist" | "feature"
+) {
+  return {
+    proven: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    buildout: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    watchlist: "border-white/10 bg-white/[0.06] text-stone-200",
+    feature: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+  }[tone];
+}
+
+function formatFingerprint(value: string) {
+  if (!value) {
+    return "n/a";
+  }
+
+  return `${value.slice(0, 8)}…${value.slice(-8)}`;
+}
+
+function formatMarketChips(
+  markets: OperationalInsightsDiscoveryMarket[],
+  fallbackLanguages: string[],
+  locale: Locale
+) {
+  if (markets.length > 0) {
+    return markets.map((market) => market.market_label);
+  }
+
+  return fallbackLanguages.map((language) =>
+    locale === "zh" ? `${language.toUpperCase()} 市场` : `${language.toUpperCase()} market`
+  );
+}
+
 function proofTaskTitle(
   type: ProductProofAction["taskType"],
   locale: Locale
@@ -2518,6 +2599,7 @@ export default function DashboardClient({
   products,
   submissions,
   productProofSummaries,
+  capabilityContract,
   operationalInsights,
   workspaceTaskPlans,
   workspacePolicy,
@@ -2588,6 +2670,40 @@ export default function DashboardClient({
           Math.round((discoveryProgressCount / discoveryProgressTarget) * 100)
         )
       : 0;
+  const capabilityReviewPending =
+    capabilityContractNeedsReview(capabilityContract);
+  const capabilityFingerprint = formatFingerprint(
+    capabilityContract.capability_fingerprint
+  );
+  const provenMarkets = formatMarketChips(
+    operationalInsights.discovery_proven_markets,
+    capabilityContract.market_tiers.proven_languages,
+    locale
+  );
+  const buildoutMarkets = formatMarketChips(
+    operationalInsights.discovery_priority_buildout_markets,
+    capabilityContract.market_tiers.buildout_languages,
+    locale
+  );
+  const watchlistMarkets = formatMarketChips(
+    operationalInsights.discovery_watchlist_markets,
+    capabilityContract.market_tiers.watchlist_languages,
+    locale
+  );
+  const anchorMarkets = operationalInsights.discovery_anchor_markets.length
+    ? operationalInsights.discovery_anchor_markets
+    : capabilityContract.product_claim_policy.anchor_markets;
+  const hasLanguageAdaptiveCopyCapability =
+    capabilityContract.reusable_capability_ids.includes(
+      "language_adaptive_submission_copy"
+    );
+  const capabilityCurrentFocus =
+    capabilityContract.team_handoff_summary.current_focus ||
+    capabilityContract.team_handoff_summary.one_line ||
+    operationalInsights.discovery_market_claim_rule;
+  const requiredCapabilityActions = capabilityReviewPending
+    ? capabilityContract.required_saas_actions.slice(0, 4)
+    : [];
 
   const productSummaries: ProductSummary[] = products.map((product) => {
     const productSubmissions = submissions.filter(
@@ -5001,6 +5117,52 @@ export default function DashboardClient({
                 </div>
               </div>
             </div>
+
+            <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="max-w-2xl">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.discovery.contractTitle}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${discoveryMarketToneClasses(
+                        capabilityReviewPending ? "buildout" : "proven"
+                      )}`}
+                    >
+                      {capabilityReviewPending
+                        ? copy.discovery.contractChanged
+                        : copy.discovery.contractFresh}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-stone-300">
+                      {copy.discovery.fingerprintLabel}: {capabilityFingerprint}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-stone-300">
+                    {capabilityReviewPending
+                      ? copy.discovery.contractChangedBody
+                      : copy.discovery.contractFreshBody}
+                  </p>
+                  {capabilityCurrentFocus ? (
+                    <p className="mt-3 text-sm leading-7 text-stone-400">
+                      {capabilityCurrentFocus}
+                    </p>
+                  ) : null}
+                </div>
+                <span
+                  className={`rounded-full border px-3 py-1.5 text-xs ${discoveryMarketToneClasses(
+                    hasLanguageAdaptiveCopyCapability ? "feature" : "watchlist"
+                  )}`}
+                >
+                  {copy.discovery.adaptiveCopyTitle}
+                </span>
+              </div>
+              <p className="mt-4 text-sm leading-7 text-stone-300">
+                {hasLanguageAdaptiveCopyCapability
+                  ? copy.discovery.adaptiveCopyBody
+                  : copy.discovery.noAdaptiveCopyBody}
+              </p>
+            </div>
           </div>
 
           <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
@@ -5013,6 +5175,116 @@ export default function DashboardClient({
             <p className="mt-4 text-base leading-7 text-stone-300">
               {copy.discovery.inventoryBody}
             </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {(
+                [
+                  [
+                    copy.discovery.provenTitle,
+                    provenMarkets,
+                    discoveryMarketToneClasses("proven"),
+                  ],
+                  [
+                    copy.discovery.buildoutTitle,
+                    buildoutMarkets,
+                    discoveryMarketToneClasses("buildout"),
+                  ],
+                  [
+                    copy.discovery.watchlistTitle,
+                    watchlistMarkets,
+                    discoveryMarketToneClasses("watchlist"),
+                  ],
+                ] as const
+              ).map(([title, markets, classes]) => (
+                <div
+                  key={title}
+                  className="rounded-[1.15rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                >
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {title}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {markets.length > 0 ? (
+                      markets.slice(0, 5).map((market) => (
+                        <span
+                          key={`${title}:${market}`}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${classes}`}
+                        >
+                          {market}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs leading-6 text-stone-500">
+                        {locale === "zh"
+                          ? "当前没有可展示的市场。"
+                          : "No markets are ready to show here yet."}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.discovery.claimRuleTitle}
+              </div>
+              <p className="mt-3 text-sm leading-7 text-stone-300">
+                {operationalInsights.discovery_market_claim_rule ||
+                  capabilityContract.product_claim_policy.rule}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-stone-200">
+                  {copy.discovery.anchorsTitle}:{" "}
+                  {anchorMarkets.length > 0
+                    ? anchorMarkets
+                        .map((market) => market.toUpperCase())
+                        .join(locale === "zh" ? "、" : ", ")
+                    : locale === "zh"
+                      ? "无"
+                      : "None"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.discovery.reviewActionsTitle}
+              </div>
+              {requiredCapabilityActions.length > 0 ? (
+                <div className="mt-4 grid gap-3">
+                  {requiredCapabilityActions.map((action) => (
+                    <div
+                      key={action.id}
+                      className="rounded-[1.05rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${discoveryMarketToneClasses(
+                            action.required ? "buildout" : "feature"
+                          )}`}
+                        >
+                          {action.priority}
+                        </span>
+                        <span className="text-sm font-medium text-white">
+                          {action.area}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-stone-200">
+                        {action.action}
+                      </p>
+                      <p className="mt-2 text-xs leading-6 text-stone-500">
+                        {action.why}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {copy.discovery.noReviewActions}
+                </p>
+              )}
+            </div>
 
             <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
               <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
