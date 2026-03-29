@@ -22,6 +22,11 @@ import type {
   WorkspaceTaskPlanCoverageBreakdown,
   WorkspaceTaskPlanGranularity,
 } from "@/lib/workspace-task-plans-types";
+import {
+  buildWorkspaceStrategy,
+  type WorkspaceStrategyDecisionKey,
+  type WorkspaceStrategyLaneKey,
+} from "@/lib/workspace-strategy";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -89,12 +94,7 @@ type WorkspaceTaskBillingType =
   | "included"
   | "credit_on_success"
   | "premium_service";
-type ProductBudgetDecisionKey =
-  | "build_queue"
-  | "watch_effect"
-  | "prove_first"
-  | "upgrade_now"
-  | "hold_premium";
+type ProductBudgetDecisionKey = WorkspaceStrategyDecisionKey;
 type BudgetAction =
   | {
       kind: "launch";
@@ -424,6 +424,72 @@ function getDashboardCopy(locale: Locale) {
               "已经出现结果信号，下一步是把“待见效”和“已生效”的任务分开推进。",
             action: "查看任务阶段",
           },
+        },
+      },
+      strategy: {
+        eyebrow: "组合策略",
+        title: "别把每个产品平均推进。",
+        body:
+          "长期看，这个系统应该像组合管理器，而不是待办清单。它需要告诉你这周哪些产品该先做 proof，哪些该继续 build，哪些先别开 premium。",
+        modeLabel: "当前工作模式",
+        allocationLabel: "本周 attention 分配",
+        actionLabel: "全局建议动作",
+        allocation: {
+          prove: "推 proof",
+          watch: "盯生效",
+          build: "继续 build",
+          premium: "高级机会",
+        },
+        modes: {
+          unlock: {
+            title: "先解锁第一条 live 渠道，再谈组合优化。",
+            body:
+              "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进 live submission，后面的 proof 和预算分配才会成立。",
+          },
+          upgrade: {
+            title: "工作台已经开始顶到当前计划上限。",
+            body:
+              "至少一个产品已经接近需要升级的密度。先扩可用计划，再继续堆渠道和任务，不然 burn 和能力边界会打架。",
+          },
+          prove: {
+            title: "这周先把已有信号推成更公开的 proof。",
+            body:
+              "现在最值钱的不是新铺一层任务，而是把已经拿到的 receipt、reply 和接近发布的线程往前推。",
+          },
+          watch: {
+            title: "让已经跑出去的任务先见效。",
+            body:
+              "这周更重要的是看哪些任务开始生效，而不是继续同时打开太多新动作。",
+          },
+          build: {
+            title: "当前更像冷启动阶段，先把 coverage 和任务面做出来。",
+            body:
+              "还没有足够多的 proof 压力，所以最有效的动作仍然是生成计划、补齐目标和启动首轮 lane。",
+          },
+        },
+        lanes: {
+          prove: {
+            title: "优先推 proof",
+            body: "这些产品最接近公开结果，值得优先投入精力。",
+          },
+          watch: {
+            title: "先盯生效",
+            body: "这些产品已经开始消耗 credits，先观察结果再继续加速。",
+          },
+          build: {
+            title: "继续 build",
+            body: "这些产品还在搭建 coverage 和任务基础，适合继续铺第一层执行面。",
+          },
+          premium: {
+            title: "先 hold premium",
+            body: "这些产品有高级机会，但普通 proof 还不够，先不要把 premium 混进主线。",
+          },
+        },
+        laneMetrics: {
+          products: "产品数",
+          burn: "相关 credits",
+          open: "打开",
+          empty: "当前没有产品落在这条策略里。",
         },
       },
       builder: {
@@ -808,11 +874,77 @@ function getDashboardCopy(locale: Locale) {
         },
       },
     },
-      builder: {
-        eyebrow: "Task Builder",
-        title: "Create the task first, then scale the execution",
-        body:
-          "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
+    strategy: {
+      eyebrow: "Portfolio Strategy",
+      title: "Do not move every product equally.",
+      body:
+        "Long term, this system should behave like a portfolio manager, not a task list. It should tell you which products deserve proof work, which ones should be watched, and which premium opportunities should stay separate.",
+      modeLabel: "Current operating mode",
+      allocationLabel: "Attention mix this week",
+      actionLabel: "Recommended workspace move",
+      allocation: {
+        prove: "Push proof",
+        watch: "Watch effect",
+        build: "Keep building",
+        premium: "Premium lane",
+      },
+      modes: {
+        unlock: {
+          title: "Unlock the first live lane before optimizing the portfolio.",
+          body:
+            "The missing piece is not more strategy. It is getting the first product into live execution so proof and budget guidance have something real to work with.",
+        },
+        upgrade: {
+          title: "The workspace is starting to push past the current plan ceiling.",
+          body:
+            "At least one product is reaching upgrade density. Expand the plan before stacking more lanes and tasks, or the burn pressure and capability boundary will fight each other.",
+        },
+        prove: {
+          title: "Turn existing signal into more public proof this week.",
+          body:
+            "The highest-value move is not opening another layer of tasks. It is pushing current receipts, replies, and near-publication threads closer to visible proof.",
+        },
+        watch: {
+          title: "Let the work already in motion land first.",
+          body:
+            "The better move this week is watching which tasks start to take effect instead of opening too many new actions at once.",
+        },
+        build: {
+          title: "This workspace is still in build mode, so expand coverage and the task surface.",
+          body:
+            "There is not enough proof pressure yet, so the best move is still creating plans, filling the target base, and launching the first lanes.",
+        },
+      },
+      lanes: {
+        prove: {
+          title: "Push proof now",
+          body: "These products are closest to visible results and deserve the first attention.",
+        },
+        watch: {
+          title: "Watch effect",
+          body: "These products are already consuming credits, so watch outcomes before accelerating again.",
+        },
+        build: {
+          title: "Keep building",
+          body: "These products still need more coverage and first-layer execution before they should dominate the workspace.",
+        },
+        premium: {
+          title: "Hold premium work",
+          body: "These products have premium opportunities, but normal proof should land before premium becomes the main path.",
+        },
+      },
+      laneMetrics: {
+        products: "Products",
+        burn: "Related credits",
+        open: "Open",
+        empty: "No products are sitting in this strategy lane right now.",
+      },
+    },
+    builder: {
+      eyebrow: "Task Builder",
+      title: "Create the task first, then scale the execution",
+      body:
+        "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
       productLabel: "Product",
       autoTitle: "Generate a system coverage plan",
         autoBody:
@@ -1582,6 +1714,25 @@ function budgetActionForSummary(args: {
     label: budgetLabels.build_queue,
     href: linkAction?.href || `/dashboard/product/${args.summary.product.id}`,
   };
+}
+
+function workspaceStrategyModeClasses(mode: "unlock" | "upgrade" | "prove" | "watch" | "build") {
+  return {
+    unlock: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    upgrade: "border-rose-300/15 bg-rose-300/[0.08] text-rose-100",
+    prove: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    watch: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    build: "border-white/10 bg-white/[0.06] text-stone-200",
+  }[mode];
+}
+
+function workspaceStrategyLaneClasses(lane: WorkspaceStrategyLaneKey) {
+  return {
+    prove: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    watch: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    build: "border-white/10 bg-white/[0.06] text-stone-200",
+    premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
+  }[lane];
 }
 
 function proofTaskTitle(
@@ -2696,6 +2847,23 @@ export default function DashboardClient({
       ] as const;
     })
   );
+  const workspaceStrategy = buildWorkspaceStrategy({
+    currentPlan,
+    products: productSummaries.map((summary) => ({
+      productId: summary.product.id,
+      productName: summary.product.name,
+      weeklyBurn: productWeeklyBurnById.get(summary.product.id) || 0,
+      budgetDecision:
+        productBudgetDecisionById.get(summary.product.id)?.key || "build_queue",
+      proofPriority: summary.proof.priority,
+      proofCounts: summary.proof.counts,
+    })),
+  });
+  const workspaceStrategyCopy = copy.strategy;
+  const workspaceStrategyLead =
+    productSummaries.find(
+      (summary) => summary.product.id === workspaceStrategy.leadProductId
+    ) || featuredProduct;
   const workspaceBudgetLead =
     productSummaries
       .slice()
@@ -2807,6 +2975,29 @@ export default function DashboardClient({
       actionLabel: workflowCopy.steps.track.action,
     },
   ];
+  const workspaceStrategyLeadDecision =
+    workspaceStrategyLead
+      ? productBudgetDecisionById.get(workspaceStrategyLead.product.id) || {
+          key: "build_queue" as const,
+        }
+      : null;
+  const workspaceStrategyLeadLaunchAction =
+    workspaceStrategyLead && isLaunchAction(workspaceStrategyLead.primaryAction)
+      ? workspaceStrategyLead.primaryAction
+      : null;
+  const workspaceStrategyLeadLinkAction =
+    workspaceStrategyLead && isLinkAction(workspaceStrategyLead.primaryAction)
+      ? workspaceStrategyLead.primaryAction
+      : null;
+  const workspaceStrategyLeadAction =
+    workspaceStrategyLead && workspaceStrategy.mode !== "unlock"
+      ? budgetActionForSummary({
+          locale,
+          summary: workspaceStrategyLead,
+          decision: workspaceStrategyLeadDecision || { key: "build_queue" },
+          currentPlan,
+        })
+      : null;
 
   let heroTitle = copy.hero.readyTitle;
   let heroBody = copy.hero.readyBody;
@@ -3411,6 +3602,262 @@ export default function DashboardClient({
 
           <p className="mt-6 text-sm leading-7 text-stone-500">{workflowCopy.note}</p>
         </section>
+
+        {products.length > 0 ? (
+          <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+            <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+              <div>
+                <div className="max-w-3xl">
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                    {workspaceStrategyCopy.eyebrow}
+                  </p>
+                  <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                    {workspaceStrategyCopy.title}
+                  </h2>
+                  <p className="mt-4 text-sm leading-7 text-stone-400">
+                    {workspaceStrategyCopy.body}
+                  </p>
+                </div>
+
+                <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {workspaceStrategyCopy.modeLabel}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceStrategyModeClasses(
+                        workspaceStrategy.mode
+                      )}`}
+                    >
+                      {workspaceStrategyCopy.modes[workspaceStrategy.mode].title}
+                    </span>
+                    {workspaceStrategyLead ? (
+                      <span className="text-sm text-stone-400">
+                        {workspaceStrategyLead.product.name}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-stone-300">
+                    {workspaceStrategyCopy.modes[workspaceStrategy.mode].body}
+                  </p>
+
+                  <div className="mt-5">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {workspaceStrategyCopy.actionLabel}
+                    </div>
+                    <div className="mt-3">
+                      {workspaceStrategy.mode === "unlock" && workspaceStrategyLead ? (
+                        workspaceStrategyLeadLaunchAction ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleWorkspaceLaunch(
+                                workspaceStrategyLead.product.id,
+                                workspaceStrategyLeadLaunchAction.channelId
+                              )
+                            }
+                            disabled={
+                              launchingKey ===
+                              `${workspaceStrategyLead.product.id}:${workspaceStrategyLeadLaunchAction.channelId}`
+                            }
+                            className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                          >
+                            {launchingKey ===
+                            `${workspaceStrategyLead.product.id}:${workspaceStrategyLeadLaunchAction.channelId}`
+                              ? copy.productCard.starting
+                              : workspaceStrategyLeadLaunchAction.label}
+                          </button>
+                        ) : workspaceStrategyLeadLinkAction?.href.startsWith("/api/") ? (
+                          <a
+                            href={workspaceStrategyLeadLinkAction.href}
+                            className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                          >
+                            {workspaceStrategyLeadLinkAction.label}
+                          </a>
+                        ) : (
+                          <Link
+                            href={
+                              workspaceStrategyLeadLinkAction?.href ||
+                              `/dashboard/product/${workspaceStrategyLead.product.id}`
+                            }
+                            className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
+                          >
+                            {workspaceStrategyLeadLinkAction?.label ||
+                              copy.productCard.open}
+                          </Link>
+                        )
+                      ) : workspaceStrategyLeadAction?.kind === "proof" && workspaceStrategyLead ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleWorkspaceProofAction(
+                              workspaceStrategyLead.product.id,
+                              workspaceStrategyLeadAction.proofAction
+                            )
+                          }
+                          disabled={
+                            proofActionKey ===
+                            `${workspaceStrategyLead.product.id}:${workspaceStrategyLeadAction.proofAction.taskType}`
+                          }
+                          className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                        >
+                          {proofActionKey ===
+                          `${workspaceStrategyLead.product.id}:${workspaceStrategyLeadAction.proofAction.taskType}`
+                            ? copy.productCard.starting
+                            : workspaceStrategyLeadAction.label}
+                        </button>
+                      ) : workspaceStrategyLeadAction?.kind === "launch" && workspaceStrategyLead ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleWorkspaceLaunch(
+                              workspaceStrategyLead.product.id,
+                              workspaceStrategyLeadAction.channelId
+                            )
+                          }
+                          disabled={
+                            launchingKey ===
+                            `${workspaceStrategyLead.product.id}:${workspaceStrategyLeadAction.channelId}`
+                          }
+                          className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                        >
+                          {launchingKey ===
+                          `${workspaceStrategyLead.product.id}:${workspaceStrategyLeadAction.channelId}`
+                            ? copy.productCard.starting
+                            : workspaceStrategyLeadAction.label}
+                        </button>
+                      ) : workspaceStrategyLeadAction?.kind === "link" ? (
+                        workspaceStrategyLeadAction.href.startsWith("/api/") ? (
+                          <a
+                            href={workspaceStrategyLeadAction.href}
+                            className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                          >
+                            {workspaceStrategyLeadAction.label}
+                          </a>
+                        ) : (
+                          <Link
+                            href={workspaceStrategyLeadAction.href}
+                            className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
+                          >
+                            {workspaceStrategyLeadAction.label}
+                          </Link>
+                        )
+                      ) : (
+                        <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm text-stone-400">
+                          {workspaceStrategyCopy.modeLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {workspaceStrategyCopy.allocationLabel}
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {(
+                        ["prove", "watch", "build", "premium"] as const
+                      ).map((lane) => (
+                        <div
+                          key={lane}
+                          className="rounded-[1.1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                        >
+                          <div className="flex items-center justify-between gap-4 text-sm">
+                            <span className="text-stone-200">
+                              {workspaceStrategyCopy.allocation[lane]}
+                            </span>
+                            <span className="text-stone-500">
+                              {workspaceStrategy.allocation[lane]}%
+                            </span>
+                          </div>
+                          <div className="mt-3 h-2 rounded-full bg-stone-900">
+                            <div
+                              className={`h-2 rounded-full ${lane === "prove" ? "bg-emerald-300" : lane === "watch" ? "bg-sky-300" : lane === "premium" ? "bg-fuchsia-300" : "bg-stone-200"}`}
+                              style={{
+                                width: `${Math.max(
+                                  workspaceStrategy.allocation[lane],
+                                  workspaceStrategy.allocation[lane] > 0 ? 8 : 0
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {(
+                  ["prove", "watch", "build", "premium"] as const
+                ).map((lane) => {
+                  const laneSummary = workspaceStrategy.lanes[lane];
+
+                  return (
+                    <article
+                      key={lane}
+                      className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceStrategyLaneClasses(
+                            lane
+                          )}`}
+                        >
+                          {workspaceStrategyCopy.lanes[lane].title}
+                        </span>
+                        <span className="text-xs text-stone-500">
+                          {workspaceStrategyCopy.laneMetrics.products}:{" "}
+                          {laneSummary.productCount}
+                        </span>
+                      </div>
+                      <p className="mt-4 text-sm leading-7 text-stone-300">
+                        {workspaceStrategyCopy.lanes[lane].body}
+                      </p>
+                      <div className="mt-4 text-xs text-stone-500">
+                        {workspaceStrategyCopy.laneMetrics.burn}: ~
+                        {formatCreditsEstimate(laneSummary.estimatedBurn)}
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {laneSummary.products.length > 0 ? (
+                          laneSummary.products.slice(0, 3).map((product) => (
+                            <div
+                              key={`${lane}:${product.productId}`}
+                              className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-medium text-white">
+                                    {product.productName}
+                                  </div>
+                                  <div className="mt-1 text-xs text-stone-500">
+                                    ~{formatCreditsEstimate(product.weeklyBurn)}
+                                  </div>
+                                </div>
+                                <Link
+                                  href={`/dashboard/product/${product.productId}`}
+                                  className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/[0.08]"
+                                >
+                                  {workspaceStrategyCopy.laneMetrics.open}
+                                </Link>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3 text-sm leading-7 text-stone-500">
+                            {workspaceStrategyCopy.laneMetrics.empty}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {products.length > 0 ? (
           <section
