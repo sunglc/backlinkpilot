@@ -117,6 +117,10 @@ interface WorkspaceTask {
   kind: WorkspaceTaskKind;
   taskPlanId?: string | null;
   taskPlanMode?: WorkspaceTaskPlan["mode"] | null;
+  sourcePlanId?: string | null;
+  sourcePlanTitle?: string | null;
+  materializedChannelIds?: string[];
+  childPlanIds?: string[];
   stage: WorkspaceTaskStage;
   title: string;
   preview: string;
@@ -398,6 +402,7 @@ function getDashboardCopy(locale: Locale) {
           updatedAt: "最近更新",
           success: "成功",
           failure: "失败/辛苦费",
+          fromPlan: "来源",
           createNextTasks: "生成下一批任务",
           creatingTasks: "生成中...",
           unlockToCreateTasks: "升级后生成任务",
@@ -722,6 +727,7 @@ function getDashboardCopy(locale: Locale) {
         updatedAt: "Updated",
         success: "Success",
         failure: "Failure / ops fee",
+        fromPlan: "From",
         createNextTasks: "Create next tasks",
         creatingTasks: "Creating...",
         unlockToCreateTasks: "Unlock to create tasks",
@@ -1174,6 +1180,130 @@ function submissionTaskStage(
   }
 
   return "pending";
+}
+
+function describeCompetitorPlanExecution(args: {
+  locale: Locale;
+  plan: WorkspaceTaskPlan;
+  summary: ProductSummary;
+  workspaceTaskPlans: WorkspaceTaskPlan[];
+}) {
+  const linkedSubmissions = args.summary.submissions.filter((submission) =>
+    (args.plan.materializedChannelIds || []).includes(submission.channel)
+  );
+  const linkedChildPlans = (args.plan.childPlanIds || [])
+    .map((planId) => args.workspaceTaskPlans.find((plan) => plan.id === planId))
+    .filter((plan): plan is WorkspaceTaskPlan => Boolean(plan));
+  const fallbackChildPlans = args.workspaceTaskPlans.filter(
+    (plan) =>
+      plan.sourcePlanId === args.plan.id &&
+      !linkedChildPlans.some((childPlan) => childPlan.id === plan.id)
+  );
+  const childPlans = [...linkedChildPlans, ...fallbackChildPlans];
+  const stageCounts = {
+    pending: 0,
+    planned: 0,
+    awaiting_effect: 0,
+    live: 0,
+  } satisfies Record<WorkspaceTaskStage, number>;
+
+  linkedSubmissions.forEach((submission) => {
+    stageCounts[submissionTaskStage(args.summary, submission)] += 1;
+  });
+
+  const paidWatchlistTargets = childPlans
+    .filter((plan) => plan.title === "Paid opportunity watchlist")
+    .reduce((sum, plan) => sum + plan.targets.length, 0);
+  const channelNames = Array.from(
+    new Set(
+      linkedSubmissions.map((submission) => {
+        const channel =
+          CHANNELS.find((item) => item.id === submission.channel) || null;
+        return channel
+          ? getLocalizedChannel(channel, args.locale).name
+          : submission.channel;
+      })
+    )
+  );
+
+  let stage = args.plan.stage;
+  if (stageCounts.live > 0) {
+    stage = "live";
+  } else if (stageCounts.awaiting_effect > 0) {
+    stage = "awaiting_effect";
+  } else if (stageCounts.planned > 0) {
+    stage = "planned";
+  } else if (
+    stageCounts.pending > 0 ||
+    childPlans.length > 0 ||
+    args.plan.stage === "pending"
+  ) {
+    stage = "pending";
+  }
+
+  if (linkedSubmissions.length === 0 && paidWatchlistTargets === 0) {
+    return {
+      stage,
+      preview: args.plan.summary,
+    };
+  }
+
+  const statusSegments =
+    args.locale === "zh"
+      ? [
+          stageCounts.pending > 0 ? `${stageCounts.pending} 条待启动` : null,
+          stageCounts.planned > 0 ? `${stageCounts.planned} 条计划中` : null,
+          stageCounts.awaiting_effect > 0
+            ? `${stageCounts.awaiting_effect} 条待生效`
+            : null,
+          stageCounts.live > 0 ? `${stageCounts.live} 条已生效` : null,
+        ].filter(Boolean)
+      : [
+          stageCounts.pending > 0 ? `${stageCounts.pending} pending` : null,
+          stageCounts.planned > 0 ? `${stageCounts.planned} in progress` : null,
+          stageCounts.awaiting_effect > 0
+            ? `${stageCounts.awaiting_effect} awaiting effect`
+            : null,
+          stageCounts.live > 0 ? `${stageCounts.live} live` : null,
+        ].filter(Boolean);
+
+  if (args.locale === "zh") {
+    if (linkedSubmissions.length === 0) {
+      return {
+        stage,
+        preview: `这份竞品规划已生成 ${paidWatchlistTargets} 个付费机会跟踪项，live 渠道没有新增排队。`,
+      };
+    }
+
+    return {
+      stage,
+      preview: `这份竞品规划已转成 ${linkedSubmissions.length} 条执行任务（${channelNames
+        .slice(0, 3)
+        .join("、")}）。当前：${statusSegments.join("，")}。${
+        paidWatchlistTargets > 0
+          ? `另有 ${paidWatchlistTargets} 个付费机会进入 watchlist。`
+          : ""
+      }`,
+    };
+  }
+
+  if (linkedSubmissions.length === 0) {
+    return {
+      stage,
+      preview: `This competitor plan already created ${paidWatchlistTargets} paid opportunity watchlist items, but no new live lanes had to be queued.`,
+    };
+  }
+
+  return {
+    stage,
+    preview: `This competitor plan has already turned into ${linkedSubmissions.length} execution tasks (${channelNames
+      .slice(0, 3)
+      .join(", ")}). Current state: ${statusSegments.join(", ")}.${
+      paidWatchlistTargets > 0
+        ? ` ${paidWatchlistTargets} paid opportunities are also in the watchlist.`
+        : ""
+    }`,
+  };
 }
 
 function proofTaskStage(
@@ -1867,6 +1997,9 @@ export default function DashboardClient({
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean).length;
+  const workspaceTaskPlanById = new Map(
+    workspaceTaskPlans.map((plan) => [plan.id, plan])
+  );
   const workspaceTasks = productSummaries
     .flatMap((summary) => {
       const tasks: WorkspaceTask[] = [];
@@ -1877,6 +2010,18 @@ export default function DashboardClient({
 
       taskPlans.forEach((plan) => {
         const economics = taskEconomics({ kind: "coverage" });
+        const sourcePlan = plan.sourcePlanId
+          ? workspaceTaskPlanById.get(plan.sourcePlanId) || null
+          : null;
+        const competitorExecution =
+          plan.mode === "competitor_map"
+            ? describeCompetitorPlanExecution({
+                locale,
+                plan,
+                summary,
+                workspaceTaskPlans: taskPlans,
+              })
+            : null;
         if (plan.granularity === "per_target") {
           plan.targets.slice(0, 3).forEach((target) => {
             tasks.push({
@@ -1886,6 +2031,10 @@ export default function DashboardClient({
               kind: "coverage",
               taskPlanId: plan.id,
               taskPlanMode: plan.mode,
+              sourcePlanId: plan.sourcePlanId,
+              sourcePlanTitle: sourcePlan?.title || null,
+              materializedChannelIds: plan.materializedChannelIds || [],
+              childPlanIds: plan.childPlanIds || [],
               stage: plan.stage,
               title:
                 locale === "zh"
@@ -1909,9 +2058,13 @@ export default function DashboardClient({
           kind: "coverage",
           taskPlanId: plan.id,
           taskPlanMode: plan.mode,
-          stage: plan.stage,
+          sourcePlanId: plan.sourcePlanId,
+          sourcePlanTitle: sourcePlan?.title || null,
+          materializedChannelIds: plan.materializedChannelIds || [],
+          childPlanIds: plan.childPlanIds || [],
+          stage: competitorExecution?.stage || plan.stage,
           title: plan.title,
-          preview: plan.summary,
+          preview: competitorExecution?.preview || plan.summary,
           href: "/dashboard#task-builder",
           updatedAt: plan.updatedAt,
           successCost: plan.successCost,
@@ -1929,6 +2082,10 @@ export default function DashboardClient({
           kind: "profile",
           taskPlanId: null,
           taskPlanMode: null,
+          sourcePlanId: null,
+          sourcePlanTitle: null,
+          materializedChannelIds: [],
+          childPlanIds: [],
           stage: summary.product.status === "draft" ? "pending" : "planned",
           title:
             locale === "zh"
@@ -1981,6 +2138,10 @@ export default function DashboardClient({
           kind: "submission",
           taskPlanId: null,
           taskPlanMode: null,
+          sourcePlanId: null,
+          sourcePlanTitle: null,
+          materializedChannelIds: [],
+          childPlanIds: [],
           stage,
           title:
             locale === "zh"
@@ -2008,6 +2169,10 @@ export default function DashboardClient({
           kind: "proof",
           taskPlanId: null,
           taskPlanMode: null,
+          sourcePlanId: null,
+          sourcePlanTitle: null,
+          materializedChannelIds: [],
+          childPlanIds: [],
           stage: proofTaskStage(proofTask.status),
           title: proofTaskTitle(proofTask.type, locale),
           preview:
@@ -2920,6 +3085,11 @@ export default function DashboardClient({
                           {taskQueueCopy.stages[task.stage]}
                         </span>
                         <span className="text-sm text-stone-500">{task.productName}</span>
+                        {task.sourcePlanTitle ? (
+                          <span className="text-sm text-stone-500">
+                            {taskQueueCopy.labels.fromPlan}: {task.sourcePlanTitle}
+                          </span>
+                        ) : null}
                       </div>
 
                       <h3 className="mt-4 text-xl font-semibold text-white">

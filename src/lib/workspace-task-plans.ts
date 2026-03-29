@@ -121,6 +121,8 @@ function normalizePlan(
     productId: input.productId,
     userId: input.userId,
     sourcePlanId: input.sourcePlanId || null,
+    materializedChannelIds: input.materializedChannelIds || [],
+    childPlanIds: input.childPlanIds || [],
     mode: normalizeMode(input.mode),
     granularity: input.granularity || "batch",
     stage: normalizeStage(input.stage),
@@ -246,6 +248,10 @@ function recommendedCoverageChannels(args: {
 
 function localizedChannelName(channelId: string) {
   return CHANNELS.find((channel) => channel.id === channelId)?.name || channelId;
+}
+
+function uniqueIds(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
 }
 
 function competitorCoverageBreakdown(args: {
@@ -564,6 +570,7 @@ export async function materializeCompetitorCoveragePlan(args: {
 
   const paidTargets = args.operationalInsights.top_paid_targets.slice(0, 5);
   const followUpPlans: WorkspaceTaskPlan[] = [];
+  const existingChildPlanIds = targetPlan.childPlanIds || [];
   const existingPaidWatchlist = existingPlans.find(
     (plan) =>
       plan.sourcePlanId === targetPlan.id &&
@@ -608,6 +615,15 @@ export async function materializeCompetitorCoveragePlan(args: {
     launchChannelIds.length > 0 || followUpPlans.length > 0;
   const updatedPlan = normalizePlan({
     ...targetPlan,
+    materializedChannelIds: uniqueIds([
+      ...(targetPlan.materializedChannelIds || []),
+      ...launchChannelIds,
+    ]),
+    childPlanIds: uniqueIds([
+      ...existingChildPlanIds,
+      ...followUpPlans.map((plan) => plan.id),
+      existingPaidWatchlist?.id,
+    ]),
     stage: hasNewFollowUp ? "pending" : "live",
     updatedAt,
     summary:
