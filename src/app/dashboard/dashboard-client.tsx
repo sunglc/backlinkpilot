@@ -2265,6 +2265,30 @@ function plannerSelectionStatusCopy(args: {
       };
 }
 
+function workspaceLeadSummaryCopy(args: {
+  locale: Locale;
+  leadProductName: string;
+  mode: "unlock" | "upgrade" | "prove" | "watch" | "build";
+}) {
+  if (args.locale === "zh") {
+    return {
+      unlock: `当前系统先把 ${args.leadProductName} 作为主产品，先完成第一条可执行路径的解锁。`,
+      upgrade: `当前系统先把 ${args.leadProductName} 放在最前面，因为下一步价值更像升级而不是继续铺新任务。`,
+      prove: `当前系统先推 ${args.leadProductName}，因为它最接近变成 proof。`,
+      watch: `当前系统先盯 ${args.leadProductName}，因为它更该先看生效和结果信号。`,
+      build: `当前系统先把新增任务喂给 ${args.leadProductName}，因为它最适合吸收本周新增供给。`,
+    }[args.mode];
+  }
+
+  return {
+    unlock: `${args.leadProductName} is the current lead because the workspace should unlock its first executable path before spreading wider.`,
+    upgrade: `${args.leadProductName} is the current lead because the next move looks more like an upgrade decision than more task volume.`,
+    prove: `${args.leadProductName} is the current lead because it is the closest product to turning into proof.`,
+    watch: `${args.leadProductName} is the current lead because the better move is watching effect and result signals first.`,
+    build: `${args.leadProductName} is the current lead because it is the best product to absorb this week's fresh supply.`,
+  }[args.mode];
+}
+
 function workspaceAutoCoverageGuardMessage(args: {
   locale: Locale;
   productId: string;
@@ -3898,6 +3922,13 @@ export default function DashboardClient({
           productPolicy: productPolicyById.get(workspaceStrategyLead.product.id),
         })
       : null;
+  const workspaceLeadSummary = workspaceStrategyLead
+    ? workspaceLeadSummaryCopy({
+        locale,
+        leadProductName: workspaceStrategyLead.product.name,
+        mode: workspaceStrategy.mode,
+      })
+    : null;
 
   useEffect(() => {
     const previousRecommended = previousRecommendedPlannerProductId.current;
@@ -4352,6 +4383,11 @@ export default function DashboardClient({
             <p className="mt-5 max-w-2xl text-base leading-7 text-stone-300">
               {heroBody}
             </p>
+            {workspaceLeadSummary ? (
+              <div className="mt-4 max-w-3xl rounded-[1.15rem] border border-[var(--line-soft)] bg-black/15 px-4 py-3 text-sm leading-7 text-stone-300">
+                {workspaceLeadSummary}
+              </div>
+            ) : null}
 
             <div className="mt-7 flex flex-wrap gap-3">
               {products.length === 0 ? (
