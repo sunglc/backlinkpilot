@@ -15,6 +15,8 @@ import { runtimeConfig } from "@/lib/runtime-config";
 import type {
   BringYourOwnSender,
   ManagedInboxEventState,
+  ManagedInboxProofTask,
+  ManagedInboxProofTaskType,
   ManagedInboxLaunchRequest,
   ManagedInboxLaunchPacket,
   ManagedInboxLaunchPacketThreadStage,
@@ -42,6 +44,7 @@ const PRODUCT_DIR = path.join(STORAGE_DIR, "products");
 const BRIEF_DIR = path.join(STORAGE_DIR, "briefs");
 const LAUNCH_REQUEST_DIR = path.join(STORAGE_DIR, "launch-requests");
 const LAUNCH_QUEUE_DIR = path.join(STORAGE_DIR, "launch-queue");
+const PROOF_TASK_DIR = path.join(STORAGE_DIR, "proof-tasks");
 const PRIMARY_EMAIL_CONFIG = "/root/.config/backlink_sender/email_sender.json";
 
 function nowIso() {
@@ -234,6 +237,7 @@ function defaultRecord(productId: string, userId: string): ManagedInboxRecord {
     bringYourOwn: null,
     opsBrief: null,
     launchRequest: null,
+    proofTasks: [],
     timeline: [],
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -245,6 +249,7 @@ async function ensureStorage() {
   await mkdir(BRIEF_DIR, { recursive: true });
   await mkdir(LAUNCH_REQUEST_DIR, { recursive: true });
   await mkdir(LAUNCH_QUEUE_DIR, { recursive: true });
+  await mkdir(PROOF_TASK_DIR, { recursive: true });
 }
 
 async function readManagedInboxDomainFromConfig() {
@@ -338,6 +343,12 @@ function normalizeRecord(
             : [],
         }
       : null,
+    proofTasks: Array.isArray(input.proofTasks)
+      ? input.proofTasks.map((task) => ({
+          ...task,
+          status: task.status || "queued",
+        }))
+      : [],
     timeline: Array.isArray(input.timeline) ? input.timeline : [],
     createdAt: input.createdAt || base.createdAt,
     updatedAt: input.updatedAt || base.updatedAt,
@@ -613,6 +624,43 @@ function buildManagedIdentity(product: ProductSnapshot, domain: string) {
     assignmentMode: "pilot_assigned" as const,
     assignedAt: nowIso(),
   };
+}
+
+function proofTaskCopy(taskType: ManagedInboxProofTaskType) {
+  const copy = {
+    verify_result: {
+      title: "Verify the likely-live result",
+      summary:
+        "Check whether the strongest likely-live placement is now publicly visible, capture proof, and move it into the result layer.",
+    },
+    protect_publication: {
+      title: "Protect the publication-ready thread",
+      summary:
+        "Keep the publication-ready thread moving, confirm final details, and prevent the opportunity from stalling before launch.",
+    },
+    send_materials: {
+      title: "Send the missing materials",
+      summary:
+        "Package the requested assets, screenshots, and product copy so the reply thread can keep moving toward inclusion.",
+    },
+    review_commercial: {
+      title: "Review the commercial terms",
+      summary:
+        "Evaluate whether the commercial thread is worth paying for, then either advance it cleanly or drop it fast.",
+    },
+    follow_up: {
+      title: "Follow up on the active thread",
+      summary:
+        "Keep the under-review thread warm with a clear follow-up so the opportunity does not go cold.",
+    },
+    push_receipts: {
+      title: "Push receipts toward public proof",
+      summary:
+        "Take the strongest submission receipts and push them toward something publicly verifiable instead of leaving them as internal success logs.",
+    },
+  } as const;
+
+  return copy[taskType];
 }
 
 async function writeOpsBrief(args: {
@@ -1009,6 +1057,98 @@ export async function queueManagedOutreachBatch(args: {
     ...record,
     opsBrief,
     launchRequest,
+    timeline,
+    updatedAt: nowIso(),
+  };
+
+  await writeRecord(nextRecord);
+  return nextRecord;
+}
+
+export async function queueManagedProofTask(args: {
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  taskType: ManagedInboxProofTaskType;
+}) {
+  const record = await getManagedInboxRecord({
+    productId: args.product.id,
+    userId: args.actor.userId,
+  });
+  const taskId = `pt-${args.product.id.slice(0, 8)}-${Date.now().toString().slice(-6)}`;
+  const filename = `${taskId}.json`;
+  const absolutePath = path.join(PROOF_TASK_DIR, filename);
+  const copy = proofTaskCopy(args.taskType);
+  const proofTaskStatus = record.proofTasks.some((task) => task.type === args.taskType)
+    ? ("updated" as const)
+    : ("queued" as const);
+  const latestPackets = record.launchRequest?.packets || [];
+  const candidateThreads = latestPackets
+    .filter((packet) => packet.replyStatus === "replied")
+    .slice()
+    .sort((left, right) => {
+      const leftDate = left.lastReplyAt || left.sentAt || "";
+      const rightDate = right.lastReplyAt || right.sentAt || "";
+      return rightDate.localeCompare(leftDate);
+    })
+    .slice(0, 3)
+    .map((packet) => ({
+      title: packet.title,
+      threadStage: packet.threadStage,
+      nextStep: packet.nextStep,
+      lastReplyAt: packet.lastReplyAt,
+    }));
+  const payload = {
+    type: "managed_proof_task",
+    taskId,
+    taskType: args.taskType,
+    status: proofTaskStatus,
+    createdAt: nowIso(),
+    product: {
+      id: args.product.id,
+      name: args.product.name,
+      url: args.product.url,
+      description: args.product.description,
+    },
+    actor: {
+      userId: args.actor.userId,
+      userEmail: args.actor.userEmail,
+    },
+    senderIdentity: record.mailboxIdentity?.email || null,
+    summary: copy.summary,
+    candidateThreads,
+    launchReferenceId: record.launchRequest?.referenceId || null,
+    nextStep:
+      "Ops should pick up this proof task, move the strongest candidate forward, and log the result back into BacklinkPilot.",
+  };
+
+  await ensureStorage();
+  await writeFile(absolutePath, JSON.stringify(payload, null, 2));
+
+  const task: ManagedInboxProofTask = {
+    id: taskId,
+    type: args.taskType,
+    status: proofTaskStatus,
+    createdAt: payload.createdAt,
+    path: absolutePath,
+    relativePath: path.relative(STORAGE_DIR, absolutePath),
+    summary: copy.summary,
+  };
+
+  const timeline = [
+    createTimelineEvent({
+      kind: "note",
+      state: "queued",
+      direction: "internal",
+      actor: "customer",
+      title: `${copy.title} queued`,
+      body: `${copy.summary}\nReference: ${task.id}\nTask: ${task.relativePath}`,
+    }),
+    ...record.timeline,
+  ].slice(0, 40);
+
+  const nextRecord: ManagedInboxRecord = {
+    ...record,
+    proofTasks: [task, ...record.proofTasks].slice(0, 12),
     timeline,
     updatedAt: nowIso(),
   };

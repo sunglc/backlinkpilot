@@ -104,6 +104,26 @@ export interface ManagedInboxLaunchRequest {
   packets: ManagedInboxLaunchPacket[];
 }
 
+export type ManagedInboxProofTaskType =
+  | "verify_result"
+  | "protect_publication"
+  | "send_materials"
+  | "review_commercial"
+  | "follow_up"
+  | "push_receipts";
+
+export type ManagedInboxProofTaskStatus = "queued" | "updated";
+
+export interface ManagedInboxProofTask {
+  id: string;
+  type: ManagedInboxProofTaskType;
+  status: ManagedInboxProofTaskStatus;
+  createdAt: string;
+  path: string;
+  relativePath: string;
+  summary: string;
+}
+
 export interface ManagedInboxTimelineEvent {
   id: string;
   kind: ManagedInboxEventKind;
@@ -133,6 +153,7 @@ export interface ManagedInboxRecord {
   bringYourOwn: BringYourOwnSender | null;
   opsBrief: ManagedInboxOpsBrief | null;
   launchRequest: ManagedInboxLaunchRequest | null;
+  proofTasks: ManagedInboxProofTask[];
   timeline: ManagedInboxTimelineEvent[];
   createdAt: string;
   updatedAt: string;

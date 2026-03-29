@@ -465,6 +465,9 @@ function getProductDetailCopy(locale: Locale) {
         },
         priorityTitle: "当前最值得推进的动作",
         candidatesTitle: "当前最接近结果的候选",
+        latestTaskTitle: "最近排队的结果任务",
+        latestTaskQueuedAt: "排队时间",
+        latestTaskReference: "任务引用",
         candidatesEmpty:
           "现在还没有足够强的 proof 候选。继续推进 live 渠道和外联线程后，这里会开始出现最接近拿到证明的目标。",
         receiptCandidateLabel: "提交回执",
@@ -731,6 +734,9 @@ function getProductDetailCopy(locale: Locale) {
       },
       priorityTitle: "Highest-value move right now",
       candidatesTitle: "Closest candidates to a real result",
+      latestTaskTitle: "Latest queued proof task",
+      latestTaskQueuedAt: "Queued at",
+      latestTaskReference: "Task reference",
       candidatesEmpty:
         "There are no strong proof candidates yet. As live lanes and outreach threads keep moving, the closest targets should start showing up here.",
       receiptCandidateLabel: "Submission receipt",
@@ -1694,6 +1700,7 @@ export default function ProductDetail({
     close: publicationReadyPackets.length,
     verify: publishedPackets.length,
   };
+  const latestProofTask = managedInbox.proofTasks[0] || null;
   let proofPriorityTitle = copy.proofPipeline.priorities.fallbackTitle;
   let proofPriorityBody = copy.proofPipeline.priorities.fallbackBody;
   let proofPriorityTone = "border-white/10 bg-white/[0.04]";
@@ -3160,6 +3167,23 @@ export default function ProductDetail({
                 <p className="mt-4 text-sm leading-7 text-stone-300">
                   {proofPriorityBody}
                 </p>
+                {latestProofTask ? (
+                  <div className="mt-5 rounded-[1rem] border border-white/10 bg-black/15 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {copy.proofPipeline.latestTaskTitle}
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-stone-300">
+                      {latestProofTask.summary}
+                    </p>
+                    <div className="mt-3 text-xs text-stone-500">
+                      {copy.proofPipeline.latestTaskQueuedAt}:{" "}
+                      {formatSubmissionDate(latestProofTask.createdAt, locale)}
+                    </div>
+                    <div className="mt-2 text-xs text-stone-500">
+                      {copy.proofPipeline.latestTaskReference}: {latestProofTask.id}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">

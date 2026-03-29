@@ -4,15 +4,28 @@ import {
   activateManagedInbox,
   configureBringYourOwnSender,
   getManagedInboxRecord,
+  queueManagedProofTask,
   queueManagedOutreachBatch,
   reconcileManagedInboxRecordWithSendLog,
 } from "@/lib/managed-inbox-server";
+import type { ManagedInboxProofTaskType } from "@/lib/managed-inbox-types";
 import { createClient } from "@/lib/supabase-server";
 
 const MANAGED_INBOX_PLAN_SET = new Set(["growth", "scale"]);
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isProofTaskType(value: string): value is ManagedInboxProofTaskType {
+  return [
+    "verify_result",
+    "protect_publication",
+    "send_materials",
+    "review_commercial",
+    "follow_up",
+    "push_receipts",
+  ].includes(value);
 }
 
 export async function GET(
@@ -98,6 +111,7 @@ export async function POST(
         action?: string;
         senderEmail?: string;
         senderName?: string;
+        taskType?: string;
       }
     | null;
 
@@ -186,6 +200,27 @@ export async function POST(
       },
       plan,
       liveActivity,
+    });
+
+    return NextResponse.json({ record, liveActivity });
+  }
+
+  if (body.action === "queue_proof_task") {
+    if (!body.taskType || !isProofTaskType(body.taskType)) {
+      return NextResponse.json({ error: "Unsupported proof task type." }, { status: 400 });
+    }
+
+    const record = await queueManagedProofTask({
+      product,
+      actor: {
+        userId: user.id,
+        userEmail: user.email || null,
+      },
+      taskType: body.taskType,
+    });
+    const liveActivity = await getManagedInboxLiveActivity({
+      name: product.name || "",
+      url: product.url || "",
     });
 
     return NextResponse.json({ record, liveActivity });

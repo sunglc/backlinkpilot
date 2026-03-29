@@ -97,6 +97,7 @@ interface ProductProofSummaryRow extends ProductProofSummary {
 type ProductProofAction = {
   href: string;
   label: string;
+  taskType: "verify_result" | "protect_publication" | "send_materials" | "review_commercial" | "follow_up" | "push_receipts";
 };
 
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
@@ -605,6 +606,7 @@ function proofActionForSummary(
     return {
       href: `${baseHref}#proof-pipeline`,
       label: proofCopy.actionLabels.verify_published,
+      taskType: "verify_result",
     };
   }
 
@@ -612,6 +614,7 @@ function proofActionForSummary(
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.protect_publication,
+      taskType: "protect_publication",
     };
   }
 
@@ -619,6 +622,7 @@ function proofActionForSummary(
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.send_materials,
+      taskType: "send_materials",
     };
   }
 
@@ -626,6 +630,7 @@ function proofActionForSummary(
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.review_commercial,
+      taskType: "review_commercial",
     };
   }
 
@@ -633,6 +638,7 @@ function proofActionForSummary(
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.hold_review,
+      taskType: "follow_up",
     };
   }
 
@@ -640,12 +646,14 @@ function proofActionForSummary(
     return {
       href: `${baseHref}#proof-pipeline`,
       label: proofCopy.actionLabels.push_receipts,
+      taskType: "push_receipts",
     };
   }
 
   return {
     href: baseHref,
     label: proofCopy.actionLabels.build_signal,
+    taskType: "push_receipts",
   };
 }
 
@@ -809,6 +817,7 @@ export default function DashboardClient({
   const [previewError, setPreviewError] = useState("");
   const [preview, setPreview] = useState<SitePreview | null>(null);
   const [launchingKey, setLaunchingKey] = useState<string | null>(null);
+  const [proofActionKey, setProofActionKey] = useState<string | null>(null);
   const [workspaceActionError, setWorkspaceActionError] = useState("");
 
   const isPaid = subscription?.status === "active";
@@ -1081,6 +1090,44 @@ export default function DashboardClient({
     router.refresh();
   }
 
+  async function handleWorkspaceProofAction(
+    productId: string,
+    action: ProductProofAction
+  ) {
+    const actionKey = `${productId}:${action.taskType}`;
+    setProofActionKey(actionKey);
+    setWorkspaceActionError("");
+
+    try {
+      const response = await fetch(`/api/products/${productId}/managed-inbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "queue_proof_task",
+          taskType: action.taskType,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | {
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Could not queue the proof task.");
+      }
+
+      router.push(action.href);
+      router.refresh();
+    } catch (error) {
+      setWorkspaceActionError(
+        error instanceof Error ? error.message : copy.errors.saveFailed
+      );
+    } finally {
+      setProofActionKey(null);
+    }
+  }
+
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -1301,12 +1348,25 @@ export default function DashboardClient({
                 </>
               ) : featuredProofAction ? (
                 <>
-                  <Link
-                    href={featuredProofAction.href}
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleWorkspaceProofAction(
+                        featuredProduct.product.id,
+                        featuredProofAction
+                      )
+                    }
+                    disabled={
+                      proofActionKey ===
+                      `${featuredProduct.product.id}:${featuredProofAction.taskType}`
+                    }
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                   >
-                    {featuredProofAction.label}
-                  </Link>
+                    {proofActionKey ===
+                    `${featuredProduct.product.id}:${featuredProofAction.taskType}`
+                      ? copy.productCard.starting
+                      : featuredProofAction.label}
+                  </button>
                   <button
                     onClick={openAddProduct}
                     className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
@@ -1421,12 +1481,25 @@ export default function DashboardClient({
                         {copy.checkout.refresh}
                       </button>
                     ) : featuredProofAction ? (
-                      <Link
-                        href={featuredProofAction.href}
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWorkspaceProofAction(
+                            featuredProduct.product.id,
+                            featuredProofAction
+                          )
+                        }
+                        disabled={
+                          proofActionKey ===
+                          `${featuredProduct.product.id}:${featuredProofAction.taskType}`
+                        }
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                       >
-                        {featuredProofAction.label}
-                      </Link>
+                        {proofActionKey ===
+                        `${featuredProduct.product.id}:${featuredProofAction.taskType}`
+                          ? copy.productCard.starting
+                          : featuredProofAction.label}
+                      </button>
                     ) : featuredProduct && featuredLaunchAction ? (
                       <button
                         type="button"
@@ -1538,12 +1611,25 @@ export default function DashboardClient({
                 </p>
                 {topProofAction ? (
                   <div className="mt-5">
-                    <Link
-                      href={topProofAction.href}
-                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceProofAction(
+                          topProofProducts[0].product.id,
+                          topProofAction
+                        )
+                      }
+                      disabled={
+                        proofActionKey ===
+                        `${topProofProducts[0].product.id}:${topProofAction.taskType}`
+                      }
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
                     >
-                      {topProofAction.label}
-                    </Link>
+                      {proofActionKey ===
+                      `${topProofProducts[0].product.id}:${topProofAction.taskType}`
+                        ? copy.productCard.starting
+                        : topProofAction.label}
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -1606,12 +1692,25 @@ export default function DashboardClient({
                               : "—"}
                           </span>
                           <div className="flex flex-wrap gap-2">
-                            <Link
-                              href={proofAction.href}
-                              className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleWorkspaceProofAction(
+                                  summary.product.id,
+                                  proofAction
+                                )
+                              }
+                              disabled={
+                                proofActionKey ===
+                                `${summary.product.id}:${proofAction.taskType}`
+                              }
+                              className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                             >
-                              {proofAction.label}
-                            </Link>
+                              {proofActionKey ===
+                              `${summary.product.id}:${proofAction.taskType}`
+                                ? copy.productCard.starting
+                                : proofAction.label}
+                            </button>
                             <Link
                               href={`/dashboard/product/${summary.product.id}`}
                               className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
@@ -1969,12 +2068,25 @@ export default function DashboardClient({
 
                           <div className="mt-5 flex flex-wrap gap-3">
                             {proofAction ? (
-                              <Link
-                                href={proofAction.href}
-                                className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15"
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleWorkspaceProofAction(
+                                    summary.product.id,
+                                    proofAction
+                                  )
+                                }
+                                disabled={
+                                  proofActionKey ===
+                                  `${summary.product.id}:${proofAction.taskType}`
+                                }
+                                className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
                               >
-                                {proofAction.label}
-                              </Link>
+                                {proofActionKey ===
+                                `${summary.product.id}:${proofAction.taskType}`
+                                  ? copy.productCard.starting
+                                  : proofAction.label}
+                              </button>
                             ) : null}
                             {launchAction ? (
                               <button
