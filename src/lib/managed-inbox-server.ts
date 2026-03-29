@@ -4,6 +4,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { generateManagedInboxLaunchPackets } from "@/lib/managed-inbox-launch-packets";
 import { getManagedInboxLaunchShortlist } from "@/lib/managed-inbox-launch-shortlist";
+import {
+  getManagedInboxRelevantSendRows,
+  parseLogDate,
+  type ManagedInboxSendLogRow,
+} from "@/lib/managed-inbox-live-activity";
 import { runtimeConfig } from "@/lib/runtime-config";
 import type {
   BringYourOwnSender,
@@ -38,6 +43,19 @@ const PRIMARY_EMAIL_CONFIG = "/root/.config/backlink_sender/email_sender.json";
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function normalizeHost(value: string) {
+  return value
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split("/")[0]
+    .trim()
+    .toLowerCase();
 }
 
 function sanitizeFragment(value: string) {
@@ -151,6 +169,9 @@ function normalizeRecord(
           packets: Array.isArray(input.launchRequest.packets)
             ? input.launchRequest.packets.map((packet) => ({
                 ...packet,
+                targetDomain: packet.targetDomain || normalizeHost(packet.title || ""),
+                targetUrl: packet.targetUrl || "",
+                targetContactValue: packet.targetContactValue || null,
                 sourceReferencePath: packet.sourceReferencePath || null,
                 state: packet.state || "prepared",
                 claimedAt: packet.claimedAt || null,
@@ -177,15 +198,157 @@ function mergePacketProgress(
     if (!previous) {
       return packet;
     }
-    return {
-      ...packet,
-      state: previous.state,
-      claimedAt: previous.claimedAt,
-      claimedBy: previous.claimedBy,
-      sentAt: previous.sentAt,
-      sendReceiptPath: previous.sendReceiptPath,
-    };
+  return {
+    ...packet,
+    state: previous.state,
+    claimedAt: previous.claimedAt,
+    claimedBy: previous.claimedBy,
+    sentAt: previous.sentAt,
+    sendReceiptPath: previous.sendReceiptPath,
+  };
   });
+}
+
+function isSuccessfulSendResult(resultStatus: string) {
+  return normalizeText(resultStatus) === "sent_pending_review";
+}
+
+function packetMatchesSendRow(
+  packet: ManagedInboxLaunchPacket,
+  row: ManagedInboxSendLogRow
+) {
+  const packetDomain = normalizeHost(packet.targetDomain || packet.targetUrl || packet.title);
+  const packetUrl = normalizeText(packet.targetUrl || "");
+  const packetContact = normalizeText(packet.targetContactValue || "");
+  const rowPlatformUrl = normalizeText(row.platform_url || "");
+  const rowPlatformHost = normalizeHost(row.platform_url || "");
+  const rowRecipient = normalizeText(row.recipient_email || "");
+  const rowHaystack = normalizeText(
+    [
+      row.platform_name,
+      row.platform_url,
+      row.recipient_email,
+      row.subject,
+      row.pack_path,
+      row.eml_path,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  );
+
+  if (packetContact && rowRecipient && packetContact === rowRecipient) {
+    return true;
+  }
+
+  if (packetUrl && rowPlatformUrl && packetUrl === rowPlatformUrl) {
+    return true;
+  }
+
+  if (packetDomain && rowPlatformHost && packetDomain === rowPlatformHost) {
+    return true;
+  }
+
+  if (packetDomain && rowRecipient.endsWith(`@${packetDomain}`)) {
+    return true;
+  }
+
+  return Boolean(packetDomain && rowHaystack.includes(packetDomain));
+}
+
+export async function reconcileManagedInboxRecordWithSendLog(args: {
+  record: ManagedInboxRecord;
+  product: ProductSnapshot;
+}) {
+  if (!args.record.launchRequest || args.record.launchRequest.packets.length === 0) {
+    return args.record;
+  }
+
+  const relevantSendRows = await getManagedInboxRelevantSendRows({
+    name: args.product.name,
+    url: args.product.url,
+  });
+
+  if (relevantSendRows.length === 0) {
+    return args.record;
+  }
+
+  const launchCreatedAt = args.record.launchRequest.createdAt;
+  const eligibleSendRows = relevantSendRows.filter((row) => {
+    const sentAt = parseLogDate(row.sent_at || "");
+    return Boolean(sentAt && sentAt >= launchCreatedAt && isSuccessfulSendResult(row.result_status || ""));
+  }).sort((left, right) => {
+    const leftDate = parseLogDate(left.sent_at || "") || "";
+    const rightDate = parseLogDate(right.sent_at || "") || "";
+    return leftDate.localeCompare(rightDate);
+  });
+
+  if (eligibleSendRows.length === 0) {
+    return args.record;
+  }
+
+  const autoTimeline: ManagedInboxTimelineEvent[] = [];
+  let changed = false;
+  const nextPackets = args.record.launchRequest.packets.map((packet) => {
+    if (packet.state === "sent" && packet.sendReceiptPath) {
+      return packet;
+    }
+
+    const matchingRow = eligibleSendRows.find((row) => packetMatchesSendRow(packet, row));
+    if (!matchingRow) {
+      return packet;
+    }
+
+    const sentAt = parseLogDate(matchingRow.sent_at || "") || nowIso();
+    const nextPacket: ManagedInboxLaunchPacket = {
+      ...packet,
+      state: "sent",
+      claimedAt: packet.claimedAt || sentAt,
+      claimedBy: packet.claimedBy,
+      sentAt: packet.sentAt || sentAt,
+      sendReceiptPath:
+        packet.sendReceiptPath || matchingRow.eml_path || matchingRow.pack_path || null,
+      nextStep: "Monitor for replies and log any inbound movement back into BacklinkPilot.",
+    };
+
+    if (
+      nextPacket.state !== packet.state ||
+      nextPacket.sentAt !== packet.sentAt ||
+      nextPacket.sendReceiptPath !== packet.sendReceiptPath
+    ) {
+      changed = true;
+      autoTimeline.push(
+        createTimelineEvent({
+          kind: "outbound",
+          state: "sent",
+          direction: "outbound",
+          actor: "system",
+          title: `Packet synced from live send log for ${packet.title}`,
+          body: `${matchingRow.subject || "No subject"}\nRecipient: ${matchingRow.recipient_email || "unknown"}\nSend ID: ${matchingRow.send_id || "unknown"}${
+            nextPacket.sendReceiptPath ? `\nReceipt: ${nextPacket.sendReceiptPath}` : ""
+          }`,
+        })
+      );
+    }
+
+    return nextPacket;
+  });
+
+  if (!changed) {
+    return args.record;
+  }
+
+  const nextRecord: ManagedInboxRecord = {
+    ...args.record,
+    launchRequest: {
+      ...args.record.launchRequest,
+      packets: nextPackets,
+    },
+    timeline: [...autoTimeline, ...args.record.timeline].slice(0, 40),
+    updatedAt: nowIso(),
+  };
+
+  await writeRecord(nextRecord);
+  return nextRecord;
 }
 
 function buildManagedIdentity(product: ProductSnapshot, domain: string) {

@@ -58,6 +58,9 @@ export type ManagedInboxLaunchPacketState = "prepared" | "claimed" | "sent";
 export interface ManagedInboxLaunchPacket {
   id: string;
   targetId: string;
+  targetDomain: string;
+  targetUrl: string;
+  targetContactValue: string | null;
   path: string;
   relativePath: string;
   title: string;

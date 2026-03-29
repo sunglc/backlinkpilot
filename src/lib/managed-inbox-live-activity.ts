@@ -14,6 +14,7 @@ interface ProductSnapshot {
 }
 
 type CsvRow = Record<string, string>;
+export type ManagedInboxSendLogRow = CsvRow;
 
 const RECORDS_ROOT = path.join(
   runtimeConfig.workspaceDataRoot,
@@ -112,7 +113,7 @@ async function readSmallText(absolutePath: string) {
   }
 }
 
-function parseLogDate(value: string) {
+export function parseLogDate(value: string) {
   const normalized = value.trim().replace(" ", "T");
   if (!normalized) {
     return null;
@@ -178,6 +179,29 @@ async function isRelevantSendRow(row: CsvRow, product: ProductSnapshot) {
   return includesProductSignal(`${packText}\n${emlText}`, product);
 }
 
+export async function getManagedInboxRelevantSendRows(product: ProductSnapshot) {
+  const sendRows = await readCsvRows(EMAIL_SEND_LOG_PATH);
+  if (sendRows.length === 0) {
+    return [] as ManagedInboxSendLogRow[];
+  }
+
+  const matchingPairs = await Promise.all(
+    sendRows.map(async (row) => ({
+      row,
+      matches: await isRelevantSendRow(row, product),
+    }))
+  );
+
+  return matchingPairs
+    .filter((item) => item.matches)
+    .map((item) => item.row)
+    .sort((left, right) => {
+      const leftDate = parseLogDate(left.sent_at || "") || "";
+      const rightDate = parseLogDate(right.sent_at || "") || "";
+      return rightDate.localeCompare(leftDate);
+    });
+}
+
 function buildOutboundEvent(row: CsvRow): ManagedInboxTimelineEvent {
   const platform = row.platform_name || row.recipient_email || "unknown target";
   const result = row.result_status || "logged";
@@ -213,25 +237,10 @@ function buildReplyEvent(row: CsvRow): ManagedInboxTimelineEvent | null {
 }
 
 export async function getManagedInboxLiveActivity(product: ProductSnapshot) {
-  const [sendRows, replyRows] = await Promise.all([
-    readCsvRows(EMAIL_SEND_LOG_PATH),
+  const [matchingSendRows, replyRows] = await Promise.all([
+    getManagedInboxRelevantSendRows(product),
     readCsvRows(EMAIL_REPLY_LOG_PATH),
   ]);
-
-  if (sendRows.length === 0) {
-    return emptyActivity();
-  }
-
-  const matchingPairs = await Promise.all(
-    sendRows.map(async (row) => ({
-      row,
-      matches: await isRelevantSendRow(row, product),
-    }))
-  );
-
-  const matchingSendRows = matchingPairs
-    .filter((item) => item.matches)
-    .map((item) => item.row);
 
   if (matchingSendRows.length === 0) {
     return emptyActivity();

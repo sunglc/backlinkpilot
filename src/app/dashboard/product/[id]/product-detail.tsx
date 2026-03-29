@@ -923,6 +923,13 @@ function formatPercent(value: number) {
   return `${Math.round(value)}%`;
 }
 
+function pathTail(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return "";
+  const parts = normalized.split("/");
+  return parts[parts.length - 1] || normalized;
+}
+
 function summarizeResultOutput(output: string, locale: Locale) {
   const cleaned = output
     .replace(/\u001b\[[0-9;]*m/g, "")
@@ -1037,6 +1044,7 @@ function getManagedInboxCopy(locale: Locale) {
         packetNextStepLabel: "下一步",
         packetOwnerLabel: "执行人",
         packetSentAtLabel: "发送时间",
+        packetReceiptLabel: "发送回执",
         openTarget: "打开目标",
       },
       byo: {
@@ -1142,6 +1150,7 @@ function getManagedInboxCopy(locale: Locale) {
       packetNextStepLabel: "Next step",
       packetOwnerLabel: "Owner",
       packetSentAtLabel: "Sent at",
+      packetReceiptLabel: "Send receipt",
       openTarget: "Open target",
     },
     byo: {
@@ -2308,6 +2317,12 @@ export default function ProductDetail({
                                   <div className="mt-2 text-xs text-stone-500">
                                     {managedInboxCopy.managed.packetSentAtLabel}:{" "}
                                     {formatSubmissionDate(packet.sentAt, locale)}
+                                  </div>
+                                ) : null}
+                                {packet.sendReceiptPath ? (
+                                  <div className="mt-2 text-xs text-stone-500">
+                                    {managedInboxCopy.managed.packetReceiptLabel}:{" "}
+                                    {pathTail(packet.sendReceiptPath)}
                                   </div>
                                 ) : null}
                                 <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">

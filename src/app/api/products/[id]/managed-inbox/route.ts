@@ -5,6 +5,7 @@ import {
   configureBringYourOwnSender,
   getManagedInboxRecord,
   queueManagedOutreachBatch,
+  reconcileManagedInboxRecordWithSendLog,
 } from "@/lib/managed-inbox-server";
 import { createClient } from "@/lib/supabase-server";
 
@@ -39,9 +40,18 @@ export async function GET(
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
-  const record = await getManagedInboxRecord({
+  const baseRecord = await getManagedInboxRecord({
     productId: product.id,
     userId: user.id,
+  });
+  const record = await reconcileManagedInboxRecordWithSendLog({
+    record: baseRecord,
+    product: {
+      id: product.id,
+      name: product.name || "",
+      url: product.url || "",
+      description: "",
+    },
   });
   const liveActivity = await getManagedInboxLiveActivity({
     name: product.name || "",

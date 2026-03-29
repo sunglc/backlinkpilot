@@ -4,7 +4,10 @@ import path from "node:path";
 import { redirect } from "next/navigation";
 import { getManagedInboxLiveActivity } from "@/lib/managed-inbox-live-activity";
 import { createClient } from "@/lib/supabase-server";
-import { getManagedInboxRecord } from "@/lib/managed-inbox-server";
+import {
+  getManagedInboxRecord,
+  reconcileManagedInboxRecordWithSendLog,
+} from "@/lib/managed-inbox-server";
 import { getLocale } from "@/lib/locale";
 import ProductDetail from "./product-detail";
 
@@ -163,9 +166,18 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       EMPTY_OPERATIONAL_INSIGHTS
     ),
   ]);
-  const managedInboxRecord = await getManagedInboxRecord({
+  const initialManagedInboxRecord = await getManagedInboxRecord({
     productId: product.id,
     userId: user.id,
+  });
+  const managedInboxRecord = await reconcileManagedInboxRecordWithSendLog({
+    record: initialManagedInboxRecord,
+    product: {
+      id: product.id,
+      name: product.name,
+      url: product.url,
+      description: product.description || "",
+    },
   });
   const managedInboxLiveActivity = await getManagedInboxLiveActivity({
     name: product.name,

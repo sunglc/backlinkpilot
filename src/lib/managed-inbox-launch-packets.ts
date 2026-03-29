@@ -136,6 +136,9 @@ ${sourceExcerpt}
       return {
         id: packetId,
         targetId: target.id,
+        targetDomain: target.domain,
+        targetUrl: target.url,
+        targetContactValue: target.contactValue,
         path: absolutePath,
         relativePath: path.relative(
           path.join(runtimeConfig.workspaceDataRoot, "backlinkpilot-managed-inbox"),
