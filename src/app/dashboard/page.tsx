@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import { summarizeProductProofPipeline } from "@/lib/proof-pipeline";
 import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
+import { readSaasCapabilityReviewState } from "@/lib/saas-capability-review-state";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import { readWorkspaceTaskPlans } from "@/lib/workspace-task-plans";
 import DashboardClient from "./dashboard-client";
@@ -67,6 +68,10 @@ export default async function Dashboard({
         .order("created_at", { ascending: false })
     : { data: [] };
   const capabilityContract = await readSaasCapabilityContract();
+  const capabilityReviewState = await readSaasCapabilityReviewState({
+    userId: user.id,
+    currentFingerprint: capabilityContract.capability_fingerprint,
+  });
   const operationalInsights = await readSaasOperationalInsights();
   const workspacePolicySnapshot = await buildWorkspacePolicySnapshot({
     userId: user.id,
@@ -161,6 +166,7 @@ export default async function Dashboard({
       submissions={submissions || []}
       productProofSummaries={productProofSummaries}
       capabilityContract={capabilityContract}
+      capabilityReviewState={capabilityReviewState}
       operationalInsights={operationalInsights}
       workspaceTaskPlans={workspaceTaskPlans}
       workspacePolicy={workspacePolicy}

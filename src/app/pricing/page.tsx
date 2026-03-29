@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import LocaleToggle from "@/components/locale-toggle";
+import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
+import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
+import { buildSaasPublicClaims } from "@/lib/saas-public-claims";
 
 function getPricingCopy(locale: Locale) {
   if (locale === "zh") {
@@ -465,6 +468,45 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Pricing() {
   const locale = await getLocale();
   const copy = getPricingCopy(locale);
+  const [capabilityContract, operationalInsights] = await Promise.all([
+    readSaasCapabilityContract(),
+    readSaasOperationalInsights(),
+  ]);
+  const publicClaims = buildSaasPublicClaims({
+    capabilityContract,
+    operationalInsights,
+  });
+  const claimCopy =
+    locale === "zh"
+      ? {
+          eyebrow: "市场宣称边界",
+          title: "对外怎么说，由能力合同决定。",
+          body:
+            "价格页不应该把 buildout 说成 proven。公开市场范围应该跟着 capability contract 走，而不是跟着想象走。",
+          provenLabel: "Proven",
+          buildoutLabel: "Priority buildout",
+          watchlistLabel: "Watchlist",
+          ruleLabel: "宣称规则",
+          anchorLabel: "Anchor markets",
+          adaptiveReady: "目标语言自适应文案已进入真实能力层。",
+          adaptivePending:
+            "目标语言自适应文案还没有进入 proven 合同，不该被当成已兑现卖点。",
+        }
+      : {
+          eyebrow: "Claim boundary",
+          title: "Public positioning should follow the capability contract.",
+          body:
+            "The pricing page should not market buildout as proven supply. Public market claims need to follow the capability contract instead of imagination.",
+          provenLabel: "Proven",
+          buildoutLabel: "Priority buildout",
+          watchlistLabel: "Watchlist",
+          ruleLabel: "Claim rule",
+          anchorLabel: "Anchor markets",
+          adaptiveReady:
+            "Language-adaptive submission and outreach copy is in the real capability layer now.",
+          adaptivePending:
+            "Language-adaptive copy is not in the proven contract yet, so it should not be sold as already-landed value.",
+        };
 
   return (
     <main className="overflow-x-hidden">
@@ -619,6 +661,85 @@ export default async function Pricing() {
                 <p className="mt-3 text-sm leading-7 text-stone-400">{card.body}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 py-14 md:px-8 md:py-18">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.78fr_1.22fr]">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {claimCopy.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {claimCopy.title}
+            </h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-stone-400">
+              {claimCopy.body}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              {(
+                [
+                  [claimCopy.provenLabel, publicClaims.provenMarkets, "text-emerald-200"],
+                  [claimCopy.buildoutLabel, publicClaims.buildoutMarkets, "text-amber-200"],
+                  [claimCopy.watchlistLabel, publicClaims.watchlistMarkets, "text-stone-300"],
+                ] as const
+              ).map(([label, markets, tone]) => (
+                <div
+                  key={label}
+                  className="rounded-[1.5rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                >
+                  <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                    {label}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {markets.length > 0 ? (
+                      markets.map((market) => (
+                        <span
+                          key={`${label}:${market}`}
+                          className={`rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1 text-xs font-medium ${tone}`}
+                        >
+                          {market}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs leading-6 text-stone-500">
+                        {locale === "zh"
+                          ? "当前没有可展示的市场。"
+                          : "No markets are ready to show here yet."}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-black/15 p-6">
+              <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                {claimCopy.ruleLabel}
+              </p>
+              <p className="mt-4 text-sm leading-7 text-stone-300">
+                {publicClaims.claimRule}
+              </p>
+              <p className="mt-4 text-xs leading-6 text-stone-500">
+                {claimCopy.anchorLabel}:{" "}
+                {publicClaims.anchorMarkets.length > 0
+                  ? publicClaims.anchorMarkets
+                      .map((market) => market.toUpperCase())
+                      .join(locale === "zh" ? "、" : ", ")
+                  : locale === "zh"
+                    ? "无"
+                    : "None"}
+              </p>
+              <p className="mt-3 text-xs leading-6 text-stone-500">
+                {publicClaims.hasLanguageAdaptiveCopy
+                  ? claimCopy.adaptiveReady
+                  : claimCopy.adaptivePending}
+              </p>
+            </div>
           </div>
         </div>
       </section>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
 import {
@@ -16,10 +16,7 @@ import type {
   ProductProofPriority,
   ProductProofSummary,
 } from "@/lib/proof-pipeline";
-import {
-  capabilityContractNeedsReview,
-  type SaasCapabilityContract,
-} from "@/lib/saas-capability-contract-types";
+import type { SaasCapabilityContract } from "@/lib/saas-capability-contract-types";
 import type {
   WorkspacePolicyClientSnapshot,
   WorkspacePolicyLane,
@@ -28,6 +25,7 @@ import type {
   OperationalInsights,
   OperationalInsightsDiscoveryMarket,
 } from "@/lib/saas-operational-insights-types";
+import type { SaasCapabilityReviewState } from "@/lib/saas-capability-review-state-types";
 import type {
   WorkspaceTaskPlan,
   WorkspaceTaskPlanCoverageBreakdown,
@@ -168,6 +166,7 @@ interface DashboardClientProps {
   submissions: Submission[];
   productProofSummaries: ProductProofSummaryRow[];
   capabilityContract: SaasCapabilityContract;
+  capabilityReviewState: SaasCapabilityReviewState;
   operationalInsights: OperationalInsights;
   workspaceTaskPlans: WorkspaceTaskPlan[];
   workspacePolicy: WorkspacePolicyClientSnapshot;
@@ -686,6 +685,12 @@ function getDashboardCopy(locale: Locale) {
         reviewActionsTitle: "需要同步的 SaaS 动作",
         noReviewActions: "当前没有新的 SaaS 同步动作。",
         fingerprintLabel: "能力指纹",
+        reviewPendingLabel: "待吸收",
+        reviewedLabel: "已吸收",
+        reviewedAtLabel: "已吸收时间",
+        acknowledgeAction: "标记为已吸收",
+        acknowledging: "标记中...",
+        acknowledgeError: "能力合同状态更新失败，请稍后再试。",
         progressLabel: "今日发现进度",
         targetLabel: "今日硬目标",
         gapLabel: "今日剩余缺口",
@@ -1200,6 +1205,12 @@ function getDashboardCopy(locale: Locale) {
         reviewActionsTitle: "Required SaaS actions",
         noReviewActions: "There are no new SaaS sync actions right now.",
         fingerprintLabel: "Capability fingerprint",
+        reviewPendingLabel: "Needs adoption",
+        reviewedLabel: "Adopted",
+        reviewedAtLabel: "Adopted at",
+        acknowledgeAction: "Mark as adopted",
+        acknowledging: "Saving...",
+        acknowledgeError: "Unable to update the capability contract state right now.",
         progressLabel: "Today's discovery progress",
         targetLabel: "Daily floor",
         gapLabel: "Remaining gap today",
@@ -2600,6 +2611,7 @@ export default function DashboardClient({
   submissions,
   productProofSummaries,
   capabilityContract,
+  capabilityReviewState,
   operationalInsights,
   workspaceTaskPlans,
   workspacePolicy,
@@ -2635,6 +2647,14 @@ export default function DashboardClient({
   const [materializingPlanId, setMaterializingPlanId] = useState<string | null>(
     null
   );
+  const [capabilityReview, setCapabilityReview] =
+    useState<SaasCapabilityReviewState>(capabilityReviewState);
+  const [capabilityReviewAction, setCapabilityReviewAction] = useState(false);
+  const [capabilityReviewError, setCapabilityReviewError] = useState("");
+
+  useEffect(() => {
+    setCapabilityReview(capabilityReviewState);
+  }, [capabilityReviewState]);
 
   const isPaid = subscription?.status === "active";
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
@@ -2670,8 +2690,7 @@ export default function DashboardClient({
           Math.round((discoveryProgressCount / discoveryProgressTarget) * 100)
         )
       : 0;
-  const capabilityReviewPending =
-    capabilityContractNeedsReview(capabilityContract);
+  const capabilityReviewPending = capabilityReview.reviewPending;
   const capabilityFingerprint = formatFingerprint(
     capabilityContract.capability_fingerprint
   );
@@ -2704,6 +2723,33 @@ export default function DashboardClient({
   const requiredCapabilityActions = capabilityReviewPending
     ? capabilityContract.required_saas_actions.slice(0, 4)
     : [];
+
+  async function acknowledgeCapabilityContractReview() {
+    setCapabilityReviewAction(true);
+    setCapabilityReviewError("");
+
+    try {
+      const response = await fetch("/api/capability-contract/review", {
+        method: "POST",
+      });
+      const data = (await response.json()) as
+        | { reviewState?: SaasCapabilityReviewState; error?: string }
+        | null;
+
+      if (!response.ok || !data?.reviewState) {
+        throw new Error(data?.error || copy.discovery.acknowledgeError);
+      }
+
+      setCapabilityReview(data.reviewState);
+      router.refresh();
+    } catch (error) {
+      setCapabilityReviewError(
+        error instanceof Error ? error.message : copy.discovery.acknowledgeError
+      );
+    } finally {
+      setCapabilityReviewAction(false);
+    }
+  }
 
   const productSummaries: ProductSummary[] = products.map((product) => {
     const productSubmissions = submissions.filter(
@@ -5143,6 +5189,22 @@ export default function DashboardClient({
                       ? copy.discovery.contractChangedBody
                       : copy.discovery.contractFreshBody}
                   </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-stone-500">
+                    <span>
+                      {capabilityReviewPending
+                        ? copy.discovery.reviewPendingLabel
+                        : copy.discovery.reviewedLabel}
+                    </span>
+                    {capabilityReview.acknowledgedAt ? (
+                      <span>
+                        {copy.discovery.reviewedAtLabel}:{" "}
+                        {formatDashboardDate(
+                          capabilityReview.acknowledgedAt,
+                          locale
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
                   {capabilityCurrentFocus ? (
                     <p className="mt-3 text-sm leading-7 text-stone-400">
                       {capabilityCurrentFocus}
@@ -5162,6 +5224,23 @@ export default function DashboardClient({
                   ? copy.discovery.adaptiveCopyBody
                   : copy.discovery.noAdaptiveCopyBody}
               </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {capabilityReviewPending ? (
+                  <button
+                    type="button"
+                    onClick={acknowledgeCapabilityContractReview}
+                    disabled={capabilityReviewAction}
+                    className="inline-flex rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-xs font-medium text-emerald-100 transition hover:bg-emerald-300/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {capabilityReviewAction
+                      ? copy.discovery.acknowledging
+                      : copy.discovery.acknowledgeAction}
+                  </button>
+                ) : null}
+                {capabilityReviewError ? (
+                  <span className="text-xs text-red-300">{capabilityReviewError}</span>
+                ) : null}
+              </div>
             </div>
           </div>
 

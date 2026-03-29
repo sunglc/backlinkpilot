@@ -3,9 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import LocaleToggle from "@/components/locale-toggle";
+import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
+import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
+import { buildSaasPublicClaims } from "@/lib/saas-public-claims";
 
 function getHomeCopy(locale: Locale) {
   if (locale === "zh") {
@@ -486,6 +489,88 @@ export default async function Home({
 
   const locale = await getLocale();
   const copy = getHomeCopy(locale);
+  const [capabilityContract, operationalInsights] = await Promise.all([
+    readSaasCapabilityContract(),
+    readSaasOperationalInsights(),
+  ]);
+  const publicClaims = buildSaasPublicClaims({
+    capabilityContract,
+    operationalInsights,
+  });
+  const claimCopy =
+    locale === "zh"
+      ? {
+          provenLabel: "当前 proven 市场",
+          buildoutLabel: "重点 buildout 市场",
+          watchlistLabel: "Watchlist 市场",
+          anchorLabel: "Anchor markets",
+          ruleLabel: "对外宣称规则",
+          readyStatus: "已证明",
+          buildoutStatus: "Buildout",
+          watchStatus: "观察中",
+          adaptiveReady: "目标语言自适应文案已经进入真实能力层。",
+          adaptivePending: "目标语言自适应文案还没有进入 proven 合同，不该提前包装成既成卖点。",
+          adaptiveSignal: "目标语言自适应文案",
+          tieredSignal: "市场按证据分层",
+        }
+      : {
+          provenLabel: "Proven markets",
+          buildoutLabel: "Priority buildout markets",
+          watchlistLabel: "Watchlist markets",
+          anchorLabel: "Anchor markets",
+          ruleLabel: "Claim rule",
+          readyStatus: "Proven",
+          buildoutStatus: "Buildout",
+          watchStatus: "Watchlist",
+          adaptiveReady:
+            "Language-adaptive submission and outreach copy is now a real capability.",
+          adaptivePending:
+            "Language-adaptive copy is not in the proven contract yet, so it should not be marketed as already-live value.",
+          adaptiveSignal: "Language-adaptive copy",
+          tieredSignal: "Evidence-tiered market claims",
+        };
+  const heroSignals = [
+    copy.hero.signals[0],
+    copy.hero.signals[1],
+    publicClaims.provenMarkets[0]
+      ? locale === "zh"
+        ? `Proven 市场：${publicClaims.provenMarkets[0]}`
+        : `Proven market: ${publicClaims.provenMarkets[0]}`
+      : copy.hero.signals[2],
+    publicClaims.hasLanguageAdaptiveCopy
+      ? claimCopy.adaptiveSignal
+      : claimCopy.tieredSignal,
+    copy.hero.signals[3],
+  ];
+  const channelGroups = [
+    {
+      label: claimCopy.provenLabel,
+      tone: "text-emerald-300",
+      status: claimCopy.readyStatus,
+      items: publicClaims.provenMarkets,
+    },
+    {
+      label: claimCopy.buildoutLabel,
+      tone: "text-amber-200",
+      status: claimCopy.buildoutStatus,
+      items: publicClaims.buildoutMarkets,
+    },
+    {
+      label: claimCopy.watchlistLabel,
+      tone: "text-stone-300",
+      status: claimCopy.watchStatus,
+      items: publicClaims.watchlistMarkets,
+    },
+  ];
+  const publicClaimNote = `${claimCopy.anchorLabel}: ${
+    publicClaims.anchorMarkets.length > 0
+      ? publicClaims.anchorMarkets
+          .map((market) => market.toUpperCase())
+          .join(locale === "zh" ? "、" : ", ")
+      : locale === "zh"
+        ? "无"
+        : "None"
+  }`;
 
   return (
     <main className="overflow-x-hidden">
@@ -562,7 +647,7 @@ export default async function Home({
             </div>
 
             <div className="bp-fade-up bp-fade-delay-2 mt-10 flex flex-wrap gap-3 text-xs uppercase tracking-[0.24em] text-stone-400">
-              {copy.hero.signals.map((item) => (
+              {heroSignals.map((item) => (
                 <span
                   key={item}
                   className="rounded-full border border-[var(--line-soft)] bg-white/4 px-3 py-2"
@@ -787,7 +872,7 @@ export default async function Home({
             </p>
           </div>
           <div className="space-y-8">
-            {copy.channelSection.groups.map((group, index) => (
+            {channelGroups.map((group) => (
               <div
                 key={group.label}
                 className="rounded-[1.75rem] border border-[var(--line-soft)] bg-stone-950/60 p-6"
@@ -812,15 +897,29 @@ export default async function Home({
                       <span
                         className={`text-xs uppercase tracking-[0.24em] ${group.tone}`}
                       >
-                        {index === 0
-                          ? copy.channelSection.ready
-                          : copy.channelSection.soon}
+                        {group.status}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
+            <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.03] p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                {claimCopy.ruleLabel}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-stone-300">
+                {publicClaims.claimRule}
+              </p>
+              <p className="mt-3 text-xs leading-6 text-stone-500">
+                {publicClaimNote}
+              </p>
+              <p className="mt-3 text-xs leading-6 text-stone-500">
+                {publicClaims.hasLanguageAdaptiveCopy
+                  ? claimCopy.adaptiveReady
+                  : claimCopy.adaptivePending}
+              </p>
+            </div>
             <p className="text-sm text-stone-500">{copy.channelSection.roadmap}</p>
           </div>
         </div>
