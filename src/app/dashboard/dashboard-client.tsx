@@ -12,6 +12,10 @@ import {
   type ChannelContract,
 } from "@/lib/execution-contract";
 import { type Locale } from "@/lib/locale-config";
+import type {
+  ProductProofPriority,
+  ProductProofSummary,
+} from "@/lib/proof-pipeline";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -83,6 +87,11 @@ interface ProductSummary {
   stage: LaunchStage;
   nextStep: string;
   primaryAction: ProductPrimaryAction;
+  proof: ProductProofSummary;
+}
+
+interface ProductProofSummaryRow extends ProductProofSummary {
+  productId: string;
 }
 
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
@@ -441,6 +450,126 @@ function getDashboardCopy(locale: Locale) {
   };
 }
 
+function getProofBoardCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      eyebrow: "Proof Board",
+      title: "优先推进最接近结果的产品",
+      body:
+        "全局最优不是盯着每个局部动作，而是优先把最接近可证明结果的产品推到结果层。",
+      stats: {
+        receipts: "动作回执",
+        threads: "真实回复",
+        close: "接近发布",
+        verify: "待验证",
+      },
+      globalFocusLabel: "当前全局优先级",
+      empty:
+        "当前还没有明显接近结果的产品。先继续跑 live 渠道，把结果信号做厚。",
+      noCandidates: "还没有明确候选",
+      openProduct: "打开产品",
+      latestSignal: "最近信号",
+      candidates: "候选",
+      priorities: {
+        verify_published: {
+          title: "先验证最接近上线的产品",
+          body: "这些产品已经接近拿到公开证明，应该优先抓证据并沉淀结果。",
+        },
+        protect_publication: {
+          title: "先守住接近发布的线程",
+          body: "这些产品离结果只差最后一段推进，优先盯住它们最划算。",
+        },
+        send_materials: {
+          title: "先补资料，不要让高质量线程卡住",
+          body: "有回复但卡在素材和描述时，继续开新线程的价值远低于补齐资料。",
+        },
+        review_commercial: {
+          title: "先筛掉不值得付费的机会",
+          body: "涉及价格和商务条件的线程，要快速判断值不值得继续。",
+        },
+        hold_review: {
+          title: "先守住审核中的机会",
+          body: "这些线程还在内部评估，关键是别让它们自然冷掉。",
+        },
+        push_receipts: {
+          title: "先把提交回执推进到公开证明",
+          body: "虽然还没有强回复，但已有真实动作成功，值得继续追公开结果。",
+        },
+        build_signal: {
+          title: "先继续堆厚结果信号",
+          body: "当前还没有足够强的 proof 候选，继续执行比局部微调更重要。",
+        },
+      },
+    };
+  }
+
+  return {
+    eyebrow: "Proof Board",
+    title: "Push the products closest to real results first",
+    body:
+      "Global optimization means prioritizing the products that are nearest to provable outcomes, not polishing isolated local steps.",
+    stats: {
+      receipts: "Action receipts",
+      threads: "Live replies",
+      close: "Close to publication",
+      verify: "Ready to verify",
+    },
+    globalFocusLabel: "Current global priority",
+    empty:
+      "There are no obvious proof-front products yet. Keep running live lanes until the result layer gets thicker.",
+    noCandidates: "No named candidates yet",
+    openProduct: "Open Product",
+    latestSignal: "Latest signal",
+    candidates: "Candidates",
+    priorities: {
+      verify_published: {
+        title: "Verify the products closest to going live",
+        body: "These products are closest to public proof and should be converted into visible results first.",
+      },
+      protect_publication: {
+        title: "Protect the threads closest to publication",
+        body: "These products are one step away from a result, so defending the final step matters most.",
+      },
+      send_materials: {
+        title: "Send the missing materials before opening more threads",
+        body: "When a strong thread is waiting on assets or copy, that is worth more than opening new surface area.",
+      },
+      review_commercial: {
+        title: "Filter the paid opportunities quickly",
+        body: "Pricing and sponsorship threads should be triaged fast so budget goes to the right opportunities.",
+      },
+      hold_review: {
+        title: "Protect the products under review",
+        body: "These conversations are still being evaluated, so follow-up discipline matters most.",
+      },
+      push_receipts: {
+        title: "Push submission receipts toward public proof",
+        body: "There may not be strong live replies yet, but real actions already landed and should be driven further.",
+      },
+      build_signal: {
+        title: "Keep building result signal",
+        body: "There are not enough strong proof candidates yet, so more execution matters more than local polishing.",
+      },
+    },
+  };
+}
+
+function proofPriorityClasses(priority: ProductProofPriority) {
+  const classes: Record<ProductProofPriority, string> = {
+    verify_published: "border-lime-300/15 bg-lime-300/[0.08] text-lime-100",
+    protect_publication:
+      "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    send_materials: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    review_commercial:
+      "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
+    hold_review: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    push_receipts: "border-white/10 bg-white/[0.06] text-stone-100",
+    build_signal: "border-white/10 bg-white/[0.04] text-stone-300",
+  };
+
+  return classes[priority];
+}
+
 function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
   if (locale === "zh") {
     const mapping: Record<string, { name: string; desc: string }> = {
@@ -577,6 +706,7 @@ export default function DashboardClient({
   subscription,
   products,
   submissions,
+  productProofSummaries,
   checkoutState,
 }: {
   locale: Locale;
@@ -584,9 +714,11 @@ export default function DashboardClient({
   subscription: Subscription | null;
   products: Product[];
   submissions: Submission[];
+  productProofSummaries: ProductProofSummaryRow[];
   checkoutState: CheckoutState;
 }) {
   const copy = getDashboardCopy(locale);
+  const proofCopy = getProofBoardCopy(locale);
   const router = useRouter();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [name, setName] = useState("");
@@ -603,6 +735,9 @@ export default function DashboardClient({
   const isPaid = subscription?.status === "active";
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
   const planName = formatPlanName(currentPlan, locale);
+  const proofSummaryByProductId = new Map(
+    productProofSummaries.map((summary) => [summary.productId, summary])
+  );
   const canAddProduct = isPaid || products.length < FREE_PREVIEW_PRODUCT_LIMIT;
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
   const roadmapChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
@@ -625,6 +760,21 @@ export default function DashboardClient({
     const productSubmissions = submissions.filter(
       (submission) => submission.product_id === product.id
     );
+    const proof =
+      proofSummaryByProductId.get(product.id) || {
+        productId: product.id,
+        counts: {
+          receipts: 0,
+          threads: 0,
+          close: 0,
+          verify: 0,
+        },
+        priority: "build_signal" as const,
+        topStage: null,
+        score: 0,
+        lastSignalAt: null,
+        candidateLabels: [],
+      };
     const latestSubmission = productSubmissions[0] || null;
     const activeSubmission =
       productSubmissions.find(
@@ -760,10 +910,42 @@ export default function DashboardClient({
       stage,
       nextStep,
       primaryAction,
+      proof,
     };
   });
-
+  const proofLedProducts = productSummaries
+    .filter(
+      (summary) =>
+        summary.proof.priority !== "build_signal" || summary.proof.score > 0
+    )
+    .slice()
+    .sort((left, right) => {
+      if (right.proof.score !== left.proof.score) {
+        return right.proof.score - left.proof.score;
+      }
+      return (right.proof.lastSignalAt || "").localeCompare(
+        left.proof.lastSignalAt || ""
+      );
+    });
+  const topProofProducts = proofLedProducts.slice(0, 3);
+  const workspaceProofStats = productSummaries.reduce(
+    (totals, summary) => ({
+      receipts: totals.receipts + summary.proof.counts.receipts,
+      threads: totals.threads + summary.proof.counts.threads,
+      close: totals.close + summary.proof.counts.close,
+      verify: totals.verify + summary.proof.counts.verify,
+    }),
+    {
+      receipts: 0,
+      threads: 0,
+      close: 0,
+      verify: 0,
+    }
+  );
+  const globalProofPriority =
+    topProofProducts[0]?.proof.priority || ("build_signal" as const);
   const featuredProduct =
+    topProofProducts[0] ||
     productSummaries.find((summary) => summary.activeSubmission) ||
     productSummaries.find((summary) => summary.stage === "ready") ||
     productSummaries.find((summary) => summary.stage === "unlock") ||
@@ -1197,6 +1379,129 @@ export default function DashboardClient({
           </section>
         ) : null}
 
+        {products.length > 0 ? (
+          <section className="mt-12 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
+            <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(159,224,207,0.09),rgba(255,255,255,0.04))] p-7">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {proofCopy.eyebrow}
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {proofCopy.title}
+              </h2>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
+                {proofCopy.body}
+              </p>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {(
+                  [
+                    ["receipts", workspaceProofStats.receipts],
+                    ["threads", workspaceProofStats.threads],
+                    ["close", workspaceProofStats.close],
+                    ["verify", workspaceProofStats.verify],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                  >
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {proofCopy.stats[key]}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className={`mt-6 rounded-[1.25rem] border p-5 ${proofPriorityClasses(
+                  globalProofPriority
+                )}`}
+              >
+                <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
+                  {proofCopy.globalFocusLabel}
+                </div>
+                <h3 className="mt-3 text-2xl font-semibold text-white">
+                  {proofCopy.priorities[globalProofPriority].title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-200">
+                  {proofCopy.priorities[globalProofPriority].body}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {proofCopy.eyebrow}
+              </p>
+              <h3 className="mt-4 text-2xl font-semibold text-white">
+                {proofCopy.title}
+              </h3>
+
+              {topProofProducts.length > 0 ? (
+                <div className="mt-6 grid gap-4">
+                  {topProofProducts.map((summary) => (
+                    <div
+                      key={summary.product.id}
+                      className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
+                            summary.proof.priority
+                          )}`}
+                        >
+                          {proofCopy.priorities[summary.proof.priority].title}
+                        </span>
+                        <div className="text-lg font-semibold text-white">
+                          {summary.product.name}
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-stone-300">
+                        {proofCopy.priorities[summary.proof.priority].body}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
+                        {summary.proof.candidateLabels.length > 0 ? (
+                          summary.proof.candidateLabels.map((label) => (
+                            <span
+                              key={`${summary.product.id}-${label}`}
+                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
+                            >
+                              {proofCopy.candidates}: {label}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
+                            {proofCopy.noCandidates}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
+                        <span>
+                          {proofCopy.latestSignal}:{" "}
+                          {summary.proof.lastSignalAt
+                            ? formatDashboardDate(summary.proof.lastSignalAt, locale)
+                            : "—"}
+                        </span>
+                        <Link
+                          href={`/dashboard/product/${summary.product.id}`}
+                          className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                        >
+                          {proofCopy.openProduct}
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-6 text-sm leading-7 text-stone-400">
+                  {proofCopy.empty}
+                </p>
+              )}
+            </div>
+          </section>
+        ) : null}
+
         {showAddProduct ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
             <div className="w-full max-w-md rounded-[2rem] border border-[var(--line-strong)] bg-stone-950 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
@@ -1435,6 +1740,23 @@ export default function DashboardClient({
                           <p className="mt-3 text-sm text-stone-500">
                             {copy.productCard.stageBody[summary.stage]}
                           </p>
+                          {summary.proof.priority !== "build_signal" ? (
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
+                                  summary.proof.priority
+                                )}`}
+                              >
+                                {proofCopy.priorities[summary.proof.priority].title}
+                              </span>
+                              <span className="text-xs text-stone-500">
+                                {summary.proof.counts.verify}/{summary.proof.counts.close}/
+                                {summary.proof.counts.threads} ·{" "}
+                                {proofCopy.stats.verify}/{proofCopy.stats.close}/
+                                {proofCopy.stats.threads}
+                              </span>
+                            </div>
+                          ) : null}
 
                           {summary.activeSubmission ? (
                             <div className="mt-5">

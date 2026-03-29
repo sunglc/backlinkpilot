@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 import { loginHrefForNext } from "@/lib/auth-return";
+import {
+  getManagedInboxRecord,
+  reconcileManagedInboxRecordWithSendLog,
+} from "@/lib/managed-inbox-server";
 import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
+import { summarizeProductProofPipeline } from "@/lib/proof-pipeline";
 import DashboardClient from "./dashboard-client";
 
 type DashboardSearchParams = Promise<{
@@ -54,6 +59,33 @@ export default async function Dashboard({
         .in("product_id", productIds)
         .order("created_at", { ascending: false })
     : { data: [] };
+  const productProofSummaries = await Promise.all(
+    (products || []).map(async (product) => {
+      const initialManagedInboxRecord = await getManagedInboxRecord({
+        productId: product.id,
+        userId: user.id,
+      });
+      const managedInboxRecord = await reconcileManagedInboxRecordWithSendLog({
+        record: initialManagedInboxRecord,
+        product: {
+          id: product.id,
+          name: product.name || "",
+          url: product.url || "",
+          description: product.description || "",
+        },
+      });
+
+      return {
+        productId: product.id,
+        ...summarizeProductProofPipeline({
+          record: managedInboxRecord,
+          submissions: (submissions || []).filter(
+            (submission) => submission.product_id === product.id
+          ),
+        }),
+      };
+    })
+  );
 
   return (
     <DashboardClient
@@ -62,6 +94,7 @@ export default async function Dashboard({
       subscription={subscription}
       products={products || []}
       submissions={submissions || []}
+      productProofSummaries={productProofSummaries}
       checkoutState={checkoutState}
     />
   );
