@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
 import {
@@ -11,6 +11,7 @@ import {
   type AuthIntent,
 } from "@/lib/auth-return";
 import type { Locale } from "@/lib/locale-config";
+import { clearLegacySupabaseBrowserStorage } from "@/lib/supabase-auth";
 import { createClient } from "@/lib/supabase-browser";
 
 function getLoginCopy(locale: Locale, authIntent: AuthIntent) {
@@ -143,10 +144,15 @@ export default function LoginClient({
   );
   const router = useRouter();
 
+  useEffect(() => {
+    clearLegacySupabaseBrowserStorage();
+  }, []);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoadingMode("password");
     setError("");
+    clearLegacySupabaseBrowserStorage();
 
     const supabase = createClient();
     const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -167,6 +173,7 @@ export default function LoginClient({
   async function handleGoogleLogin() {
     setLoadingMode("google");
     setError("");
+    clearLegacySupabaseBrowserStorage();
     const supabase = createClient();
 
     try {
