@@ -213,6 +213,43 @@ type ProductProofAction = {
   mode: "queue" | "open";
 };
 
+type TodayBriefMove =
+  | {
+      kind: "button";
+      title: string;
+      body: string;
+      label: string;
+    }
+  | {
+      kind: "refresh";
+      title: string;
+      body: string;
+      label: string;
+    }
+  | {
+      kind: "link";
+      title: string;
+      body: string;
+      label: string;
+      href: string;
+    }
+  | {
+      kind: "launch";
+      title: string;
+      body: string;
+      label: string;
+      productId: string;
+      channelId: string;
+    }
+  | {
+      kind: "proof";
+      title: string;
+      body: string;
+      label: string;
+      productId: string;
+      proofAction: ProductProofAction;
+    };
+
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
 const PLAN_ORDER = ["free", "starter", "growth", "scale"] as const;
 
@@ -3091,6 +3128,7 @@ export default function DashboardClient({
   checkoutState,
 }: DashboardClientProps) {
   const copy = getDashboardCopy(locale);
+  const todayBriefCopy = getTodayBriefCopy(locale);
   const proofCopy = getProofBoardCopy(locale);
   const outcomeCopy = getOutcomeLadderCopy(locale);
   const workflowCopy = copy.workflow;
@@ -4016,6 +4054,137 @@ export default function DashboardClient({
     workspaceStrategyLead
       ? withPriorityContext(href, workspaceStrategyLead.product.id, true)
       : href;
+  const todayBriefLeadLabel =
+    locale === "zh" ? "当前优先" : "Current lead";
+  const todayBriefLeadName =
+    workspaceStrategyLead?.product.name || featuredProduct?.product.name || null;
+  const todayBriefSignal = !products.length
+    ? {
+        title: todayBriefCopy.emptySignalTitle,
+        body: todayBriefCopy.emptySignalBody,
+        productName: null,
+      }
+    : workspaceProofStats.verify > 0 || globalProofPriority !== "build_signal"
+      ? {
+          title: todayBriefCopy.readySignalTitle,
+          body: todayBriefCopy.readySignalBody,
+          productName: todayBriefLeadName,
+        }
+      : activeLaunches > 0
+        ? {
+            title: todayBriefCopy.activeSignalTitle,
+            body: todayBriefCopy.activeSignalBody,
+            productName: featuredProduct?.product.name || todayBriefLeadName,
+          }
+        : {
+            title: todayBriefCopy.emptySignalTitle,
+            body: todayBriefCopy.emptySignalBody,
+            productName: todayBriefLeadName,
+          };
+  const discoveryGap = Math.max(discoveryProgressTarget - discoveryProgressCount, 0);
+  const todayBriefBlocker = !products.length
+    ? {
+        title: todayBriefCopy.noProductBlockerTitle,
+        body: todayBriefCopy.noProductBlockerBody,
+      }
+    : !isPaid
+      ? {
+          title: todayBriefCopy.freeBlockerTitle,
+          body: todayBriefCopy.freeBlockerBody,
+        }
+      : isPlanSyncPending
+        ? {
+            title: todayBriefCopy.syncBlockerTitle,
+            body: todayBriefCopy.syncBlockerBody,
+          }
+        : discoveryGap > 0
+          ? {
+              title: todayBriefCopy.discoveryBlockerTitle,
+              body: `${todayBriefCopy.discoveryBlockerBody} ${copy.discovery.progressLabel}: ${discoveryProgressCount}/${discoveryProgressTarget || 0}.`,
+            }
+          : {
+              title: todayBriefCopy.proofBlockerTitle,
+              body: todayBriefCopy.proofBlockerBody,
+            };
+  const todayBriefMove: TodayBriefMove = !products.length
+    ? {
+        kind: "button",
+        title: todayBriefCopy.actionSetupTitle,
+        body: todayBriefCopy.actionSetupBody,
+        label: copy.header.addFirstProduct,
+      }
+    : !isPaid
+      ? {
+          kind: "link",
+          title: todayBriefCopy.actionUnlockTitle,
+          body: todayBriefCopy.actionUnlockBody,
+          label: copy.hero.primaryUnlock,
+          href: "/api/stripe/checkout?plan=starter",
+        }
+      : isPlanSyncPending
+        ? {
+            kind: "refresh",
+            title: todayBriefCopy.actionSyncTitle,
+            body: todayBriefCopy.actionSyncBody,
+            label: todayBriefCopy.refresh,
+          }
+        : workspaceStrategy.mode === "unlock" &&
+            workspaceStrategyLeadLaunchAction &&
+            workspaceStrategyLead
+          ? {
+              kind: "launch",
+              title: todayBriefCopy.actionLaunchTitle,
+              body: todayBriefCopy.actionLaunchBody,
+              label: workspaceStrategyLeadLaunchAction.label,
+              productId: workspaceStrategyLead.product.id,
+              channelId: workspaceStrategyLeadLaunchAction.channelId,
+            }
+          : workspaceStrategyLeadAction?.kind === "proof" && workspaceStrategyLead
+            ? {
+                kind: "proof",
+                title: todayBriefCopy.actionProofTitle,
+                body: todayBriefCopy.actionProofBody,
+                label: workspaceStrategyLeadAction.label,
+                productId: workspaceStrategyLead.product.id,
+                proofAction: workspaceStrategyLeadAction.proofAction,
+              }
+            : workspaceStrategyLeadAction?.kind === "launch" && workspaceStrategyLead
+              ? {
+                  kind: "launch",
+                  title: todayBriefCopy.actionLaunchTitle,
+                  body: todayBriefCopy.actionLaunchBody,
+                  label: workspaceStrategyLeadAction.label,
+                  productId: workspaceStrategyLead.product.id,
+                  channelId: workspaceStrategyLeadAction.channelId,
+                }
+              : workspaceStrategyLeadAction?.kind === "link"
+                ? {
+                    kind: "link",
+                    title:
+                      workspaceStrategy.mode === "prove"
+                        ? todayBriefCopy.actionProofTitle
+                        : workspaceStrategy.mode === "build"
+                          ? todayBriefCopy.actionLaunchTitle
+                          : todayBriefCopy.actionReviewTitle,
+                    body:
+                      workspaceStrategy.mode === "prove"
+                        ? todayBriefCopy.actionProofBody
+                        : workspaceStrategy.mode === "build"
+                          ? todayBriefCopy.actionLaunchBody
+                          : todayBriefCopy.actionReviewBody,
+                    label: workspaceStrategyLeadAction.label,
+                    href: withWorkspaceLeadPriority(workspaceStrategyLeadAction.href),
+                  }
+                : {
+                    kind: "link",
+                    title: todayBriefCopy.actionReviewTitle,
+                    body: todayBriefCopy.actionReviewBody,
+                    label: todayBriefCopy.openProduct,
+                    href:
+                      workspaceStrategyLeadDetailHref ||
+                      featuredProductDetailHref ||
+                      "/dashboard",
+                  };
   const orderedProductSummaries = workspaceStrategyLead
     ? [
         workspaceStrategyLead,
@@ -4663,6 +4832,136 @@ export default function DashboardClient({
                 <p className="mt-2 text-xs leading-6 text-stone-500">{item.note}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {todayBriefCopy.eyebrow}
+            </p>
+            <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+              {todayBriefCopy.title}
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-stone-400">
+              {todayBriefCopy.body}
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+            <article className="rounded-[1.35rem] border border-emerald-300/15 bg-emerald-300/[0.07] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-emerald-100/70">
+                {todayBriefCopy.cards.signal}
+              </div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                {todayBriefSignal.title}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-stone-200">
+                {todayBriefSignal.body}
+              </p>
+              {todayBriefSignal.productName ? (
+                <div className="mt-4 inline-flex rounded-full border border-emerald-300/15 bg-black/15 px-3 py-1.5 text-xs font-medium text-emerald-100">
+                  {todayBriefLeadLabel}: {todayBriefSignal.productName}
+                </div>
+              ) : null}
+            </article>
+
+            <article className="rounded-[1.35rem] border border-amber-300/15 bg-amber-300/[0.07] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-amber-100/70">
+                {todayBriefCopy.cards.blocker}
+              </div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                {todayBriefBlocker.title}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-stone-200">
+                {todayBriefBlocker.body}
+              </p>
+            </article>
+
+            <article className="rounded-[1.35rem] border border-sky-300/15 bg-sky-300/[0.07] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-sky-100/70">
+                {todayBriefCopy.cards.move}
+              </div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                {todayBriefMove.title}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-stone-200">
+                {todayBriefMove.body}
+              </p>
+              <div className="mt-5">
+                {todayBriefMove.kind === "button" ? (
+                  <button
+                    type="button"
+                    onClick={openAddProduct}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {todayBriefMove.label}
+                  </button>
+                ) : todayBriefMove.kind === "refresh" ? (
+                  <button
+                    type="button"
+                    onClick={() => router.refresh()}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {todayBriefMove.label}
+                  </button>
+                ) : todayBriefMove.kind === "launch" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleWorkspaceLaunch(
+                        todayBriefMove.productId,
+                        todayBriefMove.channelId
+                      )
+                    }
+                    disabled={
+                      launchingKey ===
+                      `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                    }
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {launchingKey ===
+                    `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                      ? copy.productCard.starting
+                      : todayBriefMove.label}
+                  </button>
+                ) : todayBriefMove.kind === "proof" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleWorkspaceProofAction(
+                        todayBriefMove.productId,
+                        todayBriefMove.proofAction
+                      )
+                    }
+                    disabled={
+                      proofActionKey ===
+                      `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                    }
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {proofActionKey ===
+                    `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                      ? copy.productCard.starting
+                      : todayBriefMove.label}
+                  </button>
+                ) : todayBriefMove.href.startsWith("/api/") ? (
+                  <a
+                    href={todayBriefMove.href}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {todayBriefMove.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={todayBriefMove.href}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {todayBriefMove.label}
+                  </Link>
+                )}
+              </div>
+            </article>
           </div>
         </section>
 
