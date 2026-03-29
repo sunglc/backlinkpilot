@@ -15,6 +15,21 @@ export interface CapabilityContractAction {
   source_files?: string[];
 }
 
+export interface CapabilityContractSurface {
+  id: string;
+  label: string;
+  audience: string;
+  summary: string;
+}
+
+export interface CapabilityCopyUpdateGuidance {
+  customer_summary: string;
+  public_claim_guardrail: string;
+  sales_enablement_note: string;
+  localized_copy_note: string;
+  operator_note: string;
+}
+
 export interface SaasCapabilityContract {
   generated_at: string;
   contract_version: string;
@@ -38,6 +53,8 @@ export interface SaasCapabilityContract {
     distribution_model: string;
     anchor_markets: string[];
   };
+  product_surfaces_to_sync: CapabilityContractSurface[];
+  copy_update_guidance: CapabilityCopyUpdateGuidance;
   required_saas_actions: CapabilityContractAction[];
   ready_to_consume_files: string[];
   team_handoff_summary: {
@@ -68,6 +85,14 @@ export const EMPTY_SAAS_CAPABILITY_CONTRACT: SaasCapabilityContract = {
     rule: "",
     distribution_model: "",
     anchor_markets: [],
+  },
+  product_surfaces_to_sync: [],
+  copy_update_guidance: {
+    customer_summary: "",
+    public_claim_guardrail: "",
+    sales_enablement_note: "",
+    localized_copy_note: "",
+    operator_note: "",
   },
   required_saas_actions: [],
   ready_to_consume_files: [],

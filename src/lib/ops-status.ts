@@ -22,6 +22,8 @@ export interface OpsStatusPayload {
   latestRecoverySummary: string;
   latestSystemSummary: string;
   recentAlertNotes: Array<{ name: string; body: string }>;
+  capabilityContract: Record<string, unknown>;
+  capabilityHistory: Record<string, unknown>;
 }
 
 interface OpsStatusSummaryItemZh {
@@ -63,6 +65,14 @@ export interface OpsStatusSummaryZh {
     count: number;
     text: string;
     items: OpsStatusIssueSummaryZh[];
+  };
+  capabilityContract: {
+    label: string;
+    reviewPending: boolean;
+    reviewText: string;
+    fingerprint: string;
+    surfaceCount: number;
+    meaning: string;
   };
   guide: string[];
 }
@@ -192,6 +202,12 @@ export function isOpsStatusAuthorized(request: Request) {
 }
 
 export async function loadOpsStatus(request: Request): Promise<OpsStatusPayload> {
+  const capabilityContract = await readOptionalJson(
+    path.join(process.cwd(), "src", "lib", "capability-upgrade-feed.json")
+  );
+  const capabilityHistory = await readOptionalJson(
+    path.join(process.cwd(), "src", "lib", "capability-upgrade-history.json")
+  );
   const snapshotRoot = await getLatestSnapshotRoot();
   const snapshotPath = snapshotRoot
     ? path.resolve(/* turbopackIgnore: true */ snapshotRoot)
@@ -265,6 +281,8 @@ export async function loadOpsStatus(request: Request): Promise<OpsStatusPayload>
     latestRecoverySummary,
     latestSystemSummary,
     recentAlertNotes,
+    capabilityContract,
+    capabilityHistory,
   };
 }
 
@@ -332,6 +350,31 @@ function authModeText(authMode: "token" | "basic" | null) {
   if (authMode === "basic") return "Basic Auth";
   if (authMode === "token") return "Token";
   return "未知";
+}
+
+function capabilityReviewText(reviewPending: boolean) {
+  return reviewPending ? "待吸收" : "已同步";
+}
+
+function shortFingerprint(raw: unknown) {
+  const value = String(raw || "").trim();
+  if (!value) {
+    return "missing";
+  }
+  if (value.length <= 16) {
+    return value;
+  }
+  return `${value.slice(0, 8)}…${value.slice(-8)}`;
+}
+
+function capabilityReviewMeaning(reviewPending: boolean, surfaceCount: number) {
+  if (reviewPending) {
+    return `能力合同已经变化，当前至少有 ${surfaceCount} 个产品面需要核对是否已经吸收。`;
+  }
+  if (surfaceCount > 0) {
+    return `能力合同当前已同步，已登记 ${surfaceCount} 个应该消费这份合同的产品面。`;
+  }
+  return "能力合同当前没有登记任何产品同步面，说明能力同步层还不完整。";
 }
 
 function webMeaning(raw: unknown) {
@@ -432,7 +475,16 @@ export function buildOpsStatusSummaryZh(
   const health = payload.health as Record<string, unknown>;
   const worker = (health.worker as Record<string, unknown> | undefined) || payload.workerHeartbeat;
   const alertStatus = payload.alertStatus;
+  const capabilityContract = payload.capabilityContract as Record<string, unknown>;
   const issues = (alertStatus.issues as Array<Record<string, unknown>> | undefined) || [];
+  const changeSummary =
+    (capabilityContract.change_summary as Record<string, unknown> | undefined) || {};
+  const productSurfaces =
+    (capabilityContract.product_surfaces_to_sync as Array<Record<string, unknown>> | undefined) ||
+    [];
+  const capabilityReviewPending =
+    Boolean(capabilityContract.capabilities_changed) ||
+    Boolean(changeSummary.requires_saas_review);
 
   const overallRaw = String(alertStatus.status || health.status || "unknown");
   const webRaw = String(payload.services.web || "unknown");
@@ -513,12 +565,21 @@ export function buildOpsStatusSummaryZh(
       text: issueItems.length === 0 ? "当前没有未解决问题。" : `当前有 ${issueItems.length} 个未解决问题。`,
       items: issueItems,
     },
+    capabilityContract: {
+      label: "能力合同",
+      reviewPending: capabilityReviewPending,
+      reviewText: capabilityReviewText(capabilityReviewPending),
+      fingerprint: shortFingerprint(capabilityContract.capability_fingerprint),
+      surfaceCount: productSurfaces.length,
+      meaning: capabilityReviewMeaning(capabilityReviewPending, productSurfaces.length),
+    },
     guide: [
       "Web 服务：主站页面和 API 是否还在正常提供服务。",
       "健康总状态：综合环境变量、关键路径和 worker 心跳后的系统结论。",
       "Worker：任务处理器是否在线，queuedJobs 表示待处理任务数，stale 表示心跳是否过期。",
       "运维定时器：capture 负责留快照，prune 负责清理旧快照，statusPage 是本机状态页服务。",
       "当前问题：这里只列出还没解决的异常，方便快速判断是否需要人工介入。",
+      "能力合同：这里看 SaaS 是否已经接收到最新能力合同，以及哪些产品面需要跟着升级。",
     ],
   };
 }
@@ -537,6 +598,31 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
   const worker = (health.worker as Record<string, unknown> | undefined) || payload.workerHeartbeat;
   const alertStatus = payload.alertStatus;
   const issues = (alertStatus.issues as Array<Record<string, unknown>> | undefined) || [];
+  const capabilityContract = payload.capabilityContract as Record<string, unknown>;
+  const capabilityHistoryPayload = payload.capabilityHistory as Record<string, unknown>;
+  const capabilityChangeSummary =
+    (capabilityContract.change_summary as Record<string, unknown> | undefined) || {};
+  const capabilityReviewPending =
+    Boolean(capabilityContract.capabilities_changed) ||
+    Boolean(capabilityChangeSummary.requires_saas_review);
+  const capabilityCurrentFocus =
+    String(
+      (
+        (capabilityContract.team_handoff_summary as Record<string, unknown> | undefined) || {}
+      ).current_focus ||
+        (
+          (capabilityContract.team_handoff_summary as Record<string, unknown> | undefined) || {}
+        ).one_line ||
+        ""
+    ).trim();
+  const capabilityFingerprint = String(capabilityContract.capability_fingerprint || "");
+  const productSurfaces =
+    (capabilityContract.product_surfaces_to_sync as Array<Record<string, unknown>> | undefined) ||
+    [];
+  const copyGuidance =
+    (capabilityContract.copy_update_guidance as Record<string, unknown> | undefined) || {};
+  const capabilityHistoryRows =
+    (capabilityHistoryPayload.history as Array<Record<string, unknown>> | undefined) || [];
   const overallRaw = String(alertStatus.status || health.status || "unknown");
   const overallText = statusText(overallRaw);
   const webRaw = String(payload.services.web || "unknown");
@@ -547,6 +633,65 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
   const statusPageRaw = String(payload.services.statusPage || "unknown");
   const queuedJobs = String(worker.queuedJobs ?? worker.queued_jobs ?? "n/a");
   const staleText = boolText(worker.stale);
+  const productSurfaceCards =
+    productSurfaces.length === 0
+      ? '<li>当前没有登记需要同步的产品面。</li>'
+      : productSurfaces
+          .map((surface) => {
+            const label = String(surface.label || surface.id || "").trim();
+            const audience = String(surface.audience || "").trim();
+            const summary = String(surface.summary || "").trim();
+            return `<li><strong>${escapeHtml(label || "unknown")}</strong>${audience ? ` <code>${escapeHtml(audience)}</code>` : ""} ${escapeHtml(summary)}</li>`;
+          })
+          .join("");
+  const copyGuidanceList = [
+    String(copyGuidance.customer_summary || "").trim(),
+    String(copyGuidance.public_claim_guardrail || "").trim(),
+    String(copyGuidance.sales_enablement_note || "").trim(),
+    String(copyGuidance.localized_copy_note || "").trim(),
+    String(copyGuidance.operator_note || "").trim(),
+  ]
+    .filter(Boolean)
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+  const capabilityHistoryCards =
+    capabilityHistoryRows.length === 0
+      ? '<article class="panel"><h3>最近能力升级历史</h3><p class="muted">当前还没有能力升级历史。</p></article>'
+      : capabilityHistoryRows
+          .slice(0, 4)
+          .map((row) => {
+            const rowChanged =
+              Boolean(row.capabilities_changed) || Boolean(row.requires_saas_review);
+            const added = Array.isArray(row.added_capability_ids)
+              ? row.added_capability_ids.join(", ") || "none"
+              : "none";
+            const removed = Array.isArray(row.removed_capability_ids)
+              ? row.removed_capability_ids.join(", ") || "none"
+              : "none";
+            const surfaces = Array.isArray(row.product_surface_ids)
+              ? row.product_surface_ids.join(", ") || "none"
+              : "none";
+            return `
+            <article class="panel">
+              <div class="legend">
+                <span class="badge badge-${rowChanged ? "warning" : "ok"}">${escapeHtml(
+                  rowChanged ? "待吸收" : "稳定快照"
+                )}</span>
+                <span class="chip">snapshot=${escapeHtml(String(row.latest_state_snapshot_id || "missing"))}</span>
+                <span class="chip">fingerprint=${escapeHtml(shortFingerprint(row.capability_fingerprint))}</span>
+              </div>
+              <h3>${escapeHtml(String(row.current_focus || "能力升级记录"))}</h3>
+              <p class="muted">${escapeHtml(String(row.generated_at || ""))}</p>
+              <ul>
+                <li><strong>新增能力</strong> ${escapeHtml(added)}</li>
+                <li><strong>移除能力</strong> ${escapeHtml(removed)}</li>
+                <li><strong>涉及产品面</strong> ${escapeHtml(surfaces)}</li>
+                <li><strong>文案影响</strong> ${escapeHtml(String(row.copy_impact_summary || "none"))}</li>
+              </ul>
+            </article>
+          `;
+          })
+          .join("");
   const alertCards =
     payload.recentAlertNotes.length === 0
       ? '<article class="panel"><h3>最近告警记录</h3><p class="muted">当前没有新的恢复告警，也没有最近归档的告警说明。</p></article>'
@@ -749,11 +894,39 @@ export function renderOpsStatusHtml(payload: OpsStatusPayload, token: string, au
         <p class="metric">${escapeHtml(statusText(captureTimerRaw))}</p>
         <p class="muted">capture=${escapeHtml(captureTimerRaw)}，prune=${escapeHtml(pruneTimerRaw)}，status_page=${escapeHtml(statusPageRaw)}</p>
       </article>
+      <article class="panel">
+        <h2>能力合同</h2>
+        <p class="metric">${escapeHtml(capabilityReviewText(capabilityReviewPending))}</p>
+        <p class="muted">fingerprint=${escapeHtml(shortFingerprint(capabilityFingerprint))}，surfaces=${escapeHtml(String(productSurfaces.length))}</p>
+      </article>
     </section>
 
     <section class="panel section">
       <h2>当前问题</h2>
       <ul>${issueList}</ul>
+    </section>
+
+    <section class="split section">
+      <section class="panel">
+        <h2>能力合同同步</h2>
+        <p class="muted">当前状态：${escapeHtml(capabilityReviewText(capabilityReviewPending))}</p>
+        <p>${escapeHtml(capabilityCurrentFocus || "当前没有能力合同焦点摘要。")}</p>
+        <ul>
+          <li><strong>能力指纹</strong> <code>${escapeHtml(capabilityFingerprint || "missing")}</code></li>
+          <li><strong>需要同步的产品面数量</strong> ${escapeHtml(String(productSurfaces.length))}</li>
+        </ul>
+        <h3>产品面同步清单</h3>
+        <ul>${productSurfaceCards}</ul>
+        <h3>文案与对外口径影响</h3>
+        <ul>${copyGuidanceList || "<li>当前没有登记额外的文案影响摘要。</li>"}</ul>
+      </section>
+      <section class="panel">
+        <h2>最近能力升级历史</h2>
+        <p class="muted">这块直接展示最近几次 capability contract 快照，方便确认现在的 SaaS 产品面是不是已经跟上。</p>
+        <div class="grid">
+          ${capabilityHistoryCards}
+        </div>
+      </section>
     </section>
 
     <section class="split section">

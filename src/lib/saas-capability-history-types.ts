@@ -13,6 +13,8 @@ export interface SaasCapabilityHistoryEntry {
   proven_languages: string[];
   buildout_languages: string[];
   watchlist_languages: string[];
+  product_surface_ids: string[];
+  copy_impact_summary: string;
 }
 
 export interface SaasCapabilityHistory {
