@@ -19,6 +19,17 @@ export interface WorkspaceTaskPlanTarget {
   host: string | null;
 }
 
+export interface WorkspaceTaskPlanRecommendation {
+  label: string;
+  detail: string;
+}
+
+export interface WorkspaceTaskPlanCoverageBreakdown {
+  directories: WorkspaceTaskPlanRecommendation[];
+  outreach: WorkspaceTaskPlanRecommendation[];
+  paid: WorkspaceTaskPlanRecommendation[];
+}
+
 export interface WorkspaceTaskPlan {
   version: 1;
   id: string;
@@ -33,6 +44,7 @@ export interface WorkspaceTaskPlan {
   updatedAt: string;
   recommendedChannelIds: string[];
   targets: WorkspaceTaskPlanTarget[];
+  coverageBreakdown: WorkspaceTaskPlanCoverageBreakdown | null;
   successCost: number;
   failureCost: number;
 }

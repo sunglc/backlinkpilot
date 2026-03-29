@@ -10,6 +10,8 @@ import { runtimeConfig } from "@/lib/runtime-config";
 import type { OperationalInsights } from "@/lib/saas-operational-insights";
 import type {
   WorkspaceTaskPlan,
+  WorkspaceTaskPlanCoverageBreakdown,
+  WorkspaceTaskPlanRecommendation,
   WorkspaceTaskPlanMode,
   WorkspaceTaskPlanGranularity,
   WorkspaceTaskPlanStage,
@@ -73,6 +75,29 @@ function normalizeTarget(
   };
 }
 
+function normalizeRecommendation(
+  recommendation: Partial<WorkspaceTaskPlanRecommendation>
+): WorkspaceTaskPlanRecommendation {
+  return {
+    label: recommendation.label || "Untitled recommendation",
+    detail: recommendation.detail || "",
+  };
+}
+
+function normalizeCoverageBreakdown(
+  value: Partial<WorkspaceTaskPlanCoverageBreakdown> | null | undefined
+): WorkspaceTaskPlanCoverageBreakdown | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    directories: (value.directories || []).map(normalizeRecommendation),
+    outreach: (value.outreach || []).map(normalizeRecommendation),
+    paid: (value.paid || []).map(normalizeRecommendation),
+  };
+}
+
 function normalizeMode(
   mode: string | null | undefined
 ): WorkspaceTaskPlanMode {
@@ -104,6 +129,7 @@ function normalizePlan(
     updatedAt: input.updatedAt || input.createdAt || nowIso(),
     recommendedChannelIds: input.recommendedChannelIds || [],
     targets: (input.targets || []).map(normalizeTarget),
+    coverageBreakdown: normalizeCoverageBreakdown(input.coverageBreakdown),
     successCost: Number(input.successCost || 0),
     failureCost: Number(input.failureCost || 0),
   };
@@ -193,6 +219,49 @@ function recommendedCoverageChannels(args: {
   });
 }
 
+function localizedChannelName(channelId: string) {
+  return CHANNELS.find((channel) => channel.id === channelId)?.name || channelId;
+}
+
+function competitorCoverageBreakdown(args: {
+  recommendedChannels: ChannelContract[];
+  operationalInsights: OperationalInsights;
+}) {
+  const directoryIds = new Set(["directory", "stealth"]);
+  const outreachIds = new Set(["resource_page", "editorial", "community"]);
+
+  const directories = args.recommendedChannels
+    .filter((channel) => directoryIds.has(channel.id))
+    .map((channel) => ({
+      label: channel.name,
+      detail:
+        channel.id === "stealth"
+          ? "Use this after core directory coverage to push harder-to-reach sites."
+          : "Use this to match the broad directory footprint competitors usually rely on first.",
+    }));
+
+  const outreachLaneIds = args.operationalInsights.playbook.recommended_lane_ids
+    .filter((laneId) => outreachIds.has(laneId))
+    .slice(0, 3);
+  const outreach = outreachLaneIds.map((laneId) => ({
+    label: localizedChannelName(laneId),
+    detail: `The playbook is already leaning toward ${localizedChannelName(
+      laneId
+    )} as a worthwhile gap-closing lane.`,
+  }));
+
+  const paid = args.operationalInsights.top_paid_targets.slice(0, 3).map((target) => ({
+    label: target.platform_name,
+    detail: `${target.root_domain} · ${target.why_now || target.recommended_action}`,
+  }));
+
+  return {
+    directories,
+    outreach,
+    paid,
+  } satisfies WorkspaceTaskPlanCoverageBreakdown;
+}
+
 export async function createAutoCoverageTaskPlan(args: {
   product: ProductSnapshot;
   actor: ActorSnapshot;
@@ -245,6 +314,7 @@ export async function createAutoCoverageTaskPlan(args: {
     updatedAt: createdAt,
     recommendedChannelIds: recommendedChannels.map((channel) => channel.id),
     targets,
+    coverageBreakdown: null,
     ...economics,
   });
 
@@ -344,6 +414,7 @@ export async function createImportedTaskPlan(args: {
     updatedAt: createdAt,
     recommendedChannelIds: [],
     targets,
+    coverageBreakdown: null,
     ...economics,
   });
 
@@ -420,6 +491,10 @@ export async function createCompetitorCoverageTaskPlan(args: {
       ...competitor,
       detail: `${competitor.detail} · Compare this competitor against ${args.product.name} and route the strongest lane first.`,
     })),
+    coverageBreakdown: competitorCoverageBreakdown({
+      recommendedChannels,
+      operationalInsights: args.operationalInsights,
+    }),
     successCost: 0,
     failureCost: 0,
   });

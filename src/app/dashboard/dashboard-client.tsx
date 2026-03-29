@@ -19,6 +19,7 @@ import type {
 import type { OperationalInsights } from "@/lib/saas-operational-insights";
 import type {
   WorkspaceTaskPlan,
+  WorkspaceTaskPlanCoverageBreakdown,
   WorkspaceTaskPlanGranularity,
 } from "@/lib/workspace-task-plans-types";
 import { createClient } from "@/lib/supabase-browser";
@@ -121,6 +122,7 @@ interface WorkspaceTask {
   updatedAt: string;
   successCost: number;
   failureCost: number;
+  coverageBreakdown?: WorkspaceTaskPlanCoverageBreakdown | null;
 }
 
 type ProductProofAction = {
@@ -395,6 +397,9 @@ function getDashboardCopy(locale: Locale) {
           success: "成功",
           failure: "失败/辛苦费",
           open: "打开",
+          directories: "该补哪些目录",
+          outreach: "该跟哪些外联",
+          paid: "哪些属于付费机会",
         },
         kinds: {
           profile: "产品登记",
@@ -713,6 +718,9 @@ function getDashboardCopy(locale: Locale) {
         success: "Success",
         failure: "Failure / ops fee",
         open: "Open",
+        directories: "Directory gaps",
+        outreach: "Outreach lanes",
+        paid: "Paid opportunities",
       },
       kinds: {
         profile: "Product setup",
@@ -1875,6 +1883,7 @@ export default function DashboardClient({
               updatedAt: plan.updatedAt,
               successCost: plan.successCost,
               failureCost: plan.failureCost,
+              coverageBreakdown: null,
             });
           });
           return;
@@ -1892,6 +1901,7 @@ export default function DashboardClient({
           updatedAt: plan.updatedAt,
           successCost: plan.successCost,
           failureCost: plan.failureCost,
+          coverageBreakdown: plan.coverageBreakdown,
         });
       });
 
@@ -1915,6 +1925,7 @@ export default function DashboardClient({
           href: baseHref,
           updatedAt: summary.product.created_at,
           ...economics,
+          coverageBreakdown: null,
         });
       }
 
@@ -1960,6 +1971,7 @@ export default function DashboardClient({
           href: `${baseHref}#submission-history`,
           updatedAt: submission.created_at,
           ...economics,
+          coverageBreakdown: null,
         });
       });
 
@@ -1985,6 +1997,7 @@ export default function DashboardClient({
           href: `${baseHref}#proof-pipeline`,
           updatedAt: proofTask.updatedAt || proofTask.createdAt,
           ...economics,
+          coverageBreakdown: null,
         });
       }
 
@@ -2858,6 +2871,55 @@ export default function DashboardClient({
                       <p className="mt-3 text-sm leading-7 text-stone-300">
                         {task.preview}
                       </p>
+                      {task.coverageBreakdown ? (
+                        <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                          {(
+                            [
+                              [
+                                taskQueueCopy.labels.directories,
+                                task.coverageBreakdown.directories,
+                              ],
+                              [
+                                taskQueueCopy.labels.outreach,
+                                task.coverageBreakdown.outreach,
+                              ],
+                              [
+                                taskQueueCopy.labels.paid,
+                                task.coverageBreakdown.paid,
+                              ],
+                            ] as const
+                          ).map(([label, items]) => (
+                            <div
+                              key={`${task.id}:${label}`}
+                              className="rounded-[1.05rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                            >
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {label}
+                              </div>
+                              <div className="mt-3 space-y-2">
+                                {items.length > 0 ? (
+                                  items.slice(0, 3).map((item) => (
+                                    <div key={`${task.id}:${label}:${item.label}`}>
+                                      <div className="text-sm font-medium text-stone-100">
+                                        {item.label}
+                                      </div>
+                                      <div className="mt-1 text-xs leading-6 text-stone-400">
+                                        {item.detail}
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="text-xs leading-6 text-stone-500">
+                                    {locale === "zh"
+                                      ? "当前没有明确建议。"
+                                      : "No clear recommendations yet."}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="w-full max-w-sm space-y-3">
