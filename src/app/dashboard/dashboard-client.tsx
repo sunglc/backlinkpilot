@@ -3069,6 +3069,9 @@ export default function DashboardClient({
     ? capabilityContract.required_saas_actions.slice(0, 4)
     : [];
   const recentCapabilityHistory = capabilityHistory.history.slice(0, 4);
+  const productPolicyById = new Map(
+    workspacePolicy.products.map((product) => [product.productId, product] as const)
+  );
 
   async function acknowledgeCapabilityContractReview() {
     setCapabilityReviewAction(true);
@@ -3322,16 +3325,26 @@ export default function DashboardClient({
   );
   const globalProofPriority =
     topProofProducts[0]?.proof.priority || ("build_signal" as const);
+  const actionableProofProducts = topProofProducts.filter(
+    (summary) => !productPolicyById.get(summary.product.id)?.reclaimReason
+  );
+  const actionableProductSummaries = productSummaries.filter(
+    (summary) => !productPolicyById.get(summary.product.id)?.reclaimReason
+  );
+  const featuredCandidates =
+    actionableProductSummaries.length > 0
+      ? actionableProductSummaries
+      : productSummaries;
   const featuredProduct =
-    topProofProducts[0] ||
-    productSummaries.find((summary) => summary.activeSubmission) ||
-    productSummaries.find((summary) => summary.stage === "ready") ||
-    productSummaries.find((summary) => summary.stage === "unlock") ||
-    productSummaries[0] ||
+    actionableProofProducts[0] ||
+    featuredCandidates.find((summary) => summary.activeSubmission) ||
+    featuredCandidates.find((summary) => summary.stage === "ready") ||
+    featuredCandidates.find((summary) => summary.stage === "unlock") ||
+    featuredCandidates[0] ||
     null;
   const topProofAction =
-    topProofProducts[0]
-      ? proofActionForSummary(topProofProducts[0], proofCopy)
+    actionableProofProducts[0]
+      ? proofActionForSummary(actionableProofProducts[0], proofCopy)
       : null;
   const featuredProofAction =
     featuredProduct && featuredProduct.proof.priority !== "build_signal"
@@ -3620,10 +3633,12 @@ export default function DashboardClient({
   const workspaceCapacityCopy = copy.capacity;
   const workspaceStrategyLead =
     productSummaries.find(
-      (summary) => summary.product.id === workspaceStrategy.leadProductId
+      (summary) =>
+        summary.product.id === workspaceStrategy.leadProductId &&
+        !productPolicyById.get(summary.product.id)?.reclaimReason
     ) || featuredProduct;
   const workspaceBudgetLead =
-    productSummaries
+    featuredCandidates
       .slice()
       .sort((left, right) => {
         const leftBurn = productWeeklyBurnById.get(left.product.id) || 0;
@@ -3646,9 +3661,6 @@ export default function DashboardClient({
     locale,
     workspaceSupply,
   });
-  const workspacePolicyProductById = new Map(
-    workspacePolicy.products.map((product) => [product.productId, product] as const)
-  );
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -6383,7 +6395,7 @@ export default function DashboardClient({
                   const reclaimGuidance = workspaceReclaimGuidance({
                     locale,
                     summary,
-                    productPolicy: workspacePolicyProductById.get(summary.product.id),
+                    productPolicy: productPolicyById.get(summary.product.id),
                   });
 
                   return (
