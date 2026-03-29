@@ -11,6 +11,7 @@ import type {
   WorkspacePolicyLane,
   WorkspacePolicyLaneOwners,
   WorkspacePolicyProductLane,
+  WorkspacePolicyReclaimReason,
   WorkspacePolicyProductSnapshot,
   WorkspacePolicySnapshot,
 } from "@/lib/workspace-policy-types";
@@ -145,16 +146,26 @@ function isStalledPipeline(product: WorkspacePolicyProductSnapshot) {
   );
 }
 
+function reclaimReasonForProduct(
+  product: WorkspacePolicyProductSnapshot
+): WorkspacePolicyReclaimReason | null {
+  if (isSettledProof(product)) {
+    return "settled_proof";
+  }
+
+  if (isStalledPipeline(product)) {
+    return "stalled_pipeline";
+  }
+
+  return null;
+}
+
 function eligibleProductsForLane(args: {
   products: WorkspacePolicyProductSnapshot[];
   lane: WorkspacePolicyLane;
 }) {
   return args.products.filter((product) => {
-    if (isSettledProof(product)) {
-      return false;
-    }
-
-    if (isStalledPipeline(product)) {
+    if (reclaimReasonForProduct(product)) {
       return false;
     }
 
@@ -372,6 +383,7 @@ export async function buildWorkspacePolicySnapshot(args: {
       productId: product.id,
       productName: product.name,
       lastSignalAt,
+      reclaimReason: null,
       openSubmissionCount: productSubmissions.filter(isOpenSubmission).length,
       receiptCount: productSubmissions.reduce(
         (sum, submission) => sum + submission.success_sites,
@@ -390,9 +402,15 @@ export async function buildWorkspacePolicySnapshot(args: {
         !record.launchRequest,
     };
 
+    const lane = deriveProductLane(snapshot);
+
     return {
       ...snapshot,
-      lane: deriveProductLane(snapshot),
+      lane,
+      reclaimReason: reclaimReasonForProduct({
+        ...snapshot,
+        lane,
+      }),
     } satisfies WorkspacePolicyProductSnapshot;
   });
 

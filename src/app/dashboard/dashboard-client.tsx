@@ -284,6 +284,7 @@ function getDashboardCopy(locale: Locale) {
         weeklyBurnNote: "仅普通 credits",
         budgetCall: "预算建议",
         budgetAction: "建议动作",
+        reclaimTitle: "系统调度",
         channelsReady: "当前可跑渠道",
         progress: "当前进度",
         latestLane: "最近渠道",
@@ -800,6 +801,7 @@ function getDashboardCopy(locale: Locale) {
         weeklyBurnNote: "Credits only",
         budgetCall: "Budget call",
         budgetAction: "Recommended action",
+        reclaimTitle: "Workspace routing",
         channelsReady: "Live lanes today",
         progress: "Progress",
         latestLane: "Latest lane",
@@ -2073,6 +2075,60 @@ function workspaceSupplyReasonLabel(
     managed_inbox_ready:
       "The managed inbox is ready here, so paid and commercial opportunities can land without extra setup.",
   }[owner.reason];
+}
+
+function workspaceReclaimGuidance(args: {
+  locale: Locale;
+  summary: ProductSummary;
+  productPolicy:
+    | WorkspacePolicyClientSnapshot["products"][number]
+    | undefined;
+}) {
+  const reason = args.productPolicy?.reclaimReason;
+
+  if (!reason) {
+    return null;
+  }
+
+  const lastSignalLabel = args.productPolicy?.lastSignalAt
+    ? formatDashboardDate(args.productPolicy.lastSignalAt, args.locale)
+    : args.locale === "zh"
+      ? "最近没有记录到新信号"
+      : "No recent signal recorded";
+
+  if (reason === "settled_proof") {
+    return {
+      tone: "border-emerald-300/15 bg-emerald-300/8 text-emerald-100",
+      title:
+        args.locale === "zh"
+          ? "这个产品已经进入结果层，新的开口会先让给别的产品。"
+          : "This product already reached the result layer, so fresh openings are being routed elsewhere.",
+      body:
+        args.locale === "zh"
+          ? `最近信号：${lastSignalLabel}。现在更该盯住 proof 和生效结果，而不是继续往这里加新任务。`
+          : `Latest signal: ${lastSignalLabel}. The better move now is watching proof and effect instead of opening more work here.`,
+    };
+  }
+
+  const hasProofSignal =
+    args.summary.proof.counts.receipts > 0 ||
+    args.summary.proof.priority !== "build_signal";
+
+  return {
+    tone: "border-amber-300/15 bg-amber-300/8 text-amber-100",
+    title:
+      args.locale === "zh"
+        ? "这条产品线停滞太久，系统先停止继续加量。"
+        : "This product has been stalled too long, so the system is holding back fresh openings.",
+    body:
+      args.locale === "zh"
+        ? hasProofSignal
+          ? `最近信号：${lastSignalLabel}。先把现有 receipt 或 reply 推成 proof，再决定是否继续开新任务。`
+          : `最近信号：${lastSignalLabel}。先换下一个产品拿新信号，不要继续把任务堆在这里。`
+        : hasProofSignal
+          ? `Latest signal: ${lastSignalLabel}. Turn the existing receipts or replies into proof before opening more work here.`
+          : `Latest signal: ${lastSignalLabel}. Move to the next product and get a fresh signal instead of stacking more work here.`,
+  };
 }
 
 function workspaceSupplyFocusCopy(args: {
@@ -3590,6 +3646,9 @@ export default function DashboardClient({
     locale,
     workspaceSupply,
   });
+  const workspacePolicyProductById = new Map(
+    workspacePolicy.products.map((product) => [product.productId, product] as const)
+  );
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -6321,6 +6380,11 @@ export default function DashboardClient({
                     ownedLanes,
                     locale
                   );
+                  const reclaimGuidance = workspaceReclaimGuidance({
+                    locale,
+                    summary,
+                    productPolicy: workspacePolicyProductById.get(summary.product.id),
+                  });
 
                   return (
                     <article
@@ -6394,6 +6458,21 @@ export default function DashboardClient({
                               </span>
                               {ownershipSummary}
                             </p>
+                          ) : null}
+                          {reclaimGuidance ? (
+                            <div
+                              className={`mt-4 rounded-[1rem] border p-4 text-sm leading-7 ${reclaimGuidance.tone}`}
+                            >
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-current/75">
+                                {copy.productCard.reclaimTitle}
+                              </div>
+                              <div className="mt-2 font-medium text-current">
+                                {reclaimGuidance.title}
+                              </div>
+                              <p className="mt-2 text-current/85">
+                                {reclaimGuidance.body}
+                              </p>
+                            </div>
                           ) : null}
                           {summary.proof.priority !== "build_signal" ? (
                             <div className="mt-4 flex flex-wrap items-center gap-2">

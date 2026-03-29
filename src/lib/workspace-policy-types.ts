@@ -7,12 +7,16 @@ export type WorkspacePolicyProductLane =
   | "watch"
   | "prove"
   | "premium";
+export type WorkspacePolicyReclaimReason =
+  | "settled_proof"
+  | "stalled_pipeline";
 
 export interface WorkspacePolicyProductSnapshot {
   productId: string;
   productName: string;
   lane: WorkspacePolicyProductLane;
   lastSignalAt: string | null;
+  reclaimReason: WorkspacePolicyReclaimReason | null;
   openSubmissionCount: number;
   receiptCount: number;
   repliedThreadCount: number;
@@ -56,11 +60,19 @@ export interface WorkspacePolicyLaneOwnerSummary {
   activeProofTaskCount: number;
 }
 
+export interface WorkspacePolicyProductClientSummary {
+  productId: string;
+  workspaceLane: WorkspacePolicyProductLane;
+  lastSignalAt: string | null;
+  reclaimReason: WorkspacePolicyReclaimReason | null;
+}
+
 export interface WorkspacePolicyClientSnapshot {
   currentPlan: string;
   strategyMode: WorkspaceStrategyMode;
   loads: WorkspacePolicySnapshot["loads"];
   capacity: WorkspaceCapacity;
   laneOwners: Record<WorkspacePolicyLane, WorkspacePolicyLaneOwnerSummary[]>;
+  products: WorkspacePolicyProductClientSummary[];
   allowances: WorkspacePolicyAllowances;
 }

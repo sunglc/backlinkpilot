@@ -123,6 +123,12 @@ export default async function Dashboard({
     strategyMode: workspacePolicySnapshot.strategyMode,
     loads: workspacePolicySnapshot.loads,
     capacity: workspacePolicySnapshot.capacity,
+    products: workspacePolicySnapshot.products.map((product) => ({
+      productId: product.productId,
+      workspaceLane: product.lane,
+      lastSignalAt: product.lastSignalAt,
+      reclaimReason: product.reclaimReason,
+    })),
     allowances: workspacePolicySnapshot.allowances,
     laneOwners: {
       submission: mapLaneOwners(workspacePolicySnapshot.laneOwners.submission),
