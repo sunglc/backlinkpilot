@@ -118,11 +118,16 @@ export async function POST(
     subscription?.status === "active" ? subscription.plan || "starter" : "free";
   const { data: userProducts } = await supabase
     .from("products")
-    .select("id")
+    .select("id, name")
     .eq("user_id", user.id);
-  const productIds = Array.from(
-    new Set(((userProducts || []).map((item) => item.id) || []).concat(id))
+  const products = Array.from(
+    new Map(
+      (userProducts || [])
+        .concat({ id: product.id, name: product.name || "" })
+        .map((item) => [item.id, { id: item.id, name: item.name || "" }])
+    ).values()
   );
+  const productIds = products.map((item) => item.id);
   const { data: submissions } = await supabase
     .from("submissions")
     .select("product_id, status, success_sites")
@@ -130,7 +135,7 @@ export async function POST(
   const workspacePolicy = await buildWorkspacePolicySnapshot({
     userId: user.id,
     currentPlan: plan,
-    productIds,
+    products,
     submissions: submissions || [],
   });
   const body = (await request.json().catch(() => null)) as
@@ -217,7 +222,11 @@ export async function POST(
       );
     }
 
-    const premiumPolicyError = getWorkspacePolicyError(workspacePolicy, "premium");
+    const premiumPolicyError = getWorkspacePolicyError(
+      workspacePolicy,
+      "premium",
+      id
+    );
     if (premiumPolicyError) {
       return NextResponse.json({ error: premiumPolicyError }, { status: 409 });
     }
@@ -244,7 +253,11 @@ export async function POST(
       return NextResponse.json({ error: "Unsupported proof task type." }, { status: 400 });
     }
 
-    const proofPolicyError = getWorkspacePolicyError(workspacePolicy, "proof");
+    const proofPolicyError = getWorkspacePolicyError(
+      workspacePolicy,
+      "proof",
+      id
+    );
     if (proofPolicyError) {
       return NextResponse.json({ error: proofPolicyError }, { status: 409 });
     }

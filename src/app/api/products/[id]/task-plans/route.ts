@@ -208,11 +208,16 @@ export async function POST(
 
     const { data: userProducts } = await supabase
       .from("products")
-      .select("id")
+      .select("id, name")
       .eq("user_id", user.id);
-    const productIds = Array.from(
-      new Set(((userProducts || []).map((item) => item.id) || []).concat(id))
+    const products = Array.from(
+      new Map(
+        (userProducts || [])
+          .concat({ id: product.id, name: product.name || "" })
+          .map((item) => [item.id, { id: item.id, name: item.name || "" }])
+      ).values()
     );
+    const productIds = products.map((item) => item.id);
     const { data: submissions } = await supabase
       .from("submissions")
       .select("product_id, channel, status, success_sites")
@@ -220,12 +225,13 @@ export async function POST(
     const workspacePolicy = await buildWorkspacePolicySnapshot({
       userId: user.id,
       currentPlan,
-      productIds,
+      products,
       submissions: submissions || [],
     });
     const submissionPolicyError = getWorkspacePolicyError(
       workspacePolicy,
-      "submission"
+      "submission",
+      id
     );
     if (submissionPolicyError) {
       return NextResponse.json({ error: submissionPolicyError }, { status: 409 });
