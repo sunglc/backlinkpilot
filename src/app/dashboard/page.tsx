@@ -4,6 +4,8 @@ import {
   getManagedInboxRecord,
   reconcileManagedInboxRecordWithSendLog,
 } from "@/lib/managed-inbox-server";
+import type { WorkspacePolicyClientSnapshot } from "@/lib/workspace-policy-types";
+import { buildWorkspacePolicySnapshot } from "@/lib/workspace-policy";
 import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import { summarizeProductProofPipeline } from "@/lib/proof-pipeline";
@@ -44,6 +46,8 @@ export default async function Dashboard({
     .select("*")
     .eq("user_id", user.id)
     .single();
+  const currentPlan =
+    subscription?.status === "active" ? subscription.plan || "starter" : "free";
 
   const { data: products } = await supabase
     .from("products")
@@ -62,6 +66,52 @@ export default async function Dashboard({
         .order("created_at", { ascending: false })
     : { data: [] };
   const operationalInsights = await readSaasOperationalInsights();
+  const workspacePolicySnapshot = await buildWorkspacePolicySnapshot({
+    userId: user.id,
+    currentPlan,
+    products: (products || []).map((product) => ({
+      id: product.id,
+      name: product.name || "",
+    })),
+    submissions: submissions || [],
+  });
+  const mapLaneOwners = (productIds: string[]) =>
+    productIds.flatMap((productId) => {
+      const product = workspacePolicySnapshot.products.find(
+        (candidate) => candidate.productId === productId
+      );
+
+      if (!product) {
+        return [];
+      }
+
+      return [
+        {
+          productId: product.productId,
+          productName: product.productName,
+          workspaceLane: product.lane,
+          proofScore: product.proofScore,
+          openSubmissionCount: product.openSubmissionCount,
+          receiptCount: product.receiptCount,
+          repliedThreadCount: product.repliedThreadCount,
+          closeCount: product.closeCount,
+          verifyCount: product.verifyCount,
+          activeProofTaskCount: product.activeProofTaskCount,
+        },
+      ];
+    });
+  const workspacePolicy = {
+    currentPlan: workspacePolicySnapshot.currentPlan,
+    strategyMode: workspacePolicySnapshot.strategyMode,
+    loads: workspacePolicySnapshot.loads,
+    capacity: workspacePolicySnapshot.capacity,
+    allowances: workspacePolicySnapshot.allowances,
+    laneOwners: {
+      submission: mapLaneOwners(workspacePolicySnapshot.laneOwners.submission),
+      proof: mapLaneOwners(workspacePolicySnapshot.laneOwners.proof),
+      premium: mapLaneOwners(workspacePolicySnapshot.laneOwners.premium),
+    },
+  } satisfies WorkspacePolicyClientSnapshot;
   const workspaceTaskPlans = (
     await Promise.all(
       (products || []).map((product) =>
@@ -110,6 +160,7 @@ export default async function Dashboard({
       productProofSummaries={productProofSummaries}
       operationalInsights={operationalInsights}
       workspaceTaskPlans={workspaceTaskPlans}
+      workspacePolicy={workspacePolicy}
       checkoutState={checkoutState}
     />
   );

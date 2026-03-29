@@ -2,14 +2,18 @@ import "server-only";
 
 import {
   buildWorkspaceCapacity,
-  type WorkspaceCapacity,
 } from "@/lib/workspace-capacity";
 import { getManagedInboxRecord } from "@/lib/managed-inbox-server";
+import type { WorkspaceStrategyMode } from "@/lib/workspace-strategy";
 import { readWorkspaceTaskPlans } from "@/lib/workspace-task-plans";
-
-type WorkspaceStrategyMode = "unlock" | "upgrade" | "prove" | "watch" | "build";
-type WorkspacePolicyLane = "submission" | "proof" | "premium";
-type WorkspacePolicyProductLane = "build" | "watch" | "prove" | "premium";
+import type {
+  WorkspacePolicyAllowances,
+  WorkspacePolicyLane,
+  WorkspacePolicyLaneOwners,
+  WorkspacePolicyProductLane,
+  WorkspacePolicyProductSnapshot,
+  WorkspacePolicySnapshot,
+} from "@/lib/workspace-policy-types";
 
 interface WorkspaceSubmissionSnapshot {
   product_id: string;
@@ -20,40 +24,6 @@ interface WorkspaceSubmissionSnapshot {
 interface WorkspacePolicyProductInput {
   id: string;
   name: string;
-}
-
-interface WorkspacePolicyProductSnapshot {
-  productId: string;
-  productName: string;
-  lane: WorkspacePolicyProductLane;
-  openSubmissionCount: number;
-  receiptCount: number;
-  repliedThreadCount: number;
-  closeCount: number;
-  verifyCount: number;
-  proofScore: number;
-  activeProofTaskCount: number;
-  premiumCandidate: boolean;
-}
-
-type WorkspacePolicyLaneOwners = Record<WorkspacePolicyLane, string[]>;
-type WorkspacePolicyAllowances = Record<
-  string,
-  Record<WorkspacePolicyLane, boolean>
->;
-
-export interface WorkspacePolicySnapshot {
-  currentPlan: string;
-  strategyMode: WorkspaceStrategyMode;
-  loads: {
-    submission: number;
-    proof: number;
-    premium: number;
-  };
-  capacity: WorkspaceCapacity;
-  products: WorkspacePolicyProductSnapshot[];
-  laneOwners: WorkspacePolicyLaneOwners;
-  allowances: WorkspacePolicyAllowances;
 }
 
 function isPremiumTaskPlan(plan: {

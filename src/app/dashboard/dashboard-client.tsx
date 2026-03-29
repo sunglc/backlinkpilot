@@ -16,6 +16,10 @@ import type {
   ProductProofPriority,
   ProductProofSummary,
 } from "@/lib/proof-pipeline";
+import type {
+  WorkspacePolicyClientSnapshot,
+  WorkspacePolicyLane,
+} from "@/lib/workspace-policy-types";
 import type { OperationalInsights } from "@/lib/saas-operational-insights";
 import type {
   WorkspaceTaskPlan,
@@ -27,10 +31,7 @@ import {
   type WorkspaceStrategyDecisionKey,
   type WorkspaceStrategyLaneKey,
 } from "@/lib/workspace-strategy";
-import {
-  buildWorkspaceCapacity,
-  type WorkspaceCapacityLaneKey,
-} from "@/lib/workspace-capacity";
+import { type WorkspaceCapacityLaneKey } from "@/lib/workspace-capacity";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -150,6 +151,19 @@ interface ProductBudgetDecision {
 
 interface ProductProofSummaryRow extends ProductProofSummary {
   productId: string;
+}
+
+interface DashboardClientProps {
+  locale: Locale;
+  user: User;
+  subscription: Subscription | null;
+  products: Product[];
+  submissions: Submission[];
+  productProofSummaries: ProductProofSummaryRow[];
+  operationalInsights: OperationalInsights;
+  workspaceTaskPlans: WorkspaceTaskPlan[];
+  workspacePolicy: WorkspacePolicyClientSnapshot;
+  checkoutState: CheckoutState;
 }
 
 interface WorkspaceTask {
@@ -1844,6 +1858,136 @@ function workspaceCapacityLaneClasses(lane: WorkspaceCapacityLaneKey) {
   }[lane];
 }
 
+function formatNaturalList(values: string[], locale: Locale) {
+  if (values.length === 0) {
+    return "";
+  }
+
+  if (values.length === 1) {
+    return values[0];
+  }
+
+  if (locale === "zh") {
+    return values.join("、");
+  }
+
+  if (values.length === 2) {
+    return `${values[0]} and ${values[1]}`;
+  }
+
+  return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
+}
+
+function workspaceLaneReservationReason(
+  lane: WorkspacePolicyLane,
+  locale: Locale
+) {
+  if (locale === "zh") {
+    return {
+      submission:
+        "新的 submission 开口优先给还需要 fresh live distribution 的产品，避免谁先点谁先占。",
+      proof:
+        "新的 proof 开口优先给最接近公开结果、但当前还没有活跃 proof push 的产品。",
+      premium:
+        "premium 开口只给已经跑出基础信号、且不会把主线 proof 稀释掉的产品。",
+    }[lane];
+  }
+
+  return {
+    submission:
+      "New submission openings go to products that still need fresh live distribution instead of whoever clicks first.",
+    proof:
+      "New proof openings go to the product closest to visible proof that is not already carrying an active proof push.",
+    premium:
+      "Premium openings stay with products that can justify premium work without diluting the core proof path.",
+  }[lane];
+}
+
+function workspaceLaneReservationEmpty(args: {
+  lane: WorkspacePolicyLane;
+  locale: Locale;
+  hasRemaining: boolean;
+}) {
+  if (!args.hasRemaining) {
+    return args.locale === "zh"
+      ? "当前没有剩余开口。"
+      : "No openings remain right now.";
+  }
+
+  return args.locale === "zh"
+    ? "当前没有明确预留对象。"
+    : "No product is explicitly holding the remaining opening right now.";
+}
+
+function workspaceLaneGuardMessage(args: {
+  lane: WorkspacePolicyLane;
+  locale: Locale;
+  productId: string;
+  workspacePolicy: WorkspacePolicyClientSnapshot;
+  fullError: Record<WorkspacePolicyLane, string>;
+}) {
+  const laneState = args.workspacePolicy.capacity.lanes[args.lane];
+  if (laneState.remaining <= 0) {
+    return args.fullError[args.lane];
+  }
+
+  if (args.workspacePolicy.allowances[args.productId]?.[args.lane]) {
+    return null;
+  }
+
+  const laneOwners = args.workspacePolicy.laneOwners[args.lane];
+  if (laneOwners.length === 0) {
+    return null;
+  }
+
+  const ownerLabel = formatNaturalList(
+    laneOwners.slice(0, 2).map((owner) => owner.productName),
+    args.locale
+  );
+
+  if (args.locale === "zh") {
+    return {
+      submission: `本周剩余的 submission 开口当前优先给 ${ownerLabel}。先让这些产品继续往前走，再在这里开新的提交任务。`,
+      proof: `本周剩余的 proof 开口当前优先给 ${ownerLabel}。先把那边的结果推出来，再在这里排新的 proof。`,
+      premium: `当前剩余的 premium 开口优先给 ${ownerLabel}。先让那边消化掉，再继续在这里开高级机会。`,
+    }[args.lane];
+  }
+
+  return {
+    submission: `This week's remaining submission openings are currently reserved for ${ownerLabel}. Let those products move first before opening another submission task here.`,
+    proof: `This week's remaining proof opening is currently reserved for ${ownerLabel}. Push proof there first before queueing another proof task here.`,
+    premium: `The remaining premium opening is currently reserved for ${ownerLabel}. Let that product use it first before opening premium work here.`,
+  }[args.lane];
+}
+
+function workspaceOwnershipSummary(
+  lanes: WorkspacePolicyLane[],
+  locale: Locale
+) {
+  if (lanes.length === 0) {
+    return null;
+  }
+
+  const laneLabels =
+    locale === "zh"
+      ? {
+          submission: "Submission 开口",
+          proof: "Proof 开口",
+          premium: "Premium 开口",
+        }
+      : {
+          submission: "Submission opening",
+          proof: "Proof opening",
+          premium: "Premium opening",
+        };
+
+  const label = formatNaturalList(lanes.map((lane) => laneLabels[lane]), locale);
+
+  return locale === "zh"
+    ? `这个产品当前拿到了本周剩余的 ${label} 优先权。`
+    : `This product currently owns the remaining ${label} for this week.`;
+}
+
 function proofTaskTitle(
   type: ProductProofAction["taskType"],
   locale: Locale
@@ -2376,18 +2520,9 @@ export default function DashboardClient({
   productProofSummaries,
   operationalInsights,
   workspaceTaskPlans,
+  workspacePolicy,
   checkoutState,
-}: {
-  locale: Locale;
-  user: User;
-  subscription: Subscription | null;
-  products: Product[];
-  submissions: Submission[];
-  productProofSummaries: ProductProofSummaryRow[];
-  operationalInsights: OperationalInsights;
-  workspaceTaskPlans: WorkspaceTaskPlan[];
-  checkoutState: CheckoutState;
-}) {
+}: DashboardClientProps) {
   const copy = getDashboardCopy(locale);
   const proofCopy = getProofBoardCopy(locale);
   const outcomeCopy = getOutcomeLadderCopy(locale);
@@ -2969,21 +3104,7 @@ export default function DashboardClient({
     })),
   });
   const workspaceStrategyCopy = copy.strategy;
-  const workspaceCapacity = buildWorkspaceCapacity({
-    currentPlan,
-    strategyMode: workspaceStrategy.mode,
-    submissionLoad: allWorkspaceTasks.filter(
-      (task) =>
-        task.kind === "submission" &&
-        (task.stage === "pending" ||
-          task.stage === "planned" ||
-          task.stage === "awaiting_effect")
-    ).length,
-    proofLoad: productSummaries.filter((summary) => summary.proof.activeTask).length,
-    premiumLoad: allWorkspaceTasks.filter(
-      (task) => task.billingRule?.type === "premium_service"
-    ).length,
-  });
+  const workspaceCapacity = workspacePolicy.capacity;
   const workspaceCapacityCopy = copy.capacity;
   const workspaceStrategyLead =
     productSummaries.find(
@@ -2997,6 +3118,20 @@ export default function DashboardClient({
         const rightBurn = productWeeklyBurnById.get(right.product.id) || 0;
         return rightBurn - leftBurn;
       })[0] || null;
+  const laneOwnersByLane = workspacePolicy.laneOwners;
+  const productOwnedLanesById = new Map(
+    productSummaries.map((summary) => {
+      const ownedLanes = (
+        ["submission", "proof", "premium"] as const
+      ).filter(
+        (lane) =>
+          workspacePolicy.allowances[summary.product.id]?.[lane] &&
+          workspacePolicy.capacity.lanes[lane].remaining > 0
+      );
+
+      return [summary.product.id, ownedLanes] as const;
+    })
+  );
 
   const workflowSteps = [
     {
@@ -3139,8 +3274,16 @@ export default function DashboardClient({
   }
 
   async function handleWorkspaceLaunch(productId: string, channelId: string) {
-    if (workspaceCapacity.lanes.submission.remaining <= 0) {
-      setWorkspaceActionError(copy.capacity.fullError.submission);
+    const laneGuardMessage = workspaceLaneGuardMessage({
+      lane: "submission",
+      locale,
+      productId,
+      workspacePolicy,
+      fullError: copy.capacity.fullError,
+    });
+
+    if (laneGuardMessage) {
+      setWorkspaceActionError(laneGuardMessage);
       return;
     }
 
@@ -3178,8 +3321,16 @@ export default function DashboardClient({
     }
 
     const actionKey = `${productId}:${action.taskType}`;
-    if (workspaceCapacity.lanes.proof.remaining <= 0) {
-      setWorkspaceActionError(copy.capacity.fullError.proof);
+    const laneGuardMessage = workspaceLaneGuardMessage({
+      lane: "proof",
+      locale,
+      productId,
+      workspacePolicy,
+      fullError: copy.capacity.fullError,
+    });
+
+    if (laneGuardMessage) {
+      setWorkspaceActionError(laneGuardMessage);
       return;
     }
 
@@ -3298,8 +3449,16 @@ export default function DashboardClient({
     productId: string,
     planId: string
   ) {
-    if (workspaceCapacity.lanes.submission.remaining <= 0) {
-      setWorkspaceActionError(copy.capacity.fullError.submission);
+    const laneGuardMessage = workspaceLaneGuardMessage({
+      lane: "submission",
+      locale,
+      productId,
+      workspacePolicy,
+      fullError: copy.capacity.fullError,
+    });
+
+    if (laneGuardMessage) {
+      setWorkspaceActionError(laneGuardMessage);
       return;
     }
 
@@ -4046,6 +4205,18 @@ export default function DashboardClient({
                   ["submission", "proof", "premium"] as const
                 ).map((lane) => {
                   const laneState = workspaceCapacity.lanes[lane];
+                  const laneOwners = laneOwnersByLane[lane];
+                  const laneOwnerLabel =
+                    laneOwners.length > 0
+                      ? formatNaturalList(
+                          laneOwners.map((owner) => owner.productName),
+                          locale
+                        )
+                      : workspaceLaneReservationEmpty({
+                          lane,
+                          locale,
+                          hasRemaining: laneState.remaining > 0,
+                        });
 
                   return (
                     <article
@@ -4093,6 +4264,19 @@ export default function DashboardClient({
                             {laneState.overLimit > 0
                               ? laneState.overLimit
                               : laneState.remaining}
+                          </div>
+                        </div>
+                        <div className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                            {locale === "zh"
+                              ? "当前优先产品"
+                              : "Current priority product"}
+                          </div>
+                          <div className="mt-2 text-sm font-medium leading-7 text-stone-100">
+                            {laneOwnerLabel}
+                          </div>
+                          <div className="mt-2 text-xs leading-6 text-stone-500">
+                            {workspaceLaneReservationReason(lane, locale)}
                           </div>
                         </div>
                       </div>
@@ -5267,6 +5451,12 @@ export default function DashboardClient({
                     summary.proof.priority !== "build_signal"
                       ? proofActionForSummary(summary, proofCopy)
                       : null;
+                  const ownedLanes =
+                    productOwnedLanesById.get(summary.product.id) || [];
+                  const ownershipSummary = workspaceOwnershipSummary(
+                    ownedLanes,
+                    locale
+                  );
 
                   return (
                     <article
@@ -5296,6 +5486,16 @@ export default function DashboardClient({
                                 {getLocalizedChannel(latestChannel, locale).name}
                               </span>
                             ) : null}
+                            {ownedLanes.map((lane) => (
+                              <span
+                                key={`${summary.product.id}:${lane}:owner`}
+                                className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceCapacityLaneClasses(
+                                  lane
+                                )}`}
+                              >
+                                {workspaceCapacityCopy.laneLabels[lane]}
+                              </span>
+                            ))}
                           </div>
 
                           <h3 className="mt-4 text-2xl font-semibold text-white">
@@ -5321,6 +5521,16 @@ export default function DashboardClient({
                           <p className="mt-3 text-sm text-stone-500">
                             {copy.productCard.stageBody[summary.stage]}
                           </p>
+                          {ownershipSummary ? (
+                            <p className="mt-3 text-sm leading-7 text-stone-300">
+                              <span className="mr-2 text-xs uppercase tracking-[0.24em] text-stone-500">
+                                {locale === "zh"
+                                  ? "本周优先级"
+                                  : "This week"}
+                              </span>
+                              {ownershipSummary}
+                            </p>
+                          ) : null}
                           {summary.proof.priority !== "build_signal" ? (
                             <div className="mt-4 flex flex-wrap items-center gap-2">
                               <span
