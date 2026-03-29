@@ -1432,6 +1432,7 @@ export default function ProductDetail({
   managedInboxLiveActivity,
   outreachLibrary,
   operationalInsights,
+  priorityContext = false,
 }: {
   locale: Locale;
   user: User;
@@ -1442,6 +1443,7 @@ export default function ProductDetail({
   managedInboxLiveActivity: ManagedInboxLiveActivity;
   outreachLibrary: HighQualityOutreachLibrary;
   operationalInsights: OperationalInsights;
+  priorityContext?: boolean;
 }) {
   const copy = getProductDetailCopy(locale);
   const managedInboxCopy = getManagedInboxCopy(locale);
@@ -1463,6 +1465,12 @@ export default function ProductDetail({
   const recommendedLaneIds = (playbook.recommended_lane_ids || []).slice(0, 4);
   const qualityBarIds = (playbook.quality_bar_ids || []).slice(0, 3);
   const antiPatternIds = (playbook.anti_pattern_ids || []).slice(0, 4);
+  const priorityContextLabel =
+    locale === "zh" ? "当前优先产品" : "Current priority product";
+  const priorityContextBody =
+    locale === "zh"
+      ? "你是从工作台当前主推产品的路径进入这里的。先把这个产品推进完，再决定是否切换注意力。"
+      : "You opened the product the workspace is currently prioritizing. Push this one through before spreading attention elsewhere.";
 
   const hasActive = submissions.some(
     (submission) => submission.status === "queued" || submission.status === "running"
@@ -2043,6 +2051,11 @@ export default function ProductDetail({
               <p className="text-xs font-medium uppercase tracking-[0.32em] text-amber-200/80">
                 {copy.hero.eyebrow}
               </p>
+              {priorityContext ? (
+                <div className="mt-4 inline-flex rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-xs font-medium text-emerald-100">
+                  {priorityContextLabel}
+                </div>
+              ) : null}
               <h1 className="font-display mt-4 text-4xl leading-[0.95] text-stone-50 md:text-6xl">
                 {product.name}
               </h1>
@@ -2063,6 +2076,11 @@ export default function ProductDetail({
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400 md:text-base">
                   {heroBody}
                 </p>
+                {priorityContext ? (
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-100/90">
+                    {priorityContextBody}
+                  </p>
+                ) : null}
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   {plan === "free" ? (

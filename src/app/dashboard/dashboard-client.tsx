@@ -2289,6 +2289,25 @@ function workspaceLeadSummaryCopy(args: {
   }[args.mode];
 }
 
+function withPriorityContext(href: string, productId: string, isCurrentPriority: boolean) {
+  if (!isCurrentPriority) {
+    return href;
+  }
+
+  const productPrefix = `/dashboard/product/${productId}`;
+  if (!href.startsWith(productPrefix)) {
+    return href;
+  }
+
+  const [pathWithQuery, hash = ""] = href.split("#");
+  if (pathWithQuery.includes("priority=1")) {
+    return href;
+  }
+
+  const joiner = pathWithQuery.includes("?") ? "&" : "?";
+  return `${pathWithQuery}${joiner}priority=1${hash ? `#${hash}` : ""}`;
+}
+
 function workspaceAutoCoverageGuardMessage(args: {
   locale: Locale;
   productId: string;
@@ -3929,6 +3948,27 @@ export default function DashboardClient({
         mode: workspaceStrategy.mode,
       })
     : null;
+  const featuredProductDetailHref = featuredProduct
+    ? withPriorityContext(
+        `/dashboard/product/${featuredProduct.product.id}`,
+        featuredProduct.product.id,
+        workspaceStrategyLead?.product.id === featuredProduct.product.id
+      )
+    : null;
+  const featuredProductHistoryHref = featuredProduct
+    ? withPriorityContext(
+        `/dashboard/product/${featuredProduct.product.id}#submission-history`,
+        featuredProduct.product.id,
+        workspaceStrategyLead?.product.id === featuredProduct.product.id
+      )
+    : null;
+  const workspaceStrategyLeadDetailHref = workspaceStrategyLead
+    ? withPriorityContext(
+        `/dashboard/product/${workspaceStrategyLead.product.id}`,
+        workspaceStrategyLead.product.id,
+        true
+      )
+    : null;
   const orderedProductSummaries = workspaceStrategyLead
     ? [
         workspaceStrategyLead,
@@ -4431,7 +4471,10 @@ export default function DashboardClient({
               ) : featuredProduct?.activeSubmission ? (
                 <>
                   <Link
-                    href={`/dashboard/product/${featuredProduct.product.id}#submission-history`}
+                    href={
+                      featuredProductHistoryHref ||
+                      `/dashboard/product/${featuredProduct.product.id}#submission-history`
+                    }
                     className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                   >
                     {copy.hero.primaryWatch}
@@ -4474,7 +4517,10 @@ export default function DashboardClient({
               ) : featuredProduct ? (
                 <>
                   <Link
-                    href={`/dashboard/product/${featuredProduct.product.id}`}
+                    href={
+                      featuredProductDetailHref ||
+                      `/dashboard/product/${featuredProduct.product.id}`
+                    }
                     className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                   >
                     {copy.hero.primaryLaunch}
@@ -4707,8 +4753,13 @@ export default function DashboardClient({
                         ) : (
                           <Link
                             href={
-                              workspaceStrategyLeadLinkAction?.href ||
-                              `/dashboard/product/${workspaceStrategyLead.product.id}`
+                              withPriorityContext(
+                                workspaceStrategyLeadLinkAction?.href ||
+                                  workspaceStrategyLeadDetailHref ||
+                                  `/dashboard/product/${workspaceStrategyLead.product.id}`,
+                                workspaceStrategyLead.product.id,
+                                true
+                              )
                             }
                             className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
                           >
@@ -6531,6 +6582,13 @@ export default function DashboardClient({
                 {orderedProductSummaries.map((summary) => {
                   const weeklyBurn = productWeeklyBurnById.get(summary.product.id) || 0;
                   const productPolicy = productPolicyById.get(summary.product.id);
+                  const isCurrentPriority =
+                    workspaceStrategyLead?.product.id === summary.product.id;
+                  const productDetailHref = withPriorityContext(
+                    `/dashboard/product/${summary.product.id}`,
+                    summary.product.id,
+                    isCurrentPriority
+                  );
                   const budgetDecision =
                     productBudgetDecisionById.get(summary.product.id) || {
                       key: "build_queue" as const,
@@ -6922,14 +6980,20 @@ export default function DashboardClient({
                               </a>
                             ) : (
                               <Link
-                                href={linkAction?.href || `/dashboard/product/${summary.product.id}`}
+                                href={
+                                  withPriorityContext(
+                                    linkAction?.href || productDetailHref,
+                                    summary.product.id,
+                                    isCurrentPriority
+                                  ) || productDetailHref
+                                }
                                 className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                               >
                                 {linkAction?.label || copy.productCard.open}
                               </Link>
                             )}
                             <Link
-                              href={`/dashboard/product/${summary.product.id}`}
+                              href={productDetailHref}
                               className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                             >
                               {copy.productCard.open}

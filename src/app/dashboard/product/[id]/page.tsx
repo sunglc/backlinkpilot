@@ -123,8 +123,14 @@ async function readJsonIfPresent<T>(absolutePath: string, fallback: T): Promise<
   }
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ priority?: string }>;
+}) {
+  const [{ id }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const locale = await getLocale();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -195,6 +201,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       managedInboxLiveActivity={managedInboxLiveActivity}
       outreachLibrary={outreachLibrary}
       operationalInsights={operationalInsights}
+      priorityContext={resolvedSearchParams?.priority === "1"}
     />
   );
 }
