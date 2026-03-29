@@ -3929,6 +3929,14 @@ export default function DashboardClient({
         mode: workspaceStrategy.mode,
       })
     : null;
+  const orderedProductSummaries = workspaceStrategyLead
+    ? [
+        workspaceStrategyLead,
+        ...productSummaries.filter(
+          (summary) => summary.product.id !== workspaceStrategyLead.product.id
+        ),
+      ]
+    : productSummaries;
 
   useEffect(() => {
     const previousRecommended = previousRecommendedPlannerProductId.current;
@@ -6520,7 +6528,7 @@ export default function DashboardClient({
               </div>
             ) : (
               <div className="mt-8 space-y-4">
-                {productSummaries.map((summary) => {
+                {orderedProductSummaries.map((summary) => {
                   const weeklyBurn = productWeeklyBurnById.get(summary.product.id) || 0;
                   const productPolicy = productPolicyById.get(summary.product.id);
                   const budgetDecision =
@@ -6613,6 +6621,11 @@ export default function DashboardClient({
                                 {workspaceCapacityCopy.laneLabels[lane]}
                               </span>
                             ))}
+                            {workspaceStrategyLead?.product.id === summary.product.id ? (
+                              <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-100">
+                                {locale === "zh" ? "当前优先" : "Current priority"}
+                              </span>
+                            ) : null}
                           </div>
 
                           <h3 className="mt-4 text-2xl font-semibold text-white">
