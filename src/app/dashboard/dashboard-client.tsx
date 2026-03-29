@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import LocaleToggle from "@/components/locale-toggle";
 import {
@@ -3024,6 +3024,9 @@ export default function DashboardClient({
     useState<SaasCapabilityReviewState>(capabilityReviewState);
   const [capabilityReviewAction, setCapabilityReviewAction] = useState(false);
   const [capabilityReviewError, setCapabilityReviewError] = useState("");
+  const previousRecommendedPlannerProductId = useRef(
+    workspaceSupply.recommendedAutoCoverageProductId || products[0]?.id || ""
+  );
 
   useEffect(() => {
     setCapabilityReview(capabilityReviewState);
@@ -3390,12 +3393,6 @@ export default function DashboardClient({
     featuredProduct && isLaunchAction(featuredProduct.primaryAction)
       ? featuredProduct.primaryAction
       : null;
-  const resolvedPlannerProductId =
-    plannerProductId ||
-    workspaceSupply.recommendedAutoCoverageProductId ||
-    featuredProduct?.product.id ||
-    products[0]?.id ||
-    "";
   const importLineCount = importList
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -3673,6 +3670,22 @@ export default function DashboardClient({
         summary.product.id === workspaceStrategy.leadProductId &&
         !productPolicyById.get(summary.product.id)?.reclaimReason
     ) || featuredProduct;
+  const recommendedPlannerProductId =
+    workspaceStrategyLead?.product.id ||
+    workspaceSupply.recommendedAutoCoverageProductId ||
+    featuredProduct?.product.id ||
+    products[0]?.id ||
+    "";
+  const plannerProductExists = plannerProductId
+    ? products.some((product) => product.id === plannerProductId)
+    : false;
+  const plannerProductReclaimed = plannerProductId
+    ? Boolean(productPolicyById.get(plannerProductId)?.reclaimReason)
+    : false;
+  const resolvedPlannerProductId =
+    plannerProductExists && !plannerProductReclaimed
+      ? plannerProductId
+      : recommendedPlannerProductId;
   const workspaceBudgetLead =
     featuredCandidates
       .slice()
@@ -3837,6 +3850,30 @@ export default function DashboardClient({
           productPolicy: productPolicyById.get(workspaceStrategyLead.product.id),
         })
       : null;
+
+  useEffect(() => {
+    const previousRecommended = previousRecommendedPlannerProductId.current;
+    const shouldFollowRecommended =
+      !plannerProductId ||
+      !plannerProductExists ||
+      plannerProductReclaimed ||
+      plannerProductId === previousRecommended;
+
+    if (
+      shouldFollowRecommended &&
+      recommendedPlannerProductId &&
+      plannerProductId !== recommendedPlannerProductId
+    ) {
+      setPlannerProductId(recommendedPlannerProductId);
+    }
+
+    previousRecommendedPlannerProductId.current = recommendedPlannerProductId;
+  }, [
+    plannerProductExists,
+    plannerProductId,
+    plannerProductReclaimed,
+    recommendedPlannerProductId,
+  ]);
 
   let heroTitle = copy.hero.readyTitle;
   let heroBody = copy.hero.readyBody;
