@@ -201,6 +201,8 @@ function getDashboardCopy(locale: Locale) {
         launches: "启动次数",
         liveRuns: "运行中",
         successfulActions: "成功动作",
+        weeklyBurn: "预计本周 Credits",
+        weeklyBurnNote: "仅统计普通 credits，高级服务另算",
         configuredProducts: "进入执行链",
         freeSlot: "还有 1 个免费配置名额",
         upgradeToUnlock: "升级后解锁真实提交",
@@ -217,6 +219,8 @@ function getDashboardCopy(locale: Locale) {
         noRunsYet: "还没有执行记录",
         launchCount: "启动次数",
         successfulActions: "成功动作",
+        weeklyBurn: "本周 credits 预估",
+        weeklyBurnNote: "仅普通 credits",
         channelsReady: "当前可跑渠道",
         progress: "当前进度",
         latestLane: "最近渠道",
@@ -542,6 +546,8 @@ function getDashboardCopy(locale: Locale) {
       launches: "Launches",
       liveRuns: "Running now",
       successfulActions: "Successful actions",
+      weeklyBurn: "Est. weekly credits",
+      weeklyBurnNote: "Credits only. Premium work excluded.",
       configuredProducts: "In execution flow",
       freeSlot: "1 free setup slot available",
       upgradeToUnlock: "Upgrade to unlock live submissions",
@@ -559,6 +565,8 @@ function getDashboardCopy(locale: Locale) {
       noRunsYet: "No runs yet",
       launchCount: "Launches",
       successfulActions: "Successful actions",
+      weeklyBurn: "Weekly credit estimate",
+      weeklyBurnNote: "Credits only",
       channelsReady: "Live lanes today",
       progress: "Progress",
       latestLane: "Latest lane",
@@ -1292,6 +1300,40 @@ function workspaceTaskBillingRule(
     successDisplay: copy.tasks.billingDisplays.includedSuccess,
     failureDisplay: copy.tasks.billingDisplays.includedFailure,
   };
+}
+
+function weeklyBurnWeight(task: WorkspaceTask) {
+  if (task.kind === "proof") {
+    return {
+      pending: 0.6,
+      planned: 1,
+      awaiting_effect: 0.5,
+      live: 0.25,
+    }[task.stage];
+  }
+
+  if (task.kind === "submission") {
+    return {
+      pending: 0.8,
+      planned: 1,
+      awaiting_effect: 0.25,
+      live: 0,
+    }[task.stage];
+  }
+
+  return 0;
+}
+
+function taskWeeklyBurnEstimate(task: WorkspaceTask) {
+  if (task.billingRule?.type !== "credit_on_success") {
+    return 0;
+  }
+
+  return Math.round(task.successCost * weeklyBurnWeight(task) * 10) / 10;
+}
+
+function formatCreditsEstimate(value: number) {
+  return Number.isInteger(value) ? `${value}` : value.toFixed(1);
 }
 
 function proofTaskTitle(
@@ -2161,7 +2203,7 @@ export default function DashboardClient({
   const workspaceTaskPlanById = new Map(
     workspaceTaskPlans.map((plan) => [plan.id, plan])
   );
-  const workspaceTasks = productSummaries
+  const allWorkspaceTasks = productSummaries
     .flatMap((summary) => {
       const tasks: WorkspaceTask[] = [];
       const baseHref = `/dashboard/product/${summary.product.id}`;
@@ -2372,8 +2414,22 @@ export default function DashboardClient({
       }
 
       return right.updatedAt.localeCompare(left.updatedAt);
-    })
-    .slice(0, 8);
+    });
+  const productWeeklyBurnById = new Map<string, number>();
+
+  allWorkspaceTasks.forEach((task) => {
+    const current = productWeeklyBurnById.get(task.productId) || 0;
+    productWeeklyBurnById.set(
+      task.productId,
+      Math.round((current + taskWeeklyBurnEstimate(task)) * 10) / 10
+    );
+  });
+
+  const workspaceWeeklyBurn = Math.round(
+    Array.from(productWeeklyBurnById.values()).reduce((sum, value) => sum + value, 0) *
+      10
+  ) / 10;
+  const workspaceTasks = allWorkspaceTasks.slice(0, 8);
 
   const workflowSteps = [
     {
@@ -2950,7 +3006,7 @@ export default function DashboardClient({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[
               {
                 label: copy.stats.plan,
@@ -2975,6 +3031,12 @@ export default function DashboardClient({
                 value: `${activeLaunches}`,
                 note: `${totalSuccessfulActions} ${copy.stats.successfulActions}`,
                 tone: "text-sky-200",
+              },
+              {
+                label: copy.stats.weeklyBurn,
+                value: `~${formatCreditsEstimate(workspaceWeeklyBurn)}`,
+                note: copy.stats.weeklyBurnNote,
+                tone: "text-fuchsia-200",
               },
             ].map((item) => (
               <div
@@ -4194,6 +4256,7 @@ export default function DashboardClient({
             ) : (
               <div className="mt-8 space-y-4">
                 {productSummaries.map((summary) => {
+                  const weeklyBurn = productWeeklyBurnById.get(summary.product.id) || 0;
                   const latestChannel = summary.latestSubmission
                     ? CHANNELS.find(
                         (channel) => channel.id === summary.latestSubmission?.channel
@@ -4314,7 +4377,7 @@ export default function DashboardClient({
                         </div>
 
                         <div className="w-full max-w-sm">
-                          <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
                               <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                                 {copy.productCard.launchCount}
@@ -4337,6 +4400,17 @@ export default function DashboardClient({
                               </div>
                               <div className="mt-2 text-2xl font-semibold text-white">
                                 {liveChannelsForPlan.length}/{LIVE_CHANNEL_COUNT}
+                              </div>
+                            </div>
+                            <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {copy.productCard.weeklyBurn}
+                              </div>
+                              <div className="mt-2 text-2xl font-semibold text-white">
+                                ~{formatCreditsEstimate(weeklyBurn)}
+                              </div>
+                              <div className="mt-2 text-xs leading-6 text-stone-500">
+                                {copy.productCard.weeklyBurnNote}
                               </div>
                             </div>
                           </div>
