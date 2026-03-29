@@ -2241,8 +2241,24 @@ function plannerSelectionStatusCopy(args: {
   selectedProductName: string;
   recommendedProductName: string;
   followsRecommendation: boolean;
+  resetReason: "reclaimed" | "missing" | null;
+  requestedProductName: string | null;
 }) {
   if (args.locale === "zh") {
+    if (args.resetReason === "reclaimed" && args.requestedProductName) {
+      return {
+        badge: "已切回当前优先",
+        body: `你刚才选中的 ${args.requestedProductName} 当前不再承接新增任务，所以 Task Builder 已切回 ${args.recommendedProductName}。`,
+      };
+    }
+
+    if (args.resetReason === "missing" && args.requestedProductName) {
+      return {
+        badge: "已切回当前优先",
+        body: `你刚才选中的 ${args.requestedProductName} 已经不在当前工作台里，所以 Task Builder 已切回 ${args.recommendedProductName}。`,
+      };
+    }
+
     return args.followsRecommendation
       ? {
           badge: "跟随当前优先产品",
@@ -2252,6 +2268,20 @@ function plannerSelectionStatusCopy(args: {
           badge: "手动切换中",
           body: `你当前手动选中了 ${args.selectedProductName}。系统建议仍然是 ${args.recommendedProductName}，但不会覆盖你的选择。`,
         };
+  }
+
+  if (args.resetReason === "reclaimed" && args.requestedProductName) {
+    return {
+      badge: "Moved back to the current lead",
+      body: `${args.requestedProductName} is not taking new tasks right now, so the builder moved back to ${args.recommendedProductName}.`,
+    };
+  }
+
+  if (args.resetReason === "missing" && args.requestedProductName) {
+    return {
+      badge: "Moved back to the current lead",
+      body: `${args.requestedProductName} is no longer available in this workspace, so the builder moved back to ${args.recommendedProductName}.`,
+    };
   }
 
   return args.followsRecommendation
@@ -3754,6 +3784,9 @@ export default function DashboardClient({
   const plannerProductReclaimed = plannerProductId
     ? Boolean(productPolicyById.get(plannerProductId)?.reclaimReason)
     : false;
+  const requestedPlannerSummary = plannerProductId
+    ? productSummaries.find((summary) => summary.product.id === plannerProductId) || null
+    : null;
   const resolvedPlannerProductId =
     plannerProductExists && !plannerProductReclaimed
       ? plannerProductId
@@ -3768,6 +3801,14 @@ export default function DashboardClient({
   const plannerFollowsRecommendation =
     !resolvedPlannerProductId ||
     resolvedPlannerProductId === recommendedPlannerProductId;
+  const plannerResetReason =
+    plannerProductId && plannerProductId !== recommendedPlannerProductId
+      ? !plannerProductExists
+        ? ("missing" as const)
+        : plannerProductReclaimed
+          ? ("reclaimed" as const)
+          : null
+      : null;
   const plannerSelectionStatus =
     resolvedPlannerSummary && recommendedPlannerSummary
       ? plannerSelectionStatusCopy({
@@ -3775,6 +3816,8 @@ export default function DashboardClient({
           selectedProductName: resolvedPlannerSummary.product.name,
           recommendedProductName: recommendedPlannerSummary.product.name,
           followsRecommendation: plannerFollowsRecommendation,
+          resetReason: plannerResetReason,
+          requestedProductName: requestedPlannerSummary?.product.name || null,
         })
       : null;
   const workspaceBudgetLead =
