@@ -1840,6 +1840,9 @@ function budgetActionForSummary(args: {
   summary: ProductSummary;
   decision: ProductBudgetDecision;
   currentPlan: string;
+  productPolicy?:
+    | WorkspacePolicyClientSnapshot["products"][number]
+    | undefined;
 }): BudgetAction {
   const proofAction =
     args.summary.proof.priority !== "build_signal"
@@ -1852,6 +1855,39 @@ function budgetActionForSummary(args: {
     ? args.summary.primaryAction
     : null;
   const budgetLabels = getDashboardCopy(args.locale).productCard.budgetActions;
+  const reclaimReason = args.productPolicy?.reclaimReason;
+
+  if (reclaimReason === "settled_proof") {
+    if (proofAction) {
+      return {
+        kind: "proof",
+        label: budgetLabels.prove_first,
+        proofAction,
+      };
+    }
+
+    return {
+      kind: "link",
+      label: budgetLabels.watch_effect,
+      href: `/dashboard/product/${args.summary.product.id}#submission-history`,
+    };
+  }
+
+  if (reclaimReason === "stalled_pipeline") {
+    if (proofAction) {
+      return {
+        kind: "proof",
+        label: budgetLabels.prove_first,
+        proofAction,
+      };
+    }
+
+    return {
+      kind: "link",
+      label: getDashboardCopy(args.locale).productCard.open,
+      href: `/dashboard/product/${args.summary.product.id}`,
+    };
+  }
 
   if (args.decision.key === "upgrade_now") {
     return {
@@ -3798,6 +3834,7 @@ export default function DashboardClient({
           summary: workspaceStrategyLead,
           decision: workspaceStrategyLeadDecision || { key: "build_queue" },
           currentPlan,
+          productPolicy: productPolicyById.get(workspaceStrategyLead.product.id),
         })
       : null;
 
@@ -6349,6 +6386,7 @@ export default function DashboardClient({
               <div className="mt-8 space-y-4">
                 {productSummaries.map((summary) => {
                   const weeklyBurn = productWeeklyBurnById.get(summary.product.id) || 0;
+                  const productPolicy = productPolicyById.get(summary.product.id);
                   const budgetDecision =
                     productBudgetDecisionById.get(summary.product.id) || {
                       key: "build_queue" as const,
@@ -6358,6 +6396,7 @@ export default function DashboardClient({
                     summary,
                     decision: budgetDecision,
                     currentPlan,
+                    productPolicy,
                   });
                   const latestChannel = summary.latestSubmission
                     ? CHANNELS.find(
@@ -6376,9 +6415,11 @@ export default function DashboardClient({
                         )
                       : 0
                     : 0;
-                  const launchAction = isLaunchAction(summary.primaryAction)
-                    ? summary.primaryAction
-                    : null;
+                  const launchAction =
+                    !productPolicy?.reclaimReason &&
+                    isLaunchAction(summary.primaryAction)
+                      ? summary.primaryAction
+                      : null;
                   const linkAction = isLinkAction(summary.primaryAction)
                     ? summary.primaryAction
                     : null;
@@ -6395,7 +6436,7 @@ export default function DashboardClient({
                   const reclaimGuidance = workspaceReclaimGuidance({
                     locale,
                     summary,
-                    productPolicy: productPolicyById.get(summary.product.id),
+                    productPolicy,
                   });
 
                   return (
