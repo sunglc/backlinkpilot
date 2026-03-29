@@ -647,6 +647,94 @@ function getProofBoardCopy(locale: Locale) {
   };
 }
 
+function getTodayBriefCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      eyebrow: "Today Brief",
+      title: "把今天最重要的判断压成三张卡",
+      body:
+        "实战里最怕的是信息很多，但方向不清。这里先告诉你今天最强的结果信号、最大的阻塞，以及唯一最该做的动作。",
+      cards: {
+        signal: "最强信号",
+        blocker: "最大阻塞",
+        move: "唯一推荐动作",
+      },
+      emptySignalTitle: "还没有进入结果层的产品",
+      emptySignalBody: "先让第一个产品进入真实执行，再谈 proof 和扩张。",
+      activeSignalTitle: "今天有 live 渠道在跑",
+      activeSignalBody: "最该看的不是更多设置，而是这一轮什么时候开始产出真实结果。",
+      readySignalTitle: "已经出现可推进的结果信号",
+      readySignalBody: "这个产品最接近进入公开 proof，应该优先推进它。",
+      noProductBlockerTitle: "还没有可执行的产品档案",
+      noProductBlockerBody: "没有产品，后面的 proof、外联和升级都没有承载点。",
+      freeBlockerTitle: "真实渠道还没解锁",
+      freeBlockerBody: "产品已经配好，但还停在免费配置层，真实提交和结果还没开始累积。",
+      syncBlockerTitle: "付款后同步还没完成",
+      syncBlockerBody: "通常只是 webhook 在追平。先刷新一次，别在半同步状态下误判。",
+      discoveryBlockerTitle: "今天的目标供给还在补货",
+      discoveryBlockerBody: "发现引擎还没补满今天的目标地板，后续执行面还会继续变厚。",
+      proofBlockerTitle: "结果信号还不够厚",
+      proofBlockerBody: "现在更重要的是继续执行，先把 receipt 和 reply 层做厚，再谈局部优化。",
+      actionSetupTitle: "先把第一个产品加进来",
+      actionSetupBody: "先形成一个可执行档案，后面的 launch、proof 和 managed inbox 才有落点。",
+      actionUnlockTitle: "先解锁 Starter",
+      actionUnlockBody: "这是从配置态进入真实提交态的分水岭，目录和 stealth 会立刻开始产生结果信号。",
+      actionSyncTitle: "先刷新工作台",
+      actionSyncBody: "计划状态同步完以后，这一屏的推荐动作才会切换成真正可执行。",
+      actionProofTitle: "先推进最接近结果的产品",
+      actionProofBody: "不要平均用力。先把最接近 proof 的产品推过去，结果感会最强。",
+      actionLaunchTitle: "先启动推荐渠道",
+      actionLaunchBody: "当前最值得做的是把推荐 lane 跑起来，让结果层开始积累。",
+      actionReviewTitle: "先打开最值得看的产品",
+      actionReviewBody: "如果没有更强动作，先回到最关键的产品页看清楚它现在卡在哪。",
+      refresh: "刷新工作台",
+      openProduct: "打开产品",
+    };
+  }
+
+  return {
+    eyebrow: "Today Brief",
+    title: "Compress today's product judgment into three cards",
+    body:
+      "Real usage breaks when the screen is full of information but short on direction. Start with the strongest signal, the biggest blocker, and the single move that matters most.",
+    cards: {
+      signal: "Strongest signal",
+      blocker: "Biggest blocker",
+      move: "Single best move",
+    },
+    emptySignalTitle: "No product has entered the result layer yet",
+    emptySignalBody: "Get the first product into live execution before worrying about proof or expansion.",
+    activeSignalTitle: "A live lane is running today",
+    activeSignalBody: "The thing to watch now is not more setup. It is when this run starts producing real result signal.",
+    readySignalTitle: "A product is already showing proof pressure",
+    readySignalBody: "This product is the closest to public proof and should be pushed first.",
+    noProductBlockerTitle: "There is no executable product profile yet",
+    noProductBlockerBody: "Without a product, proof, outreach, and upgrades have nothing real to operate on.",
+    freeBlockerTitle: "Live lanes are still locked",
+    freeBlockerBody: "The product is staged, but the workspace is still stuck in setup mode and not accumulating real submission signal.",
+    syncBlockerTitle: "Post-checkout sync is still catching up",
+    syncBlockerBody: "This is usually just the webhook finishing. Refresh once before judging the workspace state.",
+    discoveryBlockerTitle: "Today's target supply is still filling in",
+    discoveryBlockerBody: "The discovery engine has not finished replenishing today's floor, so the execution surface is still getting thicker.",
+    proofBlockerTitle: "The result layer is still too thin",
+    proofBlockerBody: "More execution matters more than local polishing until receipts and replies get thicker.",
+    actionSetupTitle: "Add the first product first",
+    actionSetupBody: "You need a real product profile before launch, proof, and managed inbox can become meaningful.",
+    actionUnlockTitle: "Unlock Starter first",
+    actionUnlockBody: "This is the line between setup mode and real execution. Directory and Stealth start producing signal immediately.",
+    actionSyncTitle: "Refresh the workspace first",
+    actionSyncBody: "The right move only becomes visible after the plan sync is complete.",
+    actionProofTitle: "Push the product closest to proof first",
+    actionProofBody: "Do not spread effort evenly. Move the product closest to proof and the result feeling gets stronger faster.",
+    actionLaunchTitle: "Launch the recommended lane first",
+    actionLaunchBody: "The highest-value move right now is starting the recommended lane so the result layer can compound.",
+    actionReviewTitle: "Open the product that matters most",
+    actionReviewBody: "If there is no stronger move, go to the key product page and get clarity on what is blocking it.",
+    refresh: "Refresh workspace",
+    openProduct: "Open product",
+  };
+}
+
 function proofPriorityClasses(priority: ProductProofPriority) {
   const classes: Record<ProductProofPriority, string> = {
     verify_published: "border-lime-300/15 bg-lime-300/[0.08] text-lime-100",
@@ -938,6 +1026,7 @@ export default function DashboardClient({
 }) {
   const copy = getDashboardCopy(locale);
   const proofCopy = getProofBoardCopy(locale);
+  const todayBriefCopy = getTodayBriefCopy(locale);
   const router = useRouter();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [name, setName] = useState("");
@@ -1209,6 +1298,74 @@ export default function DashboardClient({
   } else if (activeLaunches > 0) {
     heroTitle = copy.hero.activeTitle;
     heroBody = copy.hero.activeBody;
+  }
+
+  const topSignalSummary =
+    topProofProducts[0] ||
+    productSummaries.find((summary) => summary.activeSubmission) ||
+    featuredProduct ||
+    null;
+  const topSignalTitle = !topSignalSummary
+    ? todayBriefCopy.emptySignalTitle
+    : topProofProducts[0]
+      ? topSignalSummary.product.name
+      : todayBriefCopy.activeSignalTitle;
+  const topSignalBody = !topSignalSummary
+    ? todayBriefCopy.emptySignalBody
+    : topProofProducts[0]
+      ? `${
+          proofCopy.priorities[topSignalSummary.proof.priority].body
+        }${
+          topSignalSummary.proof.candidateLabels[0]
+            ? ` ${proofCopy.candidates}: ${topSignalSummary.proof.candidateLabels[0]}.`
+            : ""
+        }`
+      : topSignalSummary.activeSubmission
+        ? `${
+            todayBriefCopy.activeSignalBody
+          } ${topSignalSummary.activeSubmission.completed_sites}/${
+            topSignalSummary.activeSubmission.total_sites
+          }.`
+        : todayBriefCopy.readySignalBody;
+
+  let blockerTitle = todayBriefCopy.proofBlockerTitle;
+  let blockerBody = todayBriefCopy.proofBlockerBody;
+
+  if (products.length === 0) {
+    blockerTitle = todayBriefCopy.noProductBlockerTitle;
+    blockerBody = todayBriefCopy.noProductBlockerBody;
+  } else if (!isPaid) {
+    blockerTitle = todayBriefCopy.freeBlockerTitle;
+    blockerBody = todayBriefCopy.freeBlockerBody;
+  } else if (isPlanSyncPending) {
+    blockerTitle = todayBriefCopy.syncBlockerTitle;
+    blockerBody = todayBriefCopy.syncBlockerBody;
+  } else if (operationalInsights.discovery_remaining_to_target > 0) {
+    blockerTitle = todayBriefCopy.discoveryBlockerTitle;
+    blockerBody = `${todayBriefCopy.discoveryBlockerBody} ${copy.discovery.gapLabel}: ${operationalInsights.discovery_remaining_to_target}.`;
+  }
+
+  let actionTitle = todayBriefCopy.actionReviewTitle;
+  let actionBody = todayBriefCopy.actionReviewBody;
+
+  if (products.length === 0) {
+    actionTitle = todayBriefCopy.actionSetupTitle;
+    actionBody = todayBriefCopy.actionSetupBody;
+  } else if (!isPaid) {
+    actionTitle = todayBriefCopy.actionUnlockTitle;
+    actionBody = todayBriefCopy.actionUnlockBody;
+  } else if (isPlanSyncPending) {
+    actionTitle = todayBriefCopy.actionSyncTitle;
+    actionBody = todayBriefCopy.actionSyncBody;
+  } else if (featuredProofAction && featuredProduct) {
+    actionTitle = todayBriefCopy.actionProofTitle;
+    actionBody = `${todayBriefCopy.actionProofBody} ${featuredProduct.product.name}.`;
+  } else if (featuredLaunchAction && featuredProduct) {
+    actionTitle = todayBriefCopy.actionLaunchTitle;
+    actionBody = `${todayBriefCopy.actionLaunchBody} ${featuredProduct.product.name}.`;
+  } else if (featuredProduct) {
+    actionTitle = todayBriefCopy.actionReviewTitle;
+    actionBody = `${todayBriefCopy.actionReviewBody} ${featuredProduct.product.name}.`;
   }
 
   async function handleWorkspaceLaunch(productId: string, channelId: string) {
@@ -1593,6 +1750,131 @@ export default function DashboardClient({
                 <p className="mt-2 text-xs leading-6 text-stone-500">{item.note}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {todayBriefCopy.eyebrow}
+            </p>
+            <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+              {todayBriefCopy.title}
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-stone-400">
+              {todayBriefCopy.body}
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+            <div className="rounded-[1.35rem] border border-emerald-300/15 bg-emerald-300/[0.07] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-emerald-100/70">
+                {todayBriefCopy.cards.signal}
+              </div>
+              <h3 className="mt-3 text-xl font-semibold text-white">
+                {topSignalTitle}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-stone-200">
+                {topSignalBody}
+              </p>
+            </div>
+
+            <div className="rounded-[1.35rem] border border-amber-300/15 bg-amber-300/[0.08] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-amber-100/70">
+                {todayBriefCopy.cards.blocker}
+              </div>
+              <h3 className="mt-3 text-xl font-semibold text-white">
+                {blockerTitle}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-stone-200">
+                {blockerBody}
+              </p>
+            </div>
+
+            <div className="rounded-[1.35rem] border border-sky-300/15 bg-sky-300/[0.08] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-sky-100/70">
+                {todayBriefCopy.cards.move}
+              </div>
+              <h3 className="mt-3 text-xl font-semibold text-white">
+                {actionTitle}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-stone-200">
+                {actionBody}
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                {products.length === 0 ? (
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.onboarding.primary}
+                  </button>
+                ) : !isPaid ? (
+                  <a
+                    href="/api/stripe/checkout?plan=starter"
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryUnlock}
+                  </a>
+                ) : isPlanSyncPending ? (
+                  <button
+                    type="button"
+                    onClick={() => router.refresh()}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {todayBriefCopy.refresh}
+                  </button>
+                ) : featuredProofAction && featuredProduct ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleWorkspaceProofAction(
+                        featuredProduct.product.id,
+                        featuredProofAction
+                      )
+                    }
+                    disabled={
+                      proofActionKey ===
+                      `${featuredProduct.product.id}:${featuredProofAction.taskType}`
+                    }
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {proofActionKey ===
+                    `${featuredProduct.product.id}:${featuredProofAction.taskType}`
+                      ? copy.productCard.starting
+                      : featuredProofAction.label}
+                  </button>
+                ) : featuredLaunchAction && featuredProduct ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleWorkspaceLaunch(
+                        featuredProduct.product.id,
+                        featuredLaunchAction.channelId
+                      )
+                    }
+                    disabled={
+                      launchingKey ===
+                      `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                    }
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {launchingKey ===
+                    `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                      ? copy.productCard.starting
+                      : copy.checkout.startNow}
+                  </button>
+                ) : featuredProduct ? (
+                  <Link
+                    href={`/dashboard/product/${featuredProduct.product.id}`}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {todayBriefCopy.openProduct}
+                  </Link>
+                ) : null}
+              </div>
+            </div>
           </div>
         </section>
 
