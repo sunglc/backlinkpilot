@@ -128,6 +128,7 @@ interface WorkspaceTask {
   updatedAt: string;
   successCost: number;
   failureCost: number;
+  focusLabel?: string;
   coverageBreakdown?: WorkspaceTaskPlanCoverageBreakdown | null;
 }
 
@@ -402,6 +403,7 @@ function getDashboardCopy(locale: Locale) {
           updatedAt: "最近更新",
           success: "成功",
           failure: "失败/辛苦费",
+          focus: "当前权重",
           fromPlan: "来源",
           createNextTasks: "生成下一批任务",
           creatingTasks: "生成中...",
@@ -423,8 +425,14 @@ function getDashboardCopy(locale: Locale) {
           awaiting_effect: "已发布/待生效",
           live: "已生效",
         },
-        footer:
+      footer:
           "这批积分还是产品层预估，不会先于真实计费生效。它现在的作用，是先让用户理解每类任务的成本结构。",
+        focusLabels: {
+          prove_now: "最接近结果",
+          watch_effect: "盯住生效",
+          expand_lane: "继续扩量",
+          build_queue: "补齐计划",
+        },
       },
       emptyState: {
         title: "添加你的第一个产品",
@@ -727,6 +735,7 @@ function getDashboardCopy(locale: Locale) {
         updatedAt: "Updated",
         success: "Success",
         failure: "Failure / ops fee",
+        focus: "Current focus",
         fromPlan: "From",
         createNextTasks: "Create next tasks",
         creatingTasks: "Creating...",
@@ -750,6 +759,12 @@ function getDashboardCopy(locale: Locale) {
       },
       footer:
         "These credits are still a product-layer preview. They do not charge before the real billing model exists. Right now they help users understand the cost structure of each task type.",
+      focusLabels: {
+        prove_now: "Closest to proof",
+        watch_effect: "Watch effect",
+        expand_lane: "Expand next",
+        build_queue: "Build queue",
+      },
     },
     emptyState: {
       title: "Add your first product",
@@ -1131,6 +1146,61 @@ function workspaceTaskStageRank(stage: WorkspaceTaskStage) {
     awaiting_effect: 2,
     live: 3,
   }[stage];
+}
+
+function workspaceTaskPriorityScore(task: WorkspaceTask) {
+  const baseStageScore = {
+    pending: 10,
+    planned: 30,
+    awaiting_effect: 60,
+    live: 90,
+  }[task.stage];
+
+  if (task.kind === "proof") {
+    return baseStageScore + 70;
+  }
+
+  if (task.kind === "submission") {
+    return baseStageScore + 45;
+  }
+
+  if (
+    task.kind === "coverage" &&
+    task.taskPlanMode === "competitor_map" &&
+    (task.materializedChannelIds?.length || 0) > 0
+  ) {
+    return baseStageScore + 35;
+  }
+
+  if (task.kind === "coverage") {
+    return baseStageScore + 15;
+  }
+
+  return baseStageScore;
+}
+
+function workspaceTaskFocusLabel(
+  task: WorkspaceTask,
+  copy: ReturnType<typeof getDashboardCopy>
+) {
+  if (task.kind === "proof" || task.stage === "live") {
+    return copy.tasks.focusLabels.prove_now;
+  }
+
+  if (task.kind === "submission" || task.stage === "awaiting_effect") {
+    return copy.tasks.focusLabels.watch_effect;
+  }
+
+  if (
+    task.kind === "coverage" &&
+    ((task.taskPlanMode === "competitor_map" &&
+      (task.materializedChannelIds?.length || 0) > 0) ||
+      task.sourcePlanId)
+  ) {
+    return copy.tasks.focusLabels.expand_lane;
+  }
+
+  return copy.tasks.focusLabels.build_queue;
 }
 
 function proofTaskTitle(
@@ -2189,10 +2259,21 @@ export default function DashboardClient({
 
       return tasks;
     })
+    .map((task) => ({
+      ...task,
+      focusLabel: workspaceTaskFocusLabel(task, copy),
+    }))
     .slice()
     .sort((left, right) => {
+      const priorityDelta =
+        workspaceTaskPriorityScore(right) - workspaceTaskPriorityScore(left);
+
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+
       const stageDelta =
-        workspaceTaskStageRank(left.stage) - workspaceTaskStageRank(right.stage);
+        workspaceTaskStageRank(right.stage) - workspaceTaskStageRank(left.stage);
 
       if (stageDelta !== 0) {
         return stageDelta;
@@ -3084,6 +3165,11 @@ export default function DashboardClient({
                         >
                           {taskQueueCopy.stages[task.stage]}
                         </span>
+                        {task.focusLabel ? (
+                          <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1 text-xs text-emerald-100">
+                            {taskQueueCopy.labels.focus}: {task.focusLabel}
+                          </span>
+                        ) : null}
                         <span className="text-sm text-stone-500">{task.productName}</span>
                         {task.sourcePlanTitle ? (
                           <span className="text-sm text-stone-500">
