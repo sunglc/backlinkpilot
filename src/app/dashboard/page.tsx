@@ -10,8 +10,10 @@ import { createClient } from "@/lib/supabase-server";
 import { getLocale } from "@/lib/locale";
 import { summarizeProductProofPipeline } from "@/lib/proof-pipeline";
 import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
+import { readSaasCapabilityHistory } from "@/lib/saas-capability-history";
 import { readSaasCapabilityReviewState } from "@/lib/saas-capability-review-state";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
+import { buildWorkspaceSupplySnapshot } from "@/lib/workspace-supply-policy";
 import { readWorkspaceTaskPlans } from "@/lib/workspace-task-plans";
 import DashboardClient from "./dashboard-client";
 
@@ -68,6 +70,7 @@ export default async function Dashboard({
         .order("created_at", { ascending: false })
     : { data: [] };
   const capabilityContract = await readSaasCapabilityContract();
+  const capabilityHistory = await readSaasCapabilityHistory();
   const capabilityReviewState = await readSaasCapabilityReviewState({
     userId: user.id,
     currentFingerprint: capabilityContract.capability_fingerprint,
@@ -81,6 +84,13 @@ export default async function Dashboard({
       name: product.name || "",
     })),
     submissions: submissions || [],
+  });
+  const workspaceSupply = buildWorkspaceSupplySnapshot({
+    currentPlan,
+    reviewPending: capabilityReviewState.reviewPending,
+    capabilityContract,
+    operationalInsights,
+    workspacePolicy: workspacePolicySnapshot,
   });
   const mapLaneOwners = (productIds: string[]) =>
     productIds.flatMap((productId) => {
@@ -166,8 +176,10 @@ export default async function Dashboard({
       submissions={submissions || []}
       productProofSummaries={productProofSummaries}
       capabilityContract={capabilityContract}
+      capabilityHistory={capabilityHistory}
       capabilityReviewState={capabilityReviewState}
       operationalInsights={operationalInsights}
+      workspaceSupply={workspaceSupply}
       workspaceTaskPlans={workspaceTaskPlans}
       workspacePolicy={workspacePolicy}
       checkoutState={checkoutState}

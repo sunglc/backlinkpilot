@@ -18,6 +18,10 @@ import type {
 } from "@/lib/proof-pipeline";
 import type { SaasCapabilityContract } from "@/lib/saas-capability-contract-types";
 import type {
+  SaasCapabilityHistory,
+  SaasCapabilityHistoryEntry,
+} from "@/lib/saas-capability-history-types";
+import type {
   WorkspacePolicyClientSnapshot,
   WorkspacePolicyLane,
 } from "@/lib/workspace-policy-types";
@@ -26,6 +30,10 @@ import type {
   OperationalInsightsDiscoveryMarket,
 } from "@/lib/saas-operational-insights-types";
 import type { SaasCapabilityReviewState } from "@/lib/saas-capability-review-state-types";
+import type {
+  WorkspaceSupplyOwnerSummary,
+  WorkspaceSupplySnapshot,
+} from "@/lib/workspace-supply-policy-types";
 import type {
   WorkspaceTaskPlan,
   WorkspaceTaskPlanCoverageBreakdown,
@@ -166,8 +174,10 @@ interface DashboardClientProps {
   submissions: Submission[];
   productProofSummaries: ProductProofSummaryRow[];
   capabilityContract: SaasCapabilityContract;
+  capabilityHistory: SaasCapabilityHistory;
   capabilityReviewState: SaasCapabilityReviewState;
   operationalInsights: OperationalInsights;
+  workspaceSupply: WorkspaceSupplySnapshot;
   workspaceTaskPlans: WorkspaceTaskPlan[];
   workspacePolicy: WorkspacePolicyClientSnapshot;
   checkoutState: CheckoutState;
@@ -691,6 +701,15 @@ function getDashboardCopy(locale: Locale) {
         acknowledgeAction: "标记为已吸收",
         acknowledging: "标记中...",
         acknowledgeError: "能力合同状态更新失败，请稍后再试。",
+        historyTitle: "能力升级历史",
+        historyBody:
+          "这里记录最近几次能力合同变化，方便产品、运营和销售理解现在的能力是怎么迭代出来的。",
+        historyChanged: "有结构变化",
+        historyStable: "当前能力快照",
+        historyEmpty: "当前还没有能力升级历史可展示。",
+        addedLabel: "新增能力",
+        removedLabel: "移除能力",
+        snapshotLabel: "状态快照",
         progressLabel: "今日发现进度",
         targetLabel: "今日硬目标",
         gapLabel: "今日剩余缺口",
@@ -1211,6 +1230,15 @@ function getDashboardCopy(locale: Locale) {
         acknowledgeAction: "Mark as adopted",
         acknowledging: "Saving...",
         acknowledgeError: "Unable to update the capability contract state right now.",
+        historyTitle: "Capability upgrade history",
+        historyBody:
+          "This keeps the recent capability-contract changes visible so product, ops, and sales can see how the current capability layer evolved.",
+        historyChanged: "Structural change",
+        historyStable: "Current capability snapshot",
+        historyEmpty: "There is no capability upgrade history to show yet.",
+        addedLabel: "Added",
+        removedLabel: "Removed",
+        snapshotLabel: "Snapshot",
         progressLabel: "Today's discovery progress",
         targetLabel: "Daily floor",
         gapLabel: "Remaining gap today",
@@ -2019,6 +2047,136 @@ function workspaceLaneGuardMessage(args: {
   }[args.lane];
 }
 
+function workspaceSupplyReasonLabel(
+  owner: WorkspaceSupplyOwnerSummary,
+  locale: Locale
+) {
+  if (locale === "zh") {
+    return {
+      needs_first_signal: "这个产品还缺第一批真实结果，最适合先吃新增供给。",
+      idle_lane: "它当前有空余执行位，继续补新供给不会把节奏打乱。",
+      has_receipt_base: "它已经有基础回执，更适合承接下一层 buildout 供给。",
+      proof_in_motion: "这条产品线已经有 proof 在动，先把供给集中在它身上更稳。",
+      managed_inbox_ready: "托管发件身份已经就绪，适合先吃收费型和商务型机会。",
+    }[owner.reason];
+  }
+
+  return {
+    needs_first_signal:
+      "This product still needs the first real signal, so it should absorb fresh supply first.",
+    idle_lane:
+      "This product has room in the execution lane, so fresh supply will not disrupt the current rhythm.",
+    has_receipt_base:
+      "This product already has a receipt base, which makes it the better home for buildout supply.",
+    proof_in_motion:
+      "Proof is already moving here, so concentrating new supply on this product is the more stable path.",
+    managed_inbox_ready:
+      "The managed inbox is ready here, so paid and commercial opportunities can land without extra setup.",
+  }[owner.reason];
+}
+
+function workspaceSupplyFocusCopy(args: {
+  locale: Locale;
+  workspaceSupply: WorkspaceSupplySnapshot;
+}) {
+  if (args.locale === "zh") {
+    return {
+      review_contract: {
+        title: "先吸收能力合同，再动新增供给。",
+        body: "能力合同刚变，先同步 required SaaS actions，避免前台宣称和真实能力继续漂移。",
+      },
+      unlock_plan: {
+        title: "先完成解锁，不急着分配新增供给。",
+        body: "免费层先把产品登记和路径看清楚。真正的自动供给分配要等 live execution 解锁后再放量。",
+      },
+      push_proof: {
+        title: "先把现有 proof 推出来，再开新的自动供给。",
+        body: "当前更值钱的是把正在接近结果的产品推到 proof，而不是继续铺新的 auto coverage。",
+      },
+      feed_proven: {
+        title: "先把 proven 供给喂给当前优先产品。",
+        body: "新增 discovery supply 先走 proven 市场，避免还没站稳就把精力分散到 buildout。",
+      },
+      expand_buildout: {
+        title: "基础结果已成型，可以开始扩到 buildout 市场。",
+        body: "当前 proven 供给已经有承接基础，可以让第二层 buildout 供给开始进入规划。",
+      },
+      prepare_premium: {
+        title: "标准 proof 路径稳定后，再吃 premium 机会。",
+        body: "收费型和商务型机会要继续独立处理，只让已准备好的产品先接这类供给。",
+      },
+      hold_supply: {
+        title: "当前不该再自动开新供给。",
+        body: "先把已有任务和结果节奏收住，再决定要不要继续开新的 auto coverage。",
+      },
+    }[args.workspaceSupply.focus];
+  }
+
+  return {
+    review_contract: {
+      title: "Absorb the capability contract before routing fresh supply.",
+      body: "The capability contract changed. Sync the required SaaS actions first so public claims do not drift away from reality.",
+    },
+    unlock_plan: {
+      title: "Unlock the execution layer before allocating fresh supply.",
+      body: "The free layer should stage products and clarify the path first. Real auto-supply routing should open up after live execution is unlocked.",
+    },
+    push_proof: {
+      title: "Push the current proof path before opening fresh auto supply.",
+      body: "The higher-value move right now is turning existing proof candidates into results instead of opening another auto-coverage plan.",
+    },
+    feed_proven: {
+      title: "Feed proven supply into the current priority product first.",
+      body: "Fresh discovery supply should start in proven markets so the workspace does not spread itself across buildout lanes too early.",
+    },
+    expand_buildout: {
+      title: "The base is stable enough to start expanding into buildout markets.",
+      body: "Proven supply already has a base to land on, which means the next buildout layer can start entering the planning mix.",
+    },
+    prepare_premium: {
+      title: "Only open premium opportunities after the standard proof path is stable.",
+      body: "Paid and commercial opportunities should stay separate, with only prepared products taking that extra supply.",
+    },
+    hold_supply: {
+      title: "Do not open more auto-generated supply right now.",
+      body: "Let the current tasks and proof rhythm settle before creating another auto-coverage plan.",
+    },
+  }[args.workspaceSupply.focus];
+}
+
+function workspaceAutoCoverageGuardMessage(args: {
+  locale: Locale;
+  productId: string;
+  workspaceSupply: WorkspaceSupplySnapshot;
+}) {
+  if (args.workspaceSupply.reviewPending) {
+    return args.locale === "zh"
+      ? "能力合同刚变化，先吸收 required SaaS actions，再把新的 discovery supply 路由进 auto coverage。"
+      : "The capability contract changed. Absorb the required SaaS actions before routing fresh discovery supply into another auto-coverage plan.";
+  }
+
+  if (args.workspaceSupply.focus === "push_proof") {
+    return args.locale === "zh"
+      ? "当前应该先把 proof 往前推，不要再开新的 auto coverage。"
+      : "The workspace should push current proof work forward before opening another auto-coverage plan.";
+  }
+
+  const owner = args.workspaceSupply.provenOwner;
+  if (
+    !owner ||
+    !args.workspaceSupply.recommendedAutoCoverageProductId ||
+    owner.productId === args.productId
+  ) {
+    return null;
+  }
+
+  if (args.locale === "zh") {
+    return `当前新增 discovery supply 优先分配给 ${owner.productName}。先让它吃下下一批 auto coverage，再决定是否切到这个产品。`;
+  }
+
+  return `Fresh discovery supply is currently routed to ${owner.productName}. Let that product absorb the next auto-coverage plan first.`;
+}
+
 function workspaceOwnershipSummary(
   lanes: WorkspacePolicyLane[],
   locale: Locale
@@ -2064,6 +2222,13 @@ function formatFingerprint(value: string) {
   }
 
   return `${value.slice(0, 8)}…${value.slice(-8)}`;
+}
+
+function capabilityHistoryToneClasses(entry: SaasCapabilityHistoryEntry) {
+  if (entry.capabilities_changed || entry.requires_saas_review) {
+    return "border-amber-300/15 bg-amber-300/[0.06] text-amber-100";
+  }
+  return "border-white/10 bg-white/[0.04] text-stone-200";
 }
 
 function formatMarketChips(
@@ -2566,7 +2731,11 @@ function formatPlanName(plan: string | null | undefined, locale: Locale) {
 }
 
 function formatDashboardDate(date: string, locale: Locale) {
-  return new Date(date).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
+  const parsed = new Date(date.includes("T") ? date : date.replace(" ", "T"));
+  if (Number.isNaN(parsed.getTime())) {
+    return date || "—";
+  }
+  return parsed.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -2611,8 +2780,10 @@ export default function DashboardClient({
   submissions,
   productProofSummaries,
   capabilityContract,
+  capabilityHistory,
   capabilityReviewState,
   operationalInsights,
+  workspaceSupply,
   workspaceTaskPlans,
   workspacePolicy,
   checkoutState,
@@ -2635,7 +2806,9 @@ export default function DashboardClient({
   const [launchingKey, setLaunchingKey] = useState<string | null>(null);
   const [proofActionKey, setProofActionKey] = useState<string | null>(null);
   const [workspaceActionError, setWorkspaceActionError] = useState("");
-  const [plannerProductId, setPlannerProductId] = useState(products[0]?.id || "");
+  const [plannerProductId, setPlannerProductId] = useState(
+    workspaceSupply.recommendedAutoCoverageProductId || products[0]?.id || ""
+  );
   const [importList, setImportList] = useState("");
   const [competitorList, setCompetitorList] = useState("");
   const [importGranularity, setImportGranularity] =
@@ -2655,6 +2828,14 @@ export default function DashboardClient({
   useEffect(() => {
     setCapabilityReview(capabilityReviewState);
   }, [capabilityReviewState]);
+
+  useEffect(() => {
+    if (!products.some((product) => product.id === plannerProductId)) {
+      setPlannerProductId(
+        workspaceSupply.recommendedAutoCoverageProductId || products[0]?.id || ""
+      );
+    }
+  }, [plannerProductId, products, workspaceSupply.recommendedAutoCoverageProductId]);
 
   const isPaid = subscription?.status === "active";
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
@@ -2723,6 +2904,7 @@ export default function DashboardClient({
   const requiredCapabilityActions = capabilityReviewPending
     ? capabilityContract.required_saas_actions.slice(0, 4)
     : [];
+  const recentCapabilityHistory = capabilityHistory.history.slice(0, 4);
 
   async function acknowledgeCapabilityContractReview() {
     setCapabilityReviewAction(true);
@@ -2996,7 +3178,11 @@ export default function DashboardClient({
       ? featuredProduct.primaryAction
       : null;
   const resolvedPlannerProductId =
-    plannerProductId || featuredProduct?.product.id || products[0]?.id || "";
+    plannerProductId ||
+    workspaceSupply.recommendedAutoCoverageProductId ||
+    featuredProduct?.product.id ||
+    products[0]?.id ||
+    "";
   const importLineCount = importList
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -3281,6 +3467,21 @@ export default function DashboardClient({
         return rightBurn - leftBurn;
       })[0] || null;
   const laneOwnersByLane = workspacePolicy.laneOwners;
+  const workspaceSupplyAutoOwner =
+    (workspaceSupply.provenOwner &&
+      workspaceSupply.provenOwner.productId ===
+        workspaceSupply.recommendedAutoCoverageProductId
+      ? workspaceSupply.provenOwner
+      : null) ||
+    (workspaceSupply.buildoutOwner &&
+      workspaceSupply.buildoutOwner.productId ===
+        workspaceSupply.recommendedAutoCoverageProductId
+      ? workspaceSupply.buildoutOwner
+      : null);
+  const workspaceSupplyFocus = workspaceSupplyFocusCopy({
+    locale,
+    workspaceSupply,
+  });
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -3533,6 +3734,19 @@ export default function DashboardClient({
     if (!resolvedPlannerProductId) {
       setBuilderError(copy.errors.saveFailed);
       return;
+    }
+
+    if (mode === "auto") {
+      const supplyGuardMessage = workspaceAutoCoverageGuardMessage({
+        locale,
+        productId: resolvedPlannerProductId,
+        workspaceSupply,
+      });
+
+      if (supplyGuardMessage) {
+        setBuilderError(supplyGuardMessage);
+        return;
+      }
     }
 
     if (mode === "import" && !importList.trim()) {
@@ -4484,6 +4698,84 @@ export default function DashboardClient({
               </select>
             </div>
 
+            <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                    {locale === "zh" ? "Supply Dispatcher" : "Supply Dispatcher"}
+                  </p>
+                  <h3 className="mt-3 text-xl font-semibold text-white">
+                    {workspaceSupplyFocus.title}
+                  </h3>
+                </div>
+                {workspaceSupplyAutoOwner ? (
+                  <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-100">
+                    {locale === "zh"
+                      ? `当前 auto coverage 默认给 ${workspaceSupplyAutoOwner.productName}`
+                      : `Auto coverage defaults to ${workspaceSupplyAutoOwner.productName}`}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-4 text-sm leading-7 text-stone-300">
+                {workspaceSupplyFocus.body}
+              </p>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                {[
+                  {
+                    label:
+                      locale === "zh" ? "Proven 供给归属" : "Proven supply owner",
+                    owner: workspaceSupply.provenOwner,
+                  },
+                  {
+                    label:
+                      locale === "zh" ? "Buildout 供给归属" : "Buildout supply owner",
+                    owner: workspaceSupply.buildoutOwner,
+                  },
+                  {
+                    label:
+                      locale === "zh" ? "Premium 供给归属" : "Premium supply owner",
+                    owner: workspaceSupply.premiumOwner,
+                  },
+                ].map(({ label, owner }) => (
+                  <div
+                    key={label}
+                    className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                  >
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {label}
+                    </div>
+                    <div className="mt-3 text-sm font-medium leading-7 text-stone-100">
+                      {owner
+                        ? owner.productName
+                        : locale === "zh"
+                          ? "当前没有明确归属"
+                          : "No explicit owner right now"}
+                    </div>
+                    <p className="mt-2 text-xs leading-6 text-stone-500">
+                      {owner
+                        ? workspaceSupplyReasonLabel(owner, locale)
+                        : locale === "zh"
+                          ? "这一层供给暂时不应该继续往前开。"
+                          : "This layer should stay closed for now."}
+                    </p>
+                    {owner?.recommendedMarkets.length ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {owner.recommendedMarkets.map((market) => (
+                          <span
+                            key={`${label}:${market}`}
+                            className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-stone-300"
+                          >
+                            {market}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
               <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
                 <h3 className="text-xl font-semibold text-white">
@@ -5361,6 +5653,87 @@ export default function DashboardClient({
               ) : (
                 <p className="mt-4 text-sm leading-7 text-stone-400">
                   {copy.discovery.noReviewActions}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.discovery.historyTitle}
+              </div>
+              <p className="mt-3 text-sm leading-7 text-stone-300">
+                {copy.discovery.historyBody}
+              </p>
+              {recentCapabilityHistory.length > 0 ? (
+                <div className="mt-4 grid gap-3">
+                  {recentCapabilityHistory.map((entry) => (
+                    <div
+                      key={`${entry.capability_fingerprint}:${entry.generated_at}`}
+                      className="rounded-[1.05rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">
+                            {entry.current_focus}
+                          </div>
+                          <div className="mt-2 text-xs text-stone-500">
+                            {formatDashboardDate(entry.generated_at, locale)}
+                          </div>
+                        </div>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${capabilityHistoryToneClasses(
+                            entry
+                          )}`}
+                        >
+                          {entry.capabilities_changed || entry.requires_saas_review
+                            ? copy.discovery.historyChanged
+                            : copy.discovery.historyStable}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-400">
+                        <span>
+                          {copy.discovery.snapshotLabel}:{" "}
+                          {entry.latest_state_snapshot_id || "—"}
+                        </span>
+                        <span>
+                          {copy.discovery.fingerprintLabel}:{" "}
+                          {formatFingerprint(entry.capability_fingerprint)}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 md:grid-cols-2">
+                        <div className="rounded-[0.9rem] border border-white/10 bg-black/10 p-3">
+                          <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                            {copy.discovery.addedLabel}
+                          </div>
+                          <div className="mt-2 text-xs leading-6 text-stone-300">
+                            {entry.added_capability_ids.length > 0
+                              ? entry.added_capability_ids.join(", ")
+                              : locale === "zh"
+                                ? "无"
+                                : "none"}
+                          </div>
+                        </div>
+                        <div className="rounded-[0.9rem] border border-white/10 bg-black/10 p-3">
+                          <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                            {copy.discovery.removedLabel}
+                          </div>
+                          <div className="mt-2 text-xs leading-6 text-stone-300">
+                            {entry.removed_capability_ids.length > 0
+                              ? entry.removed_capability_ids.join(", ")
+                              : locale === "zh"
+                                ? "无"
+                                : "none"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {copy.discovery.historyEmpty}
                 </p>
               )}
             </div>

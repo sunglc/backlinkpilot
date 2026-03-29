@@ -1,0 +1,48 @@
+import type { WorkspacePolicyProductLane } from "@/lib/workspace-policy-types";
+
+export type WorkspaceSupplyTier = "proven" | "buildout" | "premium";
+
+export type WorkspaceSupplyFocus =
+  | "review_contract"
+  | "unlock_plan"
+  | "push_proof"
+  | "feed_proven"
+  | "expand_buildout"
+  | "prepare_premium"
+  | "hold_supply";
+
+export type WorkspaceSupplyReason =
+  | "needs_first_signal"
+  | "idle_lane"
+  | "has_receipt_base"
+  | "proof_in_motion"
+  | "managed_inbox_ready";
+
+export interface WorkspaceSupplyOwnerSummary {
+  productId: string;
+  productName: string;
+  workspaceLane: WorkspacePolicyProductLane;
+  tier: WorkspaceSupplyTier;
+  recommendedMarkets: string[];
+  reason: WorkspaceSupplyReason;
+  openSubmissionCount: number;
+  receiptCount: number;
+  proofScore: number;
+  activeProofTaskCount: number;
+}
+
+export interface WorkspaceSupplySnapshot {
+  currentPlan: string;
+  reviewPending: boolean;
+  discovery: {
+    target: number;
+    counted: number;
+    remaining: number;
+    reached: boolean;
+  };
+  focus: WorkspaceSupplyFocus;
+  recommendedAutoCoverageProductId: string | null;
+  provenOwner: WorkspaceSupplyOwnerSummary | null;
+  buildoutOwner: WorkspaceSupplyOwnerSummary | null;
+  premiumOwner: WorkspaceSupplyOwnerSummary | null;
+}

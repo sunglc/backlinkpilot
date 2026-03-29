@@ -6,8 +6,13 @@ import {
   materializeCompetitorCoveragePlan,
   readWorkspaceTaskPlans,
 } from "@/lib/workspace-task-plans";
+import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import type { WorkspaceTaskPlanGranularity } from "@/lib/workspace-task-plans-types";
+import {
+  buildWorkspaceSupplySnapshot,
+  getWorkspaceAutoCoverageError,
+} from "@/lib/workspace-supply-policy";
 import {
   buildWorkspacePolicySnapshot,
   getWorkspacePolicyError,
@@ -93,23 +98,67 @@ export async function POST(
   if (body.action === "create_auto_coverage") {
     const { data: subscription } = await supabase
       .from("subscriptions")
-      .select("plan")
+      .select("plan, status")
       .eq("user_id", user.id)
       .single();
-    const { data: submissions } = await supabase
+    const currentPlan =
+      subscription?.status === "active" ? subscription.plan || "starter" : "free";
+    const { data: userProducts } = await supabase
+      .from("products")
+      .select("id, name")
+      .eq("user_id", user.id);
+    const products = Array.from(
+      new Map(
+        (userProducts || [])
+          .concat({ id: product.id, name: product.name || "" })
+          .map((item) => [item.id, { id: item.id, name: item.name || "" }])
+      ).values()
+    );
+    const productIds = products.map((item) => item.id);
+    const { data: workspaceSubmissions } = await supabase
       .from("submissions")
-      .select("channel")
-      .eq("product_id", id);
-
+      .select("product_id, channel, status, success_sites")
+      .in("product_id", productIds);
+    const workspacePolicy = await buildWorkspacePolicySnapshot({
+      userId: user.id,
+      currentPlan,
+      products,
+      submissions: (workspaceSubmissions || []).map((submission) => ({
+        product_id: submission.product_id,
+        status: submission.status,
+        success_sites: submission.success_sites,
+      })),
+    });
     const operationalInsights = await readSaasOperationalInsights();
+    const capabilityContract = await readSaasCapabilityContract();
+    const workspaceSupply = buildWorkspaceSupplySnapshot({
+      currentPlan,
+      reviewPending: false,
+      capabilityContract,
+      operationalInsights,
+      workspacePolicy,
+    });
+    const autoCoverageError = getWorkspaceAutoCoverageError({
+      snapshot: workspaceSupply,
+      productId: id,
+    });
+
+    if (autoCoverageError) {
+      return NextResponse.json({ error: autoCoverageError }, { status: 409 });
+    }
+
     const plan = await createAutoCoverageTaskPlan({
       product,
       actor: {
         userId: user.id,
         userEmail: user.email || null,
       },
-      plan: subscription?.plan || "free",
-      submissions: submissions || [],
+      plan: currentPlan,
+      submissions: (workspaceSubmissions || [])
+        .filter((submission) => submission.product_id === id)
+        .map((submission) => ({
+          channel: submission.channel,
+        })),
       operationalInsights,
     });
 
