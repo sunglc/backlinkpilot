@@ -17,6 +17,10 @@ import type {
   ProductProofSummary,
 } from "@/lib/proof-pipeline";
 import type { OperationalInsights } from "@/lib/saas-operational-insights";
+import type {
+  WorkspaceTaskPlan,
+  WorkspaceTaskPlanGranularity,
+} from "@/lib/workspace-task-plans-types";
 import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
@@ -79,7 +83,7 @@ type ProductPrimaryAction =
     };
 type WorkflowStepStatus = "blocked" | "ready" | "active" | "done" | "live";
 type WorkspaceTaskStage = "pending" | "planned" | "awaiting_effect" | "live";
-type WorkspaceTaskKind = "profile" | "submission" | "proof";
+type WorkspaceTaskKind = "profile" | "coverage" | "submission" | "proof";
 
 type LaunchProductPrimaryAction = Extract<
   ProductPrimaryAction,
@@ -322,9 +326,9 @@ function getDashboardCopy(locale: Locale) {
             title: "2. 生成覆盖计划",
             empty:
               "先有产品，系统才能基于 discovery 供给和 live 渠道生成覆盖路线。",
-            ready:
+          ready:
               "系统已经能根据当前产品、今日供给和可用渠道，给出一版可执行覆盖计划。",
-            action: "查看覆盖计划",
+            action: "创建覆盖计划",
           },
           launch: {
             title: "3. 建立执行任务",
@@ -345,6 +349,30 @@ function getDashboardCopy(locale: Locale) {
           },
         },
       },
+      builder: {
+        eyebrow: "Task Builder",
+        title: "先把任务建出来，再谈放大执行",
+        body:
+          "这一层开始把“推荐覆盖计划”和“导入外链清单”变成真实任务，而不是只停留在看板判断。",
+        productLabel: "目标产品",
+        autoTitle: "系统生成覆盖计划",
+        autoBody:
+          "基于当前产品、已跑渠道和 discovery 供给，生成一版推荐覆盖计划，并落成任务。",
+        autoAction: "生成覆盖计划",
+        importTitle: "导入你的外链清单",
+        importBody:
+          "一行一个域名或 URL。你可以先按批次导入，也可以拆成每个外链一个任务。",
+        importPlaceholder:
+          "example.com\nhttps://directory.example/submit\nblog.example.com/tools",
+        granularityLabel: "导入方式",
+        granularityBatch: "按一批任务",
+        granularityPerTarget: "按单个外链任务",
+        importAction: "导入清单并建任务",
+        loading: "处理中...",
+        detectedCount: "识别到的条目",
+        note:
+          "这一步先把任务和阶段结构立住。后面再继续接真实导入执行和积分扣费。",
+      },
       tasks: {
         eyebrow: "Task Queue",
         title: "把执行能力翻成任务，而不是后台日志",
@@ -364,6 +392,7 @@ function getDashboardCopy(locale: Locale) {
         },
         kinds: {
           profile: "产品登记",
+          coverage: "覆盖计划",
           submission: "外链任务",
           proof: "结果推进",
         },
@@ -607,7 +636,7 @@ function getDashboardCopy(locale: Locale) {
             "The system needs a product profile before it can turn discovery supply and live lanes into a coverage path.",
           ready:
             "The app can already turn the current product, today's discovery supply, and available live lanes into an executable coverage plan.",
-          action: "View coverage plan",
+          action: "Create coverage plan",
         },
         launch: {
           title: "3. Create execution tasks",
@@ -632,6 +661,30 @@ function getDashboardCopy(locale: Locale) {
         },
       },
     },
+    builder: {
+      eyebrow: "Task Builder",
+      title: "Create the task first, then scale the execution",
+      body:
+        "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
+      productLabel: "Product",
+      autoTitle: "Generate a system coverage plan",
+      autoBody:
+        "Use the current product, completed lanes, and discovery supply to generate a recommended coverage plan and turn it into a task.",
+      autoAction: "Generate coverage plan",
+      importTitle: "Import your backlink list",
+      importBody:
+        "Use one domain or URL per line. You can import them as one batch or split them into one task per target.",
+      importPlaceholder:
+        "example.com\nhttps://directory.example/submit\nblog.example.com/tools",
+      granularityLabel: "Import mode",
+      granularityBatch: "One batch task",
+      granularityPerTarget: "One task per target",
+      importAction: "Import list and create tasks",
+      loading: "Working...",
+      detectedCount: "Detected lines",
+      note:
+        "This step focuses on making the task and stage structure real first. Real execution and billing can plug in after that.",
+    },
     tasks: {
       eyebrow: "Task Queue",
       title: "Translate execution into tasks, not backend logs",
@@ -651,6 +704,7 @@ function getDashboardCopy(locale: Locale) {
       },
       kinds: {
         profile: "Product setup",
+        coverage: "Coverage plan",
         submission: "Backlink task",
         proof: "Proof task",
       },
@@ -1117,7 +1171,7 @@ function taskEconomics(args: {
   channelId?: string;
   proofType?: ProductProofAction["taskType"];
 }) {
-  if (args.kind === "profile") {
+  if (args.kind === "profile" || args.kind === "coverage") {
     return { successCost: 0, failureCost: 0 };
   }
 
@@ -1452,6 +1506,7 @@ export default function DashboardClient({
   submissions,
   productProofSummaries,
   operationalInsights,
+  workspaceTaskPlans,
   checkoutState,
 }: {
   locale: Locale;
@@ -1461,6 +1516,7 @@ export default function DashboardClient({
   submissions: Submission[];
   productProofSummaries: ProductProofSummaryRow[];
   operationalInsights: OperationalInsights;
+  workspaceTaskPlans: WorkspaceTaskPlan[];
   checkoutState: CheckoutState;
 }) {
   const copy = getDashboardCopy(locale);
@@ -1481,6 +1537,14 @@ export default function DashboardClient({
   const [launchingKey, setLaunchingKey] = useState<string | null>(null);
   const [proofActionKey, setProofActionKey] = useState<string | null>(null);
   const [workspaceActionError, setWorkspaceActionError] = useState("");
+  const [plannerProductId, setPlannerProductId] = useState(products[0]?.id || "");
+  const [importList, setImportList] = useState("");
+  const [importGranularity, setImportGranularity] =
+    useState<WorkspaceTaskPlanGranularity>("batch");
+  const [builderAction, setBuilderAction] = useState<"auto" | "import" | null>(
+    null
+  );
+  const [builderError, setBuilderError] = useState("");
 
   const isPaid = subscription?.status === "active";
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
@@ -1761,10 +1825,58 @@ export default function DashboardClient({
     featuredProduct && isLaunchAction(featuredProduct.primaryAction)
       ? featuredProduct.primaryAction
       : null;
+  const resolvedPlannerProductId =
+    plannerProductId || featuredProduct?.product.id || products[0]?.id || "";
+  const importLineCount = importList
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean).length;
   const workspaceTasks = productSummaries
     .flatMap((summary) => {
       const tasks: WorkspaceTask[] = [];
       const baseHref = `/dashboard/product/${summary.product.id}`;
+      const taskPlans = workspaceTaskPlans.filter(
+        (plan) => plan.productId === summary.product.id
+      );
+
+      taskPlans.forEach((plan) => {
+        const economics = taskEconomics({ kind: "coverage" });
+        if (plan.granularity === "per_target") {
+          plan.targets.slice(0, 3).forEach((target) => {
+            tasks.push({
+              id: `${plan.id}:${target.id}`,
+              productId: summary.product.id,
+              productName: summary.product.name,
+              kind: "coverage",
+              stage: plan.stage,
+              title:
+                locale === "zh"
+                  ? `导入目标：${target.label}`
+                  : `Imported target: ${target.label}`,
+              preview: target.detail || plan.summary,
+              href: "/dashboard#task-builder",
+              updatedAt: plan.updatedAt,
+              successCost: plan.successCost,
+              failureCost: plan.failureCost,
+            });
+          });
+          return;
+        }
+
+        tasks.push({
+          id: plan.id,
+          productId: summary.product.id,
+          productName: summary.product.name,
+          kind: "coverage",
+          stage: plan.stage,
+          title: plan.title,
+          preview: plan.summary,
+          href: "/dashboard#task-builder",
+          updatedAt: plan.updatedAt,
+          successCost: plan.successCost,
+          failureCost: plan.failureCost,
+        });
+      });
 
       if (summary.submissions.length === 0) {
         const economics = taskEconomics({ kind: "profile" });
@@ -1902,16 +2014,27 @@ export default function DashboardClient({
       status:
         products.length === 0
           ? ("blocked" as const)
-          : operationalInsights.discovery_counted_new_worthy_root_domain_count > 0 ||
-              liveChannelsForPlan.length > 0
-            ? ("ready" as const)
-            : ("active" as const),
+          : workspaceTaskPlans.length > 0
+            ? ("done" as const)
+            : operationalInsights.discovery_counted_new_worthy_root_domain_count > 0 ||
+                liveChannelsForPlan.length > 0
+              ? ("ready" as const)
+              : ("active" as const),
       title: workflowCopy.steps.plan.title,
       body:
         products.length === 0
           ? workflowCopy.steps.plan.empty
-          : `${workflowCopy.steps.plan.ready} ${copy.discovery.progressLabel}: ${discoveryProgressCount}/${discoveryProgressTarget || 0}.`,
-      href: products.length === 0 ? null : "#launch-board",
+          : workspaceTaskPlans.length > 0
+            ? `${workflowCopy.steps.plan.ready} ${workspaceTaskPlans.length} ${
+                locale === "zh" ? "个覆盖计划任务已创建。" : "coverage task plans are already queued."
+              }`
+            : `${workflowCopy.steps.plan.ready} ${copy.discovery.progressLabel}: ${discoveryProgressCount}/${discoveryProgressTarget || 0}.`,
+      href:
+        products.length === 0
+          ? null
+          : workspaceTaskPlans.length > 0
+            ? "#task-queue"
+            : "#task-builder",
       actionLabel: workflowCopy.steps.plan.action,
     },
     {
@@ -2045,6 +2168,68 @@ export default function DashboardClient({
       );
     } finally {
       setProofActionKey(null);
+    }
+  }
+
+  async function handleCreateTaskPlan(mode: "auto" | "import") {
+    if (!resolvedPlannerProductId) {
+      setBuilderError(copy.errors.saveFailed);
+      return;
+    }
+
+    if (mode === "import" && !importList.trim()) {
+      setBuilderError(
+        locale === "zh"
+          ? "请先粘贴至少一个域名或 URL。"
+          : "Paste at least one domain or URL first."
+      );
+      return;
+    }
+
+    setBuilderAction(mode);
+    setBuilderError("");
+
+    try {
+      const response = await fetch(
+        `/api/products/${resolvedPlannerProductId}/task-plans`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            mode === "auto"
+              ? {
+                  action: "create_auto_coverage",
+                }
+              : {
+                  action: "import_target_list",
+                  rawList: importList,
+                  granularity: importGranularity,
+                }
+          ),
+        }
+      );
+
+      const data = (await response.json().catch(() => null)) as
+        | {
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(data?.error || copy.errors.saveFailed);
+      }
+
+      if (mode === "import") {
+        setImportList("");
+      }
+
+      router.refresh();
+    } catch (error) {
+      setBuilderError(
+        error instanceof Error ? error.message : copy.errors.saveFailed
+      );
+    } finally {
+      setBuilderAction(null);
     }
   }
 
@@ -2442,6 +2627,124 @@ export default function DashboardClient({
 
           <p className="mt-6 text-sm leading-7 text-stone-500">{workflowCopy.note}</p>
         </section>
+
+        {products.length > 0 ? (
+          <section
+            id="task-builder"
+            className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7"
+          >
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.builder.eyebrow}
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                {copy.builder.title}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-stone-400">
+                {copy.builder.body}
+              </p>
+            </div>
+
+            <div className="mt-6 max-w-sm">
+              <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-stone-500">
+                {copy.builder.productLabel}
+              </label>
+              <select
+                value={resolvedPlannerProductId}
+                onChange={(event) => setPlannerProductId(event.target.value)}
+                className="w-full rounded-[1.1rem] border border-[var(--line-soft)] bg-black/15 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent-500)]"
+              >
+                {productSummaries.map((summary) => (
+                  <option key={summary.product.id} value={summary.product.id}>
+                    {summary.product.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-6 grid gap-4 xl:grid-cols-2">
+              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <h3 className="text-xl font-semibold text-white">
+                  {copy.builder.autoTitle}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-300">
+                  {copy.builder.autoBody}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleCreateTaskPlan("auto")}
+                  disabled={builderAction !== null}
+                  className="mt-5 rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                >
+                  {builderAction === "auto"
+                    ? copy.builder.loading
+                    : copy.builder.autoAction}
+                </button>
+              </div>
+
+              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <h3 className="text-xl font-semibold text-white">
+                  {copy.builder.importTitle}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-300">
+                  {copy.builder.importBody}
+                </p>
+                <textarea
+                  value={importList}
+                  onChange={(event) => setImportList(event.target.value)}
+                  rows={6}
+                  placeholder={copy.builder.importPlaceholder}
+                  className="mt-4 w-full resize-none rounded-[1.1rem] border border-[var(--line-soft)] bg-stone-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent-500)]"
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-stone-400">
+                  <span>{copy.builder.granularityLabel}</span>
+                  <button
+                    type="button"
+                    onClick={() => setImportGranularity("batch")}
+                    className={`rounded-full border px-3 py-1.5 transition ${
+                      importGranularity === "batch"
+                        ? "border-amber-300/15 bg-amber-300/[0.08] text-amber-100"
+                        : "border-[var(--line-soft)] bg-white/[0.04] text-stone-300"
+                    }`}
+                  >
+                    {copy.builder.granularityBatch}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportGranularity("per_target")}
+                    className={`rounded-full border px-3 py-1.5 transition ${
+                      importGranularity === "per_target"
+                        ? "border-amber-300/15 bg-amber-300/[0.08] text-amber-100"
+                        : "border-[var(--line-soft)] bg-white/[0.04] text-stone-300"
+                    }`}
+                  >
+                    {copy.builder.granularityPerTarget}
+                  </button>
+                </div>
+                <div className="mt-3 text-xs text-stone-500">
+                  {copy.builder.detectedCount}: {importLineCount}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCreateTaskPlan("import")}
+                  disabled={builderAction !== null}
+                  className="mt-5 rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                >
+                  {builderAction === "import"
+                    ? copy.builder.loading
+                    : copy.builder.importAction}
+                </button>
+              </div>
+            </div>
+
+            {builderError ? (
+              <p className="mt-5 text-sm text-red-300">{builderError}</p>
+            ) : null}
+            <p className="mt-5 text-sm leading-7 text-stone-500">
+              {copy.builder.note}
+            </p>
+          </section>
+        ) : null}
 
         <section
           id="task-queue"
