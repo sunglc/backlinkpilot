@@ -1061,6 +1061,18 @@ function getManagedInboxCopy(locale: Locale) {
         packetReceiptLabel: "发送回执",
         packetReplyFromLabel: "回复来自",
         packetReplySnippetLabel: "回复摘要",
+        packetReplyAtLabel: "回复时间",
+        threadBoardLabel: "线程动作板",
+        threadBoardBody:
+          "这里把首批托管外联拆成现在最该处理的动作，不让用户只看到一串状态标签。",
+        threadActionCards: {
+          needsResponse: "需要立即回复",
+          awaitingReply: "正在等待回复",
+          unsent: "还没完全发出",
+        },
+        replyQueueLabel: "优先处理的回复线程",
+        replyQueueEmpty:
+          "当前还没有新的真实回复。一旦 reply monitor 捕捉到回信，这里会直接出现下一步线程。",
         openTarget: "打开目标",
       },
       byo: {
@@ -1121,10 +1133,10 @@ function getManagedInboxCopy(locale: Locale) {
     body:
       "This is not a vague promise about platform-managed outreach. The customer can now choose a Managed Outreach Inbox or bring their own sender. Managed mode assigns a dedicated sender identity, generates an ops brief, and routes later send/reply activity back into this product page.",
     modeLabel: "Current mode",
-    managed: {
-      title: "Managed Outreach Inbox",
-      body:
-        "Growth and Scale can activate the managed mode. The system reserves a dedicated sender identity for this product, queues the first ops brief, and keeps later outbound and reply events visible here.",
+      managed: {
+        title: "Managed Outreach Inbox",
+        body:
+          "Growth and Scale can activate the managed mode. The system reserves a dedicated sender identity for this product, queues the first ops brief, and keeps later outbound and reply events visible here.",
       assignmentLabel: "Dedicated sender identity",
       assignmentNote:
         "This is a pilot-assigned identity for the product. Live sends and replies still flow through ops and get written back into the timeline.",
@@ -1172,10 +1184,22 @@ function getManagedInboxCopy(locale: Locale) {
       packetOwnerLabel: "Owner",
       packetSentAtLabel: "Sent at",
       packetReceiptLabel: "Send receipt",
-      packetReplyFromLabel: "Reply from",
-      packetReplySnippetLabel: "Reply snippet",
-      openTarget: "Open target",
-    },
+        packetReplyFromLabel: "Reply from",
+        packetReplySnippetLabel: "Reply snippet",
+        packetReplyAtLabel: "Reply received",
+        threadBoardLabel: "Thread action board",
+        threadBoardBody:
+          "This turns the first managed batch into the actions that matter right now, instead of leaving the user with raw state labels.",
+        threadActionCards: {
+          needsResponse: "Needs response now",
+          awaitingReply: "Awaiting reply",
+          unsent: "Still not sent",
+        },
+        replyQueueLabel: "Reply threads to handle first",
+        replyQueueEmpty:
+          "There are no new live replies yet. Once the reply monitor catches one, the next thread should appear here automatically.",
+        openTarget: "Open target",
+      },
     byo: {
       title: "Bring your own inbox",
       body:
@@ -1466,16 +1490,30 @@ export default function ProductDetail({
   const managedInboxReserved =
     managedInbox.senderMode !== "managed" && Boolean(managedInbox.mailboxIdentity);
   const managedLaunchRequest = managedInbox.launchRequest;
+  const managedLaunchPackets = managedLaunchRequest?.packets || [];
+  const repliedPackets = managedLaunchPackets.filter(
+    (packet) => packet.replyStatus === "replied"
+  );
+  const awaitingReplyPackets = managedLaunchPackets.filter(
+    (packet) => packet.replyStatus === "awaiting"
+  );
+  const unsentManagedPackets = managedLaunchPackets.filter(
+    (packet) => packet.state !== "sent"
+  );
   const packetStats = {
-    prepared:
-      managedLaunchRequest?.packets.filter((packet) => packet.state === "prepared").length || 0,
-    claimed:
-      managedLaunchRequest?.packets.filter((packet) => packet.state === "claimed").length || 0,
-    sent: managedLaunchRequest?.packets.filter((packet) => packet.state === "sent").length || 0,
-    replied:
-      managedLaunchRequest?.packets.filter((packet) => packet.replyStatus === "replied").length ||
-      0,
+    prepared: managedLaunchPackets.filter((packet) => packet.state === "prepared").length,
+    claimed: managedLaunchPackets.filter((packet) => packet.state === "claimed").length,
+    sent: managedLaunchPackets.filter((packet) => packet.state === "sent").length,
+    replied: repliedPackets.length,
   };
+  const replyQueuePackets = repliedPackets
+    .slice()
+    .sort((left, right) => {
+      const leftDate = left.lastReplyAt || "";
+      const rightDate = right.lastReplyAt || "";
+      return rightDate.localeCompare(leftDate);
+    })
+    .slice(0, 3);
   const managedInboxTimeline = [...managedInboxLive.timeline, ...managedInbox.timeline]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
@@ -2310,6 +2348,104 @@ export default function ProductDetail({
                                 </div>
                               </div>
                             ))}
+                          </div>
+                          <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+                            <div className="rounded-[1rem] border border-white/10 bg-black/15 p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {managedInboxCopy.managed.threadBoardLabel}
+                              </div>
+                              <p className="mt-2 text-sm leading-7 text-stone-400">
+                                {managedInboxCopy.managed.threadBoardBody}
+                              </p>
+                              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                {(
+                                  [
+                                    [
+                                      "needsResponse",
+                                      repliedPackets.length,
+                                      "border-emerald-300/15 bg-emerald-300/[0.06] text-emerald-100",
+                                    ],
+                                    [
+                                      "awaitingReply",
+                                      awaitingReplyPackets.length,
+                                      "border-sky-300/15 bg-sky-300/[0.06] text-sky-100",
+                                    ],
+                                    [
+                                      "unsent",
+                                      unsentManagedPackets.length,
+                                      "border-amber-300/15 bg-amber-300/[0.06] text-amber-100",
+                                    ],
+                                  ] as const
+                                ).map(([state, value, classes]) => (
+                                  <div
+                                    key={state}
+                                    className={`rounded-[0.95rem] border p-4 ${classes}`}
+                                  >
+                                    <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
+                                      {managedInboxCopy.managed.threadActionCards[state]}
+                                    </div>
+                                    <div className="mt-2 text-2xl font-semibold text-white">
+                                      {value}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="rounded-[1rem] border border-white/10 bg-black/15 p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {managedInboxCopy.managed.replyQueueLabel}
+                              </div>
+                              {replyQueuePackets.length > 0 ? (
+                                <div className="mt-4 grid gap-3">
+                                  {replyQueuePackets.map((packet) => (
+                                    <div
+                                      key={packet.id}
+                                      className="rounded-[0.95rem] border border-emerald-300/12 bg-emerald-300/[0.04] p-4"
+                                    >
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span
+                                          className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketReplyStateClasses(
+                                            "replied"
+                                          )}`}
+                                        >
+                                          {managedInboxCopy.managed.packetReplyState.replied}
+                                        </span>
+                                        <div className="text-sm font-semibold text-white">
+                                          {packet.title}
+                                        </div>
+                                      </div>
+                                      {packet.lastReplyFrom ? (
+                                        <div className="mt-3 text-xs text-stone-400">
+                                          {managedInboxCopy.managed.packetReplyFromLabel}:{" "}
+                                          {packet.lastReplyFrom}
+                                        </div>
+                                      ) : null}
+                                      {packet.lastReplyAt ? (
+                                        <div className="mt-2 text-xs text-stone-500">
+                                          {managedInboxCopy.managed.packetReplyAtLabel}:{" "}
+                                          {formatSubmissionDate(packet.lastReplyAt, locale)}
+                                        </div>
+                                      ) : null}
+                                      {packet.lastReplySnippet ? (
+                                        <div className="mt-3 text-sm leading-7 text-stone-300">
+                                          {packet.lastReplySnippet}
+                                        </div>
+                                      ) : null}
+                                      <div className="mt-3 text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                        {managedInboxCopy.managed.packetNextStepLabel}
+                                      </div>
+                                      <p className="mt-2 text-sm leading-7 text-stone-400">
+                                        {packet.nextStep}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-4 text-sm leading-7 text-stone-500">
+                                  {managedInboxCopy.managed.replyQueueEmpty}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className="grid gap-3">
                             {managedLaunchRequest.packets.slice(0, 3).map((packet) => (
