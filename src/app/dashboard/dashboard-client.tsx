@@ -85,6 +85,18 @@ type ProductPrimaryAction =
 type WorkflowStepStatus = "blocked" | "ready" | "active" | "done" | "live";
 type WorkspaceTaskStage = "pending" | "planned" | "awaiting_effect" | "live";
 type WorkspaceTaskKind = "profile" | "coverage" | "submission" | "proof";
+type WorkspaceTaskBillingType =
+  | "included"
+  | "credit_on_success"
+  | "premium_service";
+
+interface WorkspaceTaskBillingRule {
+  type: WorkspaceTaskBillingType;
+  badge: string;
+  detail: string;
+  successDisplay: string;
+  failureDisplay: string;
+}
 
 type LaunchProductPrimaryAction = Extract<
   ProductPrimaryAction,
@@ -129,6 +141,7 @@ interface WorkspaceTask {
   successCost: number;
   failureCost: number;
   focusLabel?: string;
+  billingRule?: WorkspaceTaskBillingRule;
   coverageBreakdown?: WorkspaceTaskPlanCoverageBreakdown | null;
 }
 
@@ -400,6 +413,7 @@ function getDashboardCopy(locale: Locale) {
           stage: "阶段",
           preview: "任务预览",
           economics: "积分预估",
+          billing: "计费规则",
           updatedAt: "最近更新",
           success: "成功",
           failure: "失败/辛苦费",
@@ -432,6 +446,23 @@ function getDashboardCopy(locale: Locale) {
           watch_effect: "盯住生效",
           expand_lane: "继续扩量",
           build_queue: "补齐计划",
+        },
+        billingLabels: {
+          included: "包含项",
+          credit_on_success: "成功扣积分",
+          premium_service: "高级服务",
+        },
+        billingDetails: {
+          included: "登记、规划和任务编排先不扣积分，先把执行路径搭起来。",
+          credit_on_success: "只有真实成功动作计入积分；失败只记辛苦费，不按成功任务收费。",
+          premium_service:
+            "这类机会不走普通 credit 包，后续按高级服务或单独商务处理。",
+        },
+        billingDisplays: {
+          includedSuccess: "0",
+          includedFailure: "0",
+          premiumSuccess: "单独报价",
+          premiumFailure: "商务评估",
         },
       },
       emptyState: {
@@ -732,6 +763,7 @@ function getDashboardCopy(locale: Locale) {
         stage: "Stage",
         preview: "Task preview",
         economics: "Credit preview",
+        billing: "Billing rule",
         updatedAt: "Updated",
         success: "Success",
         failure: "Failure / ops fee",
@@ -764,6 +796,25 @@ function getDashboardCopy(locale: Locale) {
         watch_effect: "Watch effect",
         expand_lane: "Expand next",
         build_queue: "Build queue",
+      },
+      billingLabels: {
+        included: "Included",
+        credit_on_success: "Credits on success",
+        premium_service: "Premium service",
+      },
+      billingDetails: {
+        included:
+          "Profile setup, planning, and task orchestration stay unmetered while the execution path is being staged.",
+        credit_on_success:
+          "Only real successful actions count toward credits. Failures stay as ops fees instead of success charges.",
+        premium_service:
+          "These opportunities do not run through the normal credit pack and should route into premium handling or custom pricing.",
+      },
+      billingDisplays: {
+        includedSuccess: "0",
+        includedFailure: "0",
+        premiumSuccess: "Custom quote",
+        premiumFailure: "Ops review",
       },
     },
     emptyState: {
@@ -1201,6 +1252,46 @@ function workspaceTaskFocusLabel(
   }
 
   return copy.tasks.focusLabels.build_queue;
+}
+
+function workspaceTaskBillingRule(
+  task: WorkspaceTask,
+  copy: ReturnType<typeof getDashboardCopy>
+): WorkspaceTaskBillingRule {
+  const premiumWatchlistTask =
+    task.kind === "coverage" &&
+    task.taskPlanMode === "import_list" &&
+    task.sourcePlanId &&
+    task.successCost === 1 &&
+    task.failureCost === 1;
+
+  if (premiumWatchlistTask) {
+    return {
+      type: "premium_service",
+      badge: copy.tasks.billingLabels.premium_service,
+      detail: copy.tasks.billingDetails.premium_service,
+      successDisplay: copy.tasks.billingDisplays.premiumSuccess,
+      failureDisplay: copy.tasks.billingDisplays.premiumFailure,
+    };
+  }
+
+  if (task.kind === "submission" || task.kind === "proof") {
+    return {
+      type: "credit_on_success",
+      badge: copy.tasks.billingLabels.credit_on_success,
+      detail: copy.tasks.billingDetails.credit_on_success,
+      successDisplay: String(task.successCost),
+      failureDisplay: String(task.failureCost),
+    };
+  }
+
+  return {
+    type: "included",
+    badge: copy.tasks.billingLabels.included,
+    detail: copy.tasks.billingDetails.included,
+    successDisplay: copy.tasks.billingDisplays.includedSuccess,
+    failureDisplay: copy.tasks.billingDisplays.includedFailure,
+  };
 }
 
 function proofTaskTitle(
@@ -2262,6 +2353,7 @@ export default function DashboardClient({
     .map((task) => ({
       ...task,
       focusLabel: workspaceTaskFocusLabel(task, copy),
+      billingRule: workspaceTaskBillingRule(task, copy),
     }))
     .slice()
     .sort((left, right) => {
@@ -3240,12 +3332,32 @@ export default function DashboardClient({
                         <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                           {taskQueueCopy.labels.economics}
                         </div>
+                        <div className="mt-3">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs ${
+                              task.billingRule?.type === "premium_service"
+                                ? "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100"
+                                : task.billingRule?.type === "credit_on_success"
+                                  ? "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100"
+                                  : "border-white/10 bg-white/[0.05] text-stone-200"
+                            }`}
+                          >
+                            {taskQueueCopy.labels.billing}: {task.billingRule?.badge}
+                          </span>
+                          {task.billingRule?.detail ? (
+                            <p className="mt-3 text-xs leading-6 text-stone-400">
+                              {task.billingRule.detail}
+                            </p>
+                          ) : null}
+                        </div>
                         <div className="mt-3 flex flex-wrap gap-2 text-sm text-stone-200">
                           <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1.5">
-                            {taskQueueCopy.labels.success}: {task.successCost}
+                            {taskQueueCopy.labels.success}:{" "}
+                            {task.billingRule?.successDisplay ?? task.successCost}
                           </span>
                           <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.08] px-3 py-1.5">
-                            {taskQueueCopy.labels.failure}: {task.failureCost}
+                            {taskQueueCopy.labels.failure}:{" "}
+                            {task.billingRule?.failureDisplay ?? task.failureCost}
                           </span>
                         </div>
                       </div>
