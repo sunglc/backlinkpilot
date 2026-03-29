@@ -9,6 +9,7 @@ import type {
 } from "@/lib/workspace-policy-types";
 import type {
   WorkspaceSupplyOwnerSummary,
+  WorkspaceSupplyReleaseState,
   WorkspaceSupplyReason,
   WorkspaceSupplySnapshot,
   WorkspaceSupplyTier,
@@ -154,6 +155,18 @@ function pickBestOwner(args: {
   });
 }
 
+function releaseState(args: {
+  open: boolean;
+  reason: WorkspaceSupplyReleaseState["reason"];
+  recommendedProductId: string | null;
+}): WorkspaceSupplyReleaseState {
+  return {
+    open: args.open,
+    reason: args.reason,
+    recommendedProductId: args.recommendedProductId,
+  };
+}
+
 export function buildWorkspaceSupplySnapshot(args: {
   currentPlan: string;
   reviewPending: boolean;
@@ -185,6 +198,20 @@ export function buildWorkspaceSupplySnapshot(args: {
       )
     )
     .filter((product): product is WorkspacePolicyProductSnapshot => Boolean(product));
+  const workspaceTotals = args.workspacePolicy.products.reduce(
+    (totals, product) => ({
+      receipts: totals.receipts + product.receiptCount,
+      close: totals.close + product.closeCount,
+      verify: totals.verify + product.verifyCount,
+      activeProofTasks: totals.activeProofTasks + product.activeProofTaskCount,
+    }),
+    {
+      receipts: 0,
+      close: 0,
+      verify: 0,
+      activeProofTasks: 0,
+    }
+  );
 
   const provenOwner = pickBestOwner({
     products: submissionOwners,
@@ -213,9 +240,135 @@ export function buildWorkspaceSupplySnapshot(args: {
             .slice(0, 3)
             .map((target) => target.platform_name),
           tier: "premium",
-          score: premiumOwnerScore,
-        })
+        score: premiumOwnerScore,
+      })
       : null;
+  const buildoutBaseReady =
+    workspaceTotals.verify > 0 ||
+    workspaceTotals.close > 0 ||
+    workspaceTotals.receipts >= 3;
+  const premiumBaseReady =
+    workspaceTotals.verify > 0 ||
+    workspaceTotals.close > 0 ||
+    workspaceTotals.receipts >= 6;
+  const proofPriority = args.workspacePolicy.laneOwners.proof.length > 0;
+  const provenRelease = args.reviewPending
+    ? releaseState({
+        open: false,
+        reason: "review_pending",
+        recommendedProductId: null,
+      })
+    : args.currentPlan === "free"
+      ? releaseState({
+          open: false,
+          reason: "unlock_required",
+          recommendedProductId: null,
+        })
+      : args.workspacePolicy.capacity.lanes.submission.remaining <= 0
+        ? releaseState({
+            open: false,
+            reason: "capacity_full",
+            recommendedProductId: null,
+          })
+        : proofPriority
+          ? releaseState({
+              open: false,
+              reason: "proof_priority",
+              recommendedProductId: null,
+            })
+          : provenOwner
+            ? releaseState({
+                open: true,
+                reason: "ready",
+                recommendedProductId: provenOwner.productId,
+              })
+            : releaseState({
+                open: false,
+                reason: "missing_owner",
+                recommendedProductId: null,
+              });
+  const buildoutRelease = args.reviewPending
+    ? releaseState({
+        open: false,
+        reason: "review_pending",
+        recommendedProductId: null,
+      })
+    : args.currentPlan !== "growth" && args.currentPlan !== "scale"
+      ? releaseState({
+          open: false,
+          reason: "unlock_required",
+          recommendedProductId: null,
+        })
+      : args.workspacePolicy.capacity.lanes.submission.remaining <= 1
+        ? releaseState({
+            open: false,
+            reason: "capacity_full",
+            recommendedProductId: null,
+          })
+        : proofPriority
+          ? releaseState({
+              open: false,
+              reason: "proof_priority",
+              recommendedProductId: null,
+            })
+          : !buildoutBaseReady
+            ? releaseState({
+                open: false,
+                reason: "awaiting_proven_base",
+                recommendedProductId: null,
+              })
+            : buildoutOwner
+              ? releaseState({
+                  open: true,
+                  reason: "ready",
+                  recommendedProductId: buildoutOwner.productId,
+                })
+              : releaseState({
+                  open: false,
+                  reason: "missing_owner",
+                  recommendedProductId: null,
+                });
+  const premiumRelease = args.reviewPending
+    ? releaseState({
+        open: false,
+        reason: "review_pending",
+        recommendedProductId: null,
+      })
+    : args.currentPlan !== "growth" && args.currentPlan !== "scale"
+      ? releaseState({
+          open: false,
+          reason: "unlock_required",
+          recommendedProductId: null,
+        })
+      : args.workspacePolicy.capacity.lanes.premium.remaining <= 0
+        ? releaseState({
+            open: false,
+            reason: "capacity_full",
+            recommendedProductId: null,
+          })
+        : proofPriority
+          ? releaseState({
+              open: false,
+              reason: "proof_priority",
+              recommendedProductId: null,
+            })
+          : !premiumBaseReady
+            ? releaseState({
+                open: false,
+                reason: "awaiting_premium_base",
+                recommendedProductId: null,
+              })
+            : premiumOwner
+              ? releaseState({
+                  open: true,
+                  reason: "ready",
+                  recommendedProductId: premiumOwner.productId,
+                })
+              : releaseState({
+                  open: false,
+                  reason: "missing_owner",
+                  recommendedProductId: null,
+                });
 
   let focus: WorkspaceSupplySnapshot["focus"] = "hold_supply";
 
@@ -223,25 +376,15 @@ export function buildWorkspaceSupplySnapshot(args: {
     focus = "review_contract";
   } else if (args.currentPlan === "free") {
     focus = "unlock_plan";
-  } else if (args.workspacePolicy.laneOwners.proof.length > 0) {
+  } else if (proofPriority) {
     focus = "push_proof";
-  } else if (
-    buildoutOwner &&
-    provenOwner &&
-    provenOwner.receiptCount > 0
-  ) {
+  } else if (buildoutRelease.open) {
     focus = "expand_buildout";
-  } else if (provenOwner) {
+  } else if (provenRelease.open) {
     focus = "feed_proven";
-  } else if (premiumOwner) {
+  } else if (premiumRelease.open) {
     focus = "prepare_premium";
   }
-
-  const shouldOpenAutoCoverage =
-    !args.reviewPending &&
-    args.workspacePolicy.capacity.lanes.submission.remaining > 0 &&
-    focus !== "push_proof" &&
-    focus !== "hold_supply";
 
   return {
     currentPlan: args.currentPlan,
@@ -254,9 +397,16 @@ export function buildWorkspaceSupplySnapshot(args: {
       reached: args.operationalInsights.discovery_target_reached,
     },
     focus,
-    recommendedAutoCoverageProductId: shouldOpenAutoCoverage
-      ? provenOwner?.productId || buildoutOwner?.productId || null
-      : null,
+    recommendedAutoCoverageProductId: buildoutRelease.open
+      ? buildoutRelease.recommendedProductId
+      : provenRelease.open
+        ? provenRelease.recommendedProductId
+        : null,
+    release: {
+      proven: provenRelease,
+      buildout: buildoutRelease,
+      premium: premiumRelease,
+    },
     provenOwner,
     buildoutOwner,
     premiumOwner,
@@ -275,8 +425,21 @@ export function getWorkspaceAutoCoverageError(args: {
     return "This workspace should push current proof work forward before opening another auto-generated discovery plan.";
   }
 
-  const owner = args.snapshot.provenOwner;
-  if (!owner || !args.snapshot.recommendedAutoCoverageProductId) {
+  const owner =
+    (args.snapshot.provenOwner &&
+      args.snapshot.provenOwner.productId ===
+        args.snapshot.recommendedAutoCoverageProductId
+      ? args.snapshot.provenOwner
+      : null) ||
+    (args.snapshot.buildoutOwner &&
+      args.snapshot.buildoutOwner.productId ===
+        args.snapshot.recommendedAutoCoverageProductId
+      ? args.snapshot.buildoutOwner
+      : null);
+  if (
+    !owner ||
+    !args.snapshot.recommendedAutoCoverageProductId
+  ) {
     return null;
   }
 
@@ -285,4 +448,82 @@ export function getWorkspaceAutoCoverageError(args: {
   }
 
   return `Fresh discovery supply is currently routed to ${owner.productName}. Let that product absorb the next auto-coverage plan first.`;
+}
+
+export function getWorkspaceBuildoutSupplyError(args: {
+  snapshot: WorkspaceSupplySnapshot;
+  productId: string;
+}) {
+  if (args.snapshot.release.buildout.open) {
+    if (
+      !args.snapshot.release.buildout.recommendedProductId ||
+      args.snapshot.release.buildout.recommendedProductId === args.productId
+    ) {
+      return null;
+    }
+
+    const owner = args.snapshot.buildoutOwner;
+    if (!owner) {
+      return null;
+    }
+
+    return `Buildout supply is currently routed to ${owner.productName}. Let that product absorb the next buildout wave first.`;
+  }
+
+  return {
+    review_pending:
+      "The capability contract changed. Adopt the required SaaS actions before opening buildout supply.",
+    unlock_required:
+      "Buildout supply unlocks on Growth or Scale after the live execution layer is ready.",
+    capacity_full:
+      "There is not enough submission capacity left to open the buildout lane right now.",
+    proof_priority:
+      "Push the current proof path first before opening the next buildout wave.",
+    missing_owner:
+      "No product is ready to absorb buildout supply right now.",
+    awaiting_proven_base:
+      "Buildout stays closed until the workspace has a stronger proven proof base.",
+    awaiting_premium_base:
+      "Buildout supply is waiting on a stronger premium-proof base.",
+    ready: null,
+  }[args.snapshot.release.buildout.reason];
+}
+
+export function getWorkspacePremiumSupplyError(args: {
+  snapshot: WorkspaceSupplySnapshot;
+  productId: string;
+}) {
+  if (args.snapshot.release.premium.open) {
+    if (
+      !args.snapshot.release.premium.recommendedProductId ||
+      args.snapshot.release.premium.recommendedProductId === args.productId
+    ) {
+      return null;
+    }
+
+    const owner = args.snapshot.premiumOwner;
+    if (!owner) {
+      return null;
+    }
+
+    return `Premium supply is currently routed to ${owner.productName}. Let that product use the premium lane first.`;
+  }
+
+  return {
+    review_pending:
+      "The capability contract changed. Adopt the required SaaS actions before opening premium supply.",
+    unlock_required:
+      "Premium supply stays closed until the workspace is on Growth or Scale.",
+    capacity_full:
+      "The premium lane is already full right now.",
+    proof_priority:
+      "Finish the current proof pushes before opening premium work.",
+    missing_owner:
+      "No product is ready to absorb premium supply right now.",
+    awaiting_proven_base:
+      "Premium supply is still waiting on a stronger standard proof base.",
+    awaiting_premium_base:
+      "Premium supply stays closed until the workspace has a stronger proof and receipt base.",
+    ready: null,
+  }[args.snapshot.release.premium.reason];
 }

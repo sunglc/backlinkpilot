@@ -10,6 +10,13 @@ import {
   updateManagedProofTask,
 } from "@/lib/managed-inbox-server";
 import type { ManagedInboxProofTaskType } from "@/lib/managed-inbox-types";
+import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
+import { readSaasCapabilityReviewState } from "@/lib/saas-capability-review-state";
+import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
+import {
+  buildWorkspaceSupplySnapshot,
+  getWorkspacePremiumSupplyError,
+} from "@/lib/workspace-supply-policy";
 import {
   buildWorkspacePolicySnapshot,
   getWorkspacePolicyError,
@@ -138,6 +145,19 @@ export async function POST(
     products,
     submissions: submissions || [],
   });
+  const capabilityContract = await readSaasCapabilityContract();
+  const capabilityReviewState = await readSaasCapabilityReviewState({
+    userId: user.id,
+    currentFingerprint: capabilityContract.capability_fingerprint,
+  });
+  const operationalInsights = await readSaasOperationalInsights();
+  const workspaceSupply = buildWorkspaceSupplySnapshot({
+    currentPlan: plan,
+    reviewPending: capabilityReviewState.reviewPending,
+    capabilityContract,
+    operationalInsights,
+    workspacePolicy,
+  });
   const body = (await request.json().catch(() => null)) as
     | {
         action?: string;
@@ -229,6 +249,13 @@ export async function POST(
     );
     if (premiumPolicyError) {
       return NextResponse.json({ error: premiumPolicyError }, { status: 409 });
+    }
+    const premiumSupplyError = getWorkspacePremiumSupplyError({
+      snapshot: workspaceSupply,
+      productId: id,
+    });
+    if (premiumSupplyError) {
+      return NextResponse.json({ error: premiumSupplyError }, { status: 409 });
     }
 
     const liveActivity = await getManagedInboxLiveActivity({

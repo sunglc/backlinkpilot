@@ -2,6 +2,16 @@ import type { WorkspacePolicyProductLane } from "@/lib/workspace-policy-types";
 
 export type WorkspaceSupplyTier = "proven" | "buildout" | "premium";
 
+export type WorkspaceSupplyReleaseReason =
+  | "review_pending"
+  | "unlock_required"
+  | "capacity_full"
+  | "proof_priority"
+  | "missing_owner"
+  | "awaiting_proven_base"
+  | "awaiting_premium_base"
+  | "ready";
+
 export type WorkspaceSupplyFocus =
   | "review_contract"
   | "unlock_plan"
@@ -31,6 +41,12 @@ export interface WorkspaceSupplyOwnerSummary {
   activeProofTaskCount: number;
 }
 
+export interface WorkspaceSupplyReleaseState {
+  open: boolean;
+  reason: WorkspaceSupplyReleaseReason;
+  recommendedProductId: string | null;
+}
+
 export interface WorkspaceSupplySnapshot {
   currentPlan: string;
   reviewPending: boolean;
@@ -42,6 +58,7 @@ export interface WorkspaceSupplySnapshot {
   };
   focus: WorkspaceSupplyFocus;
   recommendedAutoCoverageProductId: string | null;
+  release: Record<WorkspaceSupplyTier, WorkspaceSupplyReleaseState>;
   provenOwner: WorkspaceSupplyOwnerSummary | null;
   buildoutOwner: WorkspaceSupplyOwnerSummary | null;
   premiumOwner: WorkspaceSupplyOwnerSummary | null;

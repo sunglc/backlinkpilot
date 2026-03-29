@@ -7,11 +7,13 @@ import {
   readWorkspaceTaskPlans,
 } from "@/lib/workspace-task-plans";
 import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
+import { readSaasCapabilityReviewState } from "@/lib/saas-capability-review-state";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import type { WorkspaceTaskPlanGranularity } from "@/lib/workspace-task-plans-types";
 import {
   buildWorkspaceSupplySnapshot,
   getWorkspaceAutoCoverageError,
+  getWorkspaceBuildoutSupplyError,
 } from "@/lib/workspace-supply-policy";
 import {
   buildWorkspacePolicySnapshot,
@@ -131,9 +133,13 @@ export async function POST(
     });
     const operationalInsights = await readSaasOperationalInsights();
     const capabilityContract = await readSaasCapabilityContract();
+    const capabilityReviewState = await readSaasCapabilityReviewState({
+      userId: user.id,
+      currentFingerprint: capabilityContract.capability_fingerprint,
+    });
     const workspaceSupply = buildWorkspaceSupplySnapshot({
       currentPlan,
-      reviewPending: false,
+      reviewPending: capabilityReviewState.reviewPending,
       capabilityContract,
       operationalInsights,
       workspacePolicy,
@@ -284,6 +290,26 @@ export async function POST(
     );
     if (submissionPolicyError) {
       return NextResponse.json({ error: submissionPolicyError }, { status: 409 });
+    }
+    const capabilityContract = await readSaasCapabilityContract();
+    const capabilityReviewState = await readSaasCapabilityReviewState({
+      userId: user.id,
+      currentFingerprint: capabilityContract.capability_fingerprint,
+    });
+    const operationalInsights = await readSaasOperationalInsights();
+    const workspaceSupply = buildWorkspaceSupplySnapshot({
+      currentPlan,
+      reviewPending: capabilityReviewState.reviewPending,
+      capabilityContract,
+      operationalInsights,
+      workspacePolicy,
+    });
+    const buildoutSupplyError = getWorkspaceBuildoutSupplyError({
+      snapshot: workspaceSupply,
+      productId: id,
+    });
+    if (buildoutSupplyError) {
+      return NextResponse.json({ error: buildoutSupplyError }, { status: 409 });
     }
 
     try {

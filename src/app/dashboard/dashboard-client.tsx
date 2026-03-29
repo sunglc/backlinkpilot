@@ -2161,7 +2161,17 @@ function workspaceAutoCoverageGuardMessage(args: {
       : "The workspace should push current proof work forward before opening another auto-coverage plan.";
   }
 
-  const owner = args.workspaceSupply.provenOwner;
+  const owner =
+    (args.workspaceSupply.provenOwner &&
+      args.workspaceSupply.provenOwner.productId ===
+        args.workspaceSupply.recommendedAutoCoverageProductId
+      ? args.workspaceSupply.provenOwner
+      : null) ||
+    (args.workspaceSupply.buildoutOwner &&
+      args.workspaceSupply.buildoutOwner.productId ===
+        args.workspaceSupply.recommendedAutoCoverageProductId
+      ? args.workspaceSupply.buildoutOwner
+      : null);
   if (
     !owner ||
     !args.workspaceSupply.recommendedAutoCoverageProductId ||
@@ -2175,6 +2185,100 @@ function workspaceAutoCoverageGuardMessage(args: {
   }
 
   return `Fresh discovery supply is currently routed to ${owner.productName}. Let that product absorb the next auto-coverage plan first.`;
+}
+
+function workspaceBuildoutGuardMessage(args: {
+  locale: Locale;
+  productId: string;
+  workspaceSupply: WorkspaceSupplySnapshot;
+}) {
+  if (!args.workspaceSupply.release.buildout.open) {
+    return workspaceSupplyReleaseReasonCopy({
+      locale: args.locale,
+      snapshot: args.workspaceSupply,
+      tier: "buildout",
+    });
+  }
+
+  const owner = args.workspaceSupply.buildoutOwner;
+  if (
+    !owner ||
+    !args.workspaceSupply.release.buildout.recommendedProductId ||
+    owner.productId === args.productId
+  ) {
+    return null;
+  }
+
+  if (args.locale === "zh") {
+    return `当前 buildout 供给优先给 ${owner.productName}。先让它吃下下一批 buildout 任务，再在这里继续扩。`;
+  }
+
+  return `Buildout supply is currently routed to ${owner.productName}. Let that product absorb the next buildout wave first.`;
+}
+
+function workspaceSupplyReleaseLabel(args: {
+  locale: Locale;
+  open: boolean;
+}) {
+  if (args.locale === "zh") {
+    return args.open ? "已放闸" : "暂缓释放";
+  }
+
+  return args.open ? "Release open" : "Held";
+}
+
+function workspaceSupplyReleaseClasses(open: boolean) {
+  return open
+    ? "border-emerald-300/15 bg-emerald-300/10 text-emerald-100"
+    : "border-white/10 bg-white/[0.04] text-stone-300";
+}
+
+function workspaceSupplyReleaseReasonCopy(args: {
+  locale: Locale;
+  snapshot: WorkspaceSupplySnapshot;
+  tier: "proven" | "buildout" | "premium";
+}) {
+  const reason = args.snapshot.release[args.tier].reason;
+
+  if (args.locale === "zh") {
+    return {
+      review_pending: "能力合同刚变化，先完成吸收动作，再放出这一层供给。",
+      unlock_required:
+        args.tier === "proven"
+          ? "先解锁 live execution，再让系统自动分配新的 discovery supply。"
+          : "这层供给要等更高计划或更完整执行层解锁后再放开。",
+      capacity_full: "当前这条执行开口已经满了，先让现有任务消化掉。",
+      proof_priority: "当前更值钱的是先把 proof 往前推，不该继续放这层供给。",
+      missing_owner: "当前没有产品具备承接这一层供给的条件。",
+      awaiting_proven_base:
+        "标准 proven 基础还不够稳，这一层供给暂时不该放开。",
+      awaiting_premium_base:
+        "proof 和 receipt 基础还不够强，这一层 premium 供给先继续关着。",
+      ready:
+        "这层供给已经满足放闸条件，可以开始向当前优先产品分配。",
+    }[reason];
+  }
+
+  return {
+    review_pending:
+      "The capability contract just changed. Absorb the review actions before releasing this supply layer.",
+    unlock_required:
+      args.tier === "proven"
+        ? "Unlock live execution before the system starts routing fresh discovery supply automatically."
+        : "This layer stays closed until the higher plan or deeper execution layer is unlocked.",
+    capacity_full:
+      "This execution lane is already full right now, so let the current work land first.",
+    proof_priority:
+      "The higher-value move right now is pushing proof forward instead of releasing this layer.",
+    missing_owner:
+      "No product is ready to absorb this supply layer yet.",
+    awaiting_proven_base:
+      "The standard proven base is not stable enough yet, so this layer should stay closed.",
+    awaiting_premium_base:
+      "The proof and receipt base is not strong enough yet, so premium supply should stay closed.",
+    ready:
+      "This supply layer is ready to open and can start flowing into the current priority product.",
+  }[reason];
 }
 
 function workspaceOwnershipSummary(
@@ -3825,6 +3929,16 @@ export default function DashboardClient({
     productId: string,
     planId: string
   ) {
+    const buildoutSupplyError = workspaceBuildoutGuardMessage({
+      locale,
+      productId,
+      workspaceSupply,
+    });
+    if (buildoutSupplyError) {
+      setWorkspaceActionError(buildoutSupplyError);
+      return;
+    }
+
     const laneGuardMessage = workspaceLaneGuardMessage({
       lane: "submission",
       locale,
@@ -4726,24 +4840,39 @@ export default function DashboardClient({
                     label:
                       locale === "zh" ? "Proven 供给归属" : "Proven supply owner",
                     owner: workspaceSupply.provenOwner,
+                    tier: "proven" as const,
                   },
                   {
                     label:
                       locale === "zh" ? "Buildout 供给归属" : "Buildout supply owner",
                     owner: workspaceSupply.buildoutOwner,
+                    tier: "buildout" as const,
                   },
                   {
                     label:
                       locale === "zh" ? "Premium 供给归属" : "Premium supply owner",
                     owner: workspaceSupply.premiumOwner,
+                    tier: "premium" as const,
                   },
-                ].map(({ label, owner }) => (
+                ].map(({ label, owner, tier }) => (
                   <div
                     key={label}
                     className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
                   >
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                      {label}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                        {label}
+                      </div>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] ${workspaceSupplyReleaseClasses(
+                          workspaceSupply.release[tier].open
+                        )}`}
+                      >
+                        {workspaceSupplyReleaseLabel({
+                          locale,
+                          open: workspaceSupply.release[tier].open,
+                        })}
+                      </span>
                     </div>
                     <div className="mt-3 text-sm font-medium leading-7 text-stone-100">
                       {owner
@@ -4758,6 +4887,13 @@ export default function DashboardClient({
                         : locale === "zh"
                           ? "这一层供给暂时不应该继续往前开。"
                           : "This layer should stay closed for now."}
+                    </p>
+                    <p className="mt-2 text-xs leading-6 text-stone-500">
+                      {workspaceSupplyReleaseReasonCopy({
+                        locale,
+                        snapshot: workspaceSupply,
+                        tier,
+                      })}
                     </p>
                     {owner?.recommendedMarkets.length ? (
                       <div className="mt-3 flex flex-wrap gap-2">
