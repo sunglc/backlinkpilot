@@ -98,6 +98,7 @@ type ProductProofAction = {
   href: string;
   label: string;
   taskType: "verify_result" | "protect_publication" | "send_materials" | "review_commercial" | "follow_up" | "push_receipts";
+  mode: "queue" | "open";
 };
 
 const FREE_PREVIEW_PRODUCT_LIMIT = 1;
@@ -477,6 +478,7 @@ function getProofBoardCopy(locale: Locale) {
       openTopProduct: "打开全局优先产品",
       latestSignal: "最近信号",
       candidates: "候选",
+      activeTaskLabel: "当前进行中的结果任务",
       actionLabels: {
         verify_published: "验证结果",
         protect_publication: "推进接近发布",
@@ -485,6 +487,13 @@ function getProofBoardCopy(locale: Locale) {
         hold_review: "继续跟进",
         push_receipts: "推进回执证明",
         build_signal: "打开产品",
+        open_active: "打开正在进行的任务",
+      },
+      taskStatus: {
+        queued: "已排队",
+        in_progress: "进行中",
+        proved: "已证明",
+        dropped: "已放弃",
       },
       priorities: {
         verify_published: {
@@ -538,6 +547,7 @@ function getProofBoardCopy(locale: Locale) {
     openTopProduct: "Open top proof product",
     latestSignal: "Latest signal",
     candidates: "Candidates",
+    activeTaskLabel: "Active proof task",
     actionLabels: {
       verify_published: "Verify result",
       protect_publication: "Protect publication",
@@ -546,6 +556,13 @@ function getProofBoardCopy(locale: Locale) {
       hold_review: "Follow up",
       push_receipts: "Push receipts",
       build_signal: "Open product",
+      open_active: "Open active task",
+    },
+    taskStatus: {
+      queued: "Queued",
+      in_progress: "In progress",
+      proved: "Proved",
+      dropped: "Dropped",
     },
     priorities: {
       verify_published: {
@@ -601,52 +618,107 @@ function proofActionForSummary(
   proofCopy: ReturnType<typeof getProofBoardCopy>
 ): ProductProofAction {
   const baseHref = `/dashboard/product/${summary.product.id}`;
+  const activeTask = summary.proof.activeTask;
 
   if (summary.proof.priority === "verify_published") {
+    if (activeTask?.type === "verify_result") {
+      return {
+        href: `${baseHref}#proof-pipeline`,
+        label: proofCopy.actionLabels.open_active,
+        taskType: "verify_result",
+        mode: "open",
+      };
+    }
     return {
       href: `${baseHref}#proof-pipeline`,
       label: proofCopy.actionLabels.verify_published,
       taskType: "verify_result",
+      mode: "queue",
     };
   }
 
   if (summary.proof.priority === "protect_publication") {
+    if (activeTask?.type === "protect_publication") {
+      return {
+        href: `${baseHref}#managed-inbox`,
+        label: proofCopy.actionLabels.open_active,
+        taskType: "protect_publication",
+        mode: "open",
+      };
+    }
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.protect_publication,
       taskType: "protect_publication",
+      mode: "queue",
     };
   }
 
   if (summary.proof.priority === "send_materials") {
+    if (activeTask?.type === "send_materials") {
+      return {
+        href: `${baseHref}#managed-inbox`,
+        label: proofCopy.actionLabels.open_active,
+        taskType: "send_materials",
+        mode: "open",
+      };
+    }
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.send_materials,
       taskType: "send_materials",
+      mode: "queue",
     };
   }
 
   if (summary.proof.priority === "review_commercial") {
+    if (activeTask?.type === "review_commercial") {
+      return {
+        href: `${baseHref}#managed-inbox`,
+        label: proofCopy.actionLabels.open_active,
+        taskType: "review_commercial",
+        mode: "open",
+      };
+    }
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.review_commercial,
       taskType: "review_commercial",
+      mode: "queue",
     };
   }
 
   if (summary.proof.priority === "hold_review") {
+    if (activeTask?.type === "follow_up") {
+      return {
+        href: `${baseHref}#managed-inbox`,
+        label: proofCopy.actionLabels.open_active,
+        taskType: "follow_up",
+        mode: "open",
+      };
+    }
     return {
       href: `${baseHref}#managed-inbox`,
       label: proofCopy.actionLabels.hold_review,
       taskType: "follow_up",
+      mode: "queue",
     };
   }
 
   if (summary.proof.priority === "push_receipts") {
+    if (activeTask?.type === "push_receipts") {
+      return {
+        href: `${baseHref}#proof-pipeline`,
+        label: proofCopy.actionLabels.open_active,
+        taskType: "push_receipts",
+        mode: "open",
+      };
+    }
     return {
       href: `${baseHref}#proof-pipeline`,
       label: proofCopy.actionLabels.push_receipts,
       taskType: "push_receipts",
+      mode: "queue",
     };
   }
 
@@ -654,6 +726,7 @@ function proofActionForSummary(
     href: baseHref,
     label: proofCopy.actionLabels.build_signal,
     taskType: "push_receipts",
+    mode: "open",
   };
 }
 
@@ -765,6 +838,13 @@ function formatDashboardDate(date: string, locale: Locale) {
   });
 }
 
+function getProofTaskStatusLabel(
+  status: "queued" | "in_progress" | "proved" | "dropped",
+  proofCopy: ReturnType<typeof getProofBoardCopy>
+) {
+  return proofCopy.taskStatus[status as keyof typeof proofCopy.taskStatus] || status;
+}
+
 function minimumPlanForChannel(channel: ChannelContract) {
   return (
     [...channel.plans].sort(
@@ -862,6 +942,8 @@ export default function DashboardClient({
         score: 0,
         lastSignalAt: null,
         candidateLabels: [],
+        activeTask: null,
+        latestTask: null,
       };
     const latestSubmission = productSubmissions[0] || null;
     const activeSubmission =
@@ -1094,6 +1176,12 @@ export default function DashboardClient({
     productId: string,
     action: ProductProofAction
   ) {
+    if (action.mode === "open") {
+      setWorkspaceActionError("");
+      router.push(action.href);
+      return;
+    }
+
     const actionKey = `${productId}:${action.taskType}`;
     setProofActionKey(actionKey);
     setWorkspaceActionError("");
@@ -1609,6 +1697,15 @@ export default function DashboardClient({
                 <p className="mt-3 text-sm leading-7 text-stone-200">
                   {proofCopy.priorities[globalProofPriority].body}
                 </p>
+                {topProofProducts[0]?.proof.activeTask ? (
+                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
+                    {proofCopy.activeTaskLabel}:{" "}
+                    {getProofTaskStatusLabel(
+                      topProofProducts[0].proof.activeTask.status,
+                      proofCopy
+                    )}
+                  </div>
+                ) : null}
                 {topProofAction ? (
                   <div className="mt-5">
                     <button
@@ -1684,6 +1781,15 @@ export default function DashboardClient({
                             </span>
                           )}
                         </div>
+                        {summary.proof.activeTask ? (
+                          <div className="mt-4 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
+                            {proofCopy.activeTaskLabel}:{" "}
+                            {getProofTaskStatusLabel(
+                              summary.proof.activeTask.status,
+                              proofCopy
+                            )}
+                          </div>
+                        ) : null}
                         <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
                           <span>
                             {proofCopy.latestSignal}:{" "}
@@ -2067,6 +2173,15 @@ export default function DashboardClient({
                           </div>
 
                           <div className="mt-5 flex flex-wrap gap-3">
+                            {summary.proof.activeTask ? (
+                              <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-stone-300">
+                                {proofCopy.activeTaskLabel}:{" "}
+                                {getProofTaskStatusLabel(
+                                  summary.proof.activeTask.status,
+                                  proofCopy
+                                )}
+                              </div>
+                            ) : null}
                             {proofAction ? (
                               <button
                                 type="button"

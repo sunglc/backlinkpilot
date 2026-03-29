@@ -16,6 +16,7 @@ import type {
   BringYourOwnSender,
   ManagedInboxEventState,
   ManagedInboxProofTask,
+  ManagedInboxProofTaskStatus,
   ManagedInboxProofTaskType,
   ManagedInboxLaunchRequest,
   ManagedInboxLaunchPacket,
@@ -346,7 +347,10 @@ function normalizeRecord(
     proofTasks: Array.isArray(input.proofTasks)
       ? input.proofTasks.map((task) => ({
           ...task,
-          status: task.status || "queued",
+          status: normalizeProofTaskStatus(task.status),
+          updatedAt: task.updatedAt || task.createdAt || base.updatedAt,
+          completedAt: task.completedAt || null,
+          note: task.note || null,
         }))
       : [],
     timeline: Array.isArray(input.timeline) ? input.timeline : [],
@@ -661,6 +665,73 @@ function proofTaskCopy(taskType: ManagedInboxProofTaskType) {
   } as const;
 
   return copy[taskType];
+}
+
+function normalizeProofTaskStatus(
+  status: string | null | undefined
+): ManagedInboxProofTaskStatus {
+  if (
+    status === "queued" ||
+    status === "in_progress" ||
+    status === "proved" ||
+    status === "dropped"
+  ) {
+    return status;
+  }
+
+  return "queued";
+}
+
+function isOpenProofTask(task: ManagedInboxProofTask) {
+  return task.status === "queued" || task.status === "in_progress";
+}
+
+async function writeProofTaskPayload(args: {
+  task: ManagedInboxProofTask;
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  senderIdentity: string | null;
+  launchReferenceId: string | null;
+  candidateThreads: Array<{
+    title: string;
+    threadStage: ManagedInboxLaunchPacket["threadStage"];
+    nextStep: string;
+    lastReplyAt: string | null;
+  }>;
+}) {
+  const payload = {
+    type: "managed_proof_task",
+    taskId: args.task.id,
+    taskType: args.task.type,
+    status: args.task.status,
+    createdAt: args.task.createdAt,
+    updatedAt: args.task.updatedAt,
+    completedAt: args.task.completedAt,
+    product: {
+      id: args.product.id,
+      name: args.product.name,
+      url: args.product.url,
+      description: args.product.description,
+    },
+    actor: {
+      userId: args.actor.userId,
+      userEmail: args.actor.userEmail,
+    },
+    senderIdentity: args.senderIdentity,
+    summary: args.task.summary,
+    note: args.task.note,
+    candidateThreads: args.candidateThreads,
+    launchReferenceId: args.launchReferenceId,
+    nextStep:
+      args.task.status === "proved"
+        ? "Capture the public proof cleanly and keep it visible inside BacklinkPilot."
+        : args.task.status === "dropped"
+          ? "The current proof path was dropped. Re-open only if a stronger signal appears."
+          : "Ops should pick up this proof task, move the strongest candidate forward, and log the result back into BacklinkPilot.",
+  };
+
+  await ensureStorage();
+  await writeFile(args.task.path, JSON.stringify(payload, null, 2));
 }
 
 async function writeOpsBrief(args: {
@@ -1074,13 +1145,17 @@ export async function queueManagedProofTask(args: {
     productId: args.product.id,
     userId: args.actor.userId,
   });
+  const existingOpenTask = record.proofTasks.find(
+    (task) => task.type === args.taskType && isOpenProofTask(task)
+  );
+  if (existingOpenTask) {
+    return record;
+  }
   const taskId = `pt-${args.product.id.slice(0, 8)}-${Date.now().toString().slice(-6)}`;
   const filename = `${taskId}.json`;
   const absolutePath = path.join(PROOF_TASK_DIR, filename);
   const copy = proofTaskCopy(args.taskType);
-  const proofTaskStatus = record.proofTasks.some((task) => task.type === args.taskType)
-    ? ("updated" as const)
-    : ("queued" as const);
+  const createdAt = nowIso();
   const latestPackets = record.launchRequest?.packets || [];
   const candidateThreads = latestPackets
     .filter((packet) => packet.replyStatus === "replied")
@@ -1097,42 +1172,27 @@ export async function queueManagedProofTask(args: {
       nextStep: packet.nextStep,
       lastReplyAt: packet.lastReplyAt,
     }));
-  const payload = {
-    type: "managed_proof_task",
-    taskId,
-    taskType: args.taskType,
-    status: proofTaskStatus,
-    createdAt: nowIso(),
-    product: {
-      id: args.product.id,
-      name: args.product.name,
-      url: args.product.url,
-      description: args.product.description,
-    },
-    actor: {
-      userId: args.actor.userId,
-      userEmail: args.actor.userEmail,
-    },
-    senderIdentity: record.mailboxIdentity?.email || null,
-    summary: copy.summary,
-    candidateThreads,
-    launchReferenceId: record.launchRequest?.referenceId || null,
-    nextStep:
-      "Ops should pick up this proof task, move the strongest candidate forward, and log the result back into BacklinkPilot.",
-  };
-
-  await ensureStorage();
-  await writeFile(absolutePath, JSON.stringify(payload, null, 2));
-
   const task: ManagedInboxProofTask = {
     id: taskId,
     type: args.taskType,
-    status: proofTaskStatus,
-    createdAt: payload.createdAt,
+    status: "queued",
+    createdAt,
+    updatedAt: createdAt,
+    completedAt: null,
     path: absolutePath,
     relativePath: path.relative(STORAGE_DIR, absolutePath),
     summary: copy.summary,
+    note: null,
   };
+
+  await writeProofTaskPayload({
+    task,
+    product: args.product,
+    actor: args.actor,
+    senderIdentity: record.mailboxIdentity?.email || null,
+    launchReferenceId: record.launchRequest?.referenceId || null,
+    candidateThreads,
+  });
 
   const timeline = [
     createTimelineEvent({
@@ -1151,6 +1211,112 @@ export async function queueManagedProofTask(args: {
     proofTasks: [task, ...record.proofTasks].slice(0, 12),
     timeline,
     updatedAt: nowIso(),
+  };
+
+  await writeRecord(nextRecord);
+  return nextRecord;
+}
+
+export async function updateManagedProofTask(args: {
+  product: ProductSnapshot;
+  actor: ActorSnapshot;
+  taskId: string;
+  taskAction: "start" | "prove" | "drop";
+}) {
+  const record = await getManagedInboxRecord({
+    productId: args.product.id,
+    userId: args.actor.userId,
+  });
+  const targetTask = record.proofTasks.find((task) => task.id === args.taskId);
+
+  if (!targetTask) {
+    throw new Error("Proof task not found.");
+  }
+
+  const timestamp = nowIso();
+  const nextStatus: ManagedInboxProofTaskStatus =
+    args.taskAction === "start"
+      ? "in_progress"
+      : args.taskAction === "prove"
+        ? "proved"
+        : "dropped";
+  const nextNote =
+    args.taskAction === "start"
+      ? "The proof path is actively being worked now."
+      : args.taskAction === "prove"
+        ? "The proof path was confirmed and moved into the result layer."
+        : "The current proof path was dropped because the signal was not strong enough.";
+  const candidateThreads = (record.launchRequest?.packets || [])
+    .filter((packet) => packet.replyStatus === "replied")
+    .slice()
+    .sort((left, right) => {
+      const leftDate = left.lastReplyAt || left.sentAt || "";
+      const rightDate = right.lastReplyAt || right.sentAt || "";
+      return rightDate.localeCompare(leftDate);
+    })
+    .slice(0, 3)
+    .map((packet) => ({
+      title: packet.title,
+      threadStage: packet.threadStage,
+      nextStep: packet.nextStep,
+      lastReplyAt: packet.lastReplyAt,
+    }));
+  const nextProofTasks = record.proofTasks
+    .map((task) =>
+      task.id === args.taskId
+        ? {
+            ...task,
+            status: nextStatus,
+            updatedAt: timestamp,
+            completedAt:
+              nextStatus === "proved" || nextStatus === "dropped" ? timestamp : null,
+            note: nextNote,
+          }
+        : task
+    )
+    .sort((left, right) => {
+      const leftDate = left.updatedAt || left.createdAt;
+      const rightDate = right.updatedAt || right.createdAt;
+      return rightDate.localeCompare(leftDate);
+    });
+  const nextTask = nextProofTasks.find((task) => task.id === args.taskId);
+
+  if (!nextTask) {
+    throw new Error("Proof task not found.");
+  }
+
+  await writeProofTaskPayload({
+    task: nextTask,
+    product: args.product,
+    actor: args.actor,
+    senderIdentity: record.mailboxIdentity?.email || null,
+    launchReferenceId: record.launchRequest?.referenceId || null,
+    candidateThreads,
+  });
+
+  const actionTitle =
+    args.taskAction === "start"
+      ? "Proof task moved into progress"
+      : args.taskAction === "prove"
+        ? "Proof task marked as proved"
+        : "Proof task dropped";
+  const timeline = [
+    createTimelineEvent({
+      kind: "note",
+      state: "logged",
+      direction: "internal",
+      actor: "ops",
+      title: `${actionTitle}: ${proofTaskCopy(targetTask.type).title}`,
+      body: `${nextTask.summary}\nReference: ${nextTask.id}\nTask: ${nextTask.relativePath}`,
+    }),
+    ...record.timeline,
+  ].slice(0, 40);
+
+  const nextRecord: ManagedInboxRecord = {
+    ...record,
+    proofTasks: nextProofTasks,
+    timeline,
+    updatedAt: timestamp,
   };
 
   await writeRecord(nextRecord);

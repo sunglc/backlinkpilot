@@ -1,4 +1,5 @@
 import type {
+  ManagedInboxProofTask,
   ManagedInboxLaunchPacketThreadStage,
   ManagedInboxRecord,
 } from "@/lib/managed-inbox-types";
@@ -29,6 +30,14 @@ export interface ProductProofSummary {
   score: number;
   lastSignalAt: string | null;
   candidateLabels: string[];
+  activeTask: Pick<
+    ManagedInboxProofTask,
+    "id" | "type" | "status" | "createdAt" | "updatedAt" | "completedAt"
+  > | null;
+  latestTask: Pick<
+    ManagedInboxProofTask,
+    "id" | "type" | "status" | "createdAt" | "updatedAt" | "completedAt"
+  > | null;
 }
 
 function stageRank(stage: ManagedInboxLaunchPacketThreadStage | null) {
@@ -57,6 +66,13 @@ export function summarizeProductProofPipeline(args: {
   record: ManagedInboxRecord | null;
   submissions: ProductProofSubmissionSnapshot[];
 }): ProductProofSummary {
+  const proofTasks = (args.record?.proofTasks || [])
+    .slice()
+    .sort((left, right) => {
+      const leftDate = left.updatedAt || left.createdAt;
+      const rightDate = right.updatedAt || right.createdAt;
+      return rightDate.localeCompare(leftDate);
+    });
   const packets = args.record?.launchRequest?.packets || [];
   const repliedPackets = packets.filter((packet) => packet.replyStatus === "replied");
   const publishedPackets = repliedPackets.filter(
@@ -154,5 +170,10 @@ export function summarizeProductProofPipeline(args: {
     score,
     lastSignalAt,
     candidateLabels,
+    activeTask:
+      proofTasks.find(
+        (task) => task.status === "queued" || task.status === "in_progress"
+      ) || null,
+    latestTask: proofTasks[0] || null,
   };
 }

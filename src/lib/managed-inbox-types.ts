@@ -112,16 +112,23 @@ export type ManagedInboxProofTaskType =
   | "follow_up"
   | "push_receipts";
 
-export type ManagedInboxProofTaskStatus = "queued" | "updated";
+export type ManagedInboxProofTaskStatus =
+  | "queued"
+  | "in_progress"
+  | "proved"
+  | "dropped";
 
 export interface ManagedInboxProofTask {
   id: string;
   type: ManagedInboxProofTaskType;
   status: ManagedInboxProofTaskStatus;
   createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
   path: string;
   relativePath: string;
   summary: string;
+  note: string | null;
 }
 
 export interface ManagedInboxTimelineEvent {

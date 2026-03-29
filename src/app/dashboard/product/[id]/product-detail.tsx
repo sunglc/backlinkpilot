@@ -465,9 +465,23 @@ function getProductDetailCopy(locale: Locale) {
         },
         priorityTitle: "当前最值得推进的动作",
         candidatesTitle: "当前最接近结果的候选",
-        latestTaskTitle: "最近排队的结果任务",
+        latestTaskTitle: "最近结果任务",
+        latestTaskStatus: "任务状态",
         latestTaskQueuedAt: "排队时间",
+        latestTaskUpdatedAt: "最近更新",
+        latestTaskCompletedAt: "完成时间",
         latestTaskReference: "任务引用",
+        openTask: "打开当前结果任务",
+        startingTask: "开始推进",
+        markProved: "标记为已证明",
+        markDropped: "标记为已放弃",
+        updatingTask: "更新中...",
+        taskStatus: {
+          queued: "已排队",
+          in_progress: "进行中",
+          proved: "已证明",
+          dropped: "已放弃",
+        },
         candidatesEmpty:
           "现在还没有足够强的 proof 候选。继续推进 live 渠道和外联线程后，这里会开始出现最接近拿到证明的目标。",
         receiptCandidateLabel: "提交回执",
@@ -734,9 +748,23 @@ function getProductDetailCopy(locale: Locale) {
       },
       priorityTitle: "Highest-value move right now",
       candidatesTitle: "Closest candidates to a real result",
-      latestTaskTitle: "Latest queued proof task",
+      latestTaskTitle: "Latest proof task",
+      latestTaskStatus: "Task status",
       latestTaskQueuedAt: "Queued at",
+      latestTaskUpdatedAt: "Last updated",
+      latestTaskCompletedAt: "Completed at",
       latestTaskReference: "Task reference",
+      openTask: "Open current proof task",
+      startingTask: "Start task",
+      markProved: "Mark as proved",
+      markDropped: "Mark as dropped",
+      updatingTask: "Updating...",
+      taskStatus: {
+        queued: "Queued",
+        in_progress: "In progress",
+        proved: "Proved",
+        dropped: "Dropped",
+      },
       candidatesEmpty:
         "There are no strong proof candidates yet. As live lanes and outreach threads keep moving, the closest targets should start showing up here.",
       receiptCandidateLabel: "Submission receipt",
@@ -1239,6 +1267,7 @@ function getManagedInboxCopy(locale: Locale) {
         saveFailed: "发信模式保存失败，请稍后再试。",
         managedFailed: "托管邮箱激活失败，请稍后再试。",
         launchFailed: "首批外联请求创建失败，请稍后再试。",
+        proofTaskFailed: "结果任务更新失败，请稍后再试。",
       },
     };
   }
@@ -1388,6 +1417,7 @@ function getManagedInboxCopy(locale: Locale) {
       saveFailed: "Unable to save the sender mode right now.",
       managedFailed: "Unable to activate the managed inbox right now.",
       launchFailed: "Unable to queue the first outreach batch right now.",
+      proofTaskFailed: "Unable to update the proof task right now.",
     },
   };
 }
@@ -1424,8 +1454,9 @@ export default function ProductDetail({
     managedInboxRecord.bringYourOwn?.senderEmail || user.email || ""
   );
   const [managedInboxAction, setManagedInboxAction] = useState<
-    "save_byo" | "activate_managed" | "launch_batch" | null
+    "save_byo" | "activate_managed" | "launch_batch" | "update_proof_task" | null
   >(null);
+  const [proofTaskActionKey, setProofTaskActionKey] = useState<string | null>(null);
   const [managedInboxError, setManagedInboxError] = useState("");
   const sourcePreview = outreachLibrary.sources.slice(0, 6);
   const playbook = operationalInsights.playbook || EMPTY_PLAYBOOK;
@@ -1479,8 +1510,16 @@ export default function ProductDetail({
       | { action: "save_byo"; senderEmail: string }
       | { action: "activate_managed" }
       | { action: "launch_batch" }
+      | {
+          action: "update_proof_task";
+          taskId: string;
+          taskAction: "start" | "prove" | "drop";
+        }
   ) {
     setManagedInboxAction(payload.action);
+    if (payload.action === "update_proof_task") {
+      setProofTaskActionKey(`${payload.taskId}:${payload.taskAction}`);
+    }
     setManagedInboxError("");
 
     try {
@@ -1513,13 +1552,16 @@ export default function ProductDetail({
         error instanceof Error
           ? error.message
           : payload.action === "activate_managed"
-            ? managedInboxCopy.errors.managedFailed
-            : payload.action === "launch_batch"
-              ? managedInboxCopy.errors.launchFailed
+          ? managedInboxCopy.errors.managedFailed
+          : payload.action === "launch_batch"
+            ? managedInboxCopy.errors.launchFailed
+            : payload.action === "update_proof_task"
+              ? managedInboxCopy.errors.proofTaskFailed
               : managedInboxCopy.errors.saveFailed
       );
     } finally {
       setManagedInboxAction(null);
+      setProofTaskActionKey(null);
     }
   }
 
@@ -1541,6 +1583,14 @@ export default function ProductDetail({
 
   async function queueManagedBatch() {
     await updateManagedInbox({ action: "launch_batch" });
+  }
+
+  async function updateProofTask(taskId: string, taskAction: "start" | "prove" | "drop") {
+    await updateManagedInbox({
+      action: "update_proof_task",
+      taskId,
+      taskAction,
+    });
   }
 
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
@@ -1701,6 +1751,9 @@ export default function ProductDetail({
     verify: publishedPackets.length,
   };
   const latestProofTask = managedInbox.proofTasks[0] || null;
+  const latestProofTaskStatusLabel = latestProofTask
+    ? copy.proofPipeline.taskStatus[latestProofTask.status]
+    : null;
   let proofPriorityTitle = copy.proofPipeline.priorities.fallbackTitle;
   let proofPriorityBody = copy.proofPipeline.priorities.fallbackBody;
   let proofPriorityTone = "border-white/10 bg-white/[0.04]";
@@ -3169,8 +3222,15 @@ export default function ProductDetail({
                 </p>
                 {latestProofTask ? (
                   <div className="mt-5 rounded-[1rem] border border-white/10 bg-black/15 p-4">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                      {copy.proofPipeline.latestTaskTitle}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                        {copy.proofPipeline.latestTaskTitle}
+                      </div>
+                      {latestProofTaskStatusLabel ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-200">
+                          {copy.proofPipeline.latestTaskStatus}: {latestProofTaskStatusLabel}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-3 text-sm leading-7 text-stone-300">
                       {latestProofTask.summary}
@@ -3180,7 +3240,61 @@ export default function ProductDetail({
                       {formatSubmissionDate(latestProofTask.createdAt, locale)}
                     </div>
                     <div className="mt-2 text-xs text-stone-500">
+                      {copy.proofPipeline.latestTaskUpdatedAt}:{" "}
+                      {formatSubmissionDate(latestProofTask.updatedAt, locale)}
+                    </div>
+                    {latestProofTask.completedAt ? (
+                      <div className="mt-2 text-xs text-stone-500">
+                        {copy.proofPipeline.latestTaskCompletedAt}:{" "}
+                        {formatSubmissionDate(latestProofTask.completedAt, locale)}
+                      </div>
+                    ) : null}
+                    <div className="mt-2 text-xs text-stone-500">
                       {copy.proofPipeline.latestTaskReference}: {latestProofTask.id}
+                    </div>
+                    {latestProofTask.note ? (
+                      <p className="mt-3 text-sm leading-7 text-stone-300">
+                        {latestProofTask.note}
+                      </p>
+                    ) : null}
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {latestProofTask.status === "queued" ? (
+                        <button
+                          type="button"
+                          onClick={() => updateProofTask(latestProofTask.id, "start")}
+                          disabled={proofTaskActionKey === `${latestProofTask.id}:start`}
+                          className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                        >
+                          {proofTaskActionKey === `${latestProofTask.id}:start`
+                            ? copy.proofPipeline.updatingTask
+                            : copy.proofPipeline.startingTask}
+                        </button>
+                      ) : null}
+                      {(latestProofTask.status === "queued" ||
+                        latestProofTask.status === "in_progress") ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => updateProofTask(latestProofTask.id, "prove")}
+                            disabled={proofTaskActionKey === `${latestProofTask.id}:prove`}
+                            className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                          >
+                            {proofTaskActionKey === `${latestProofTask.id}:prove`
+                              ? copy.proofPipeline.updatingTask
+                              : copy.proofPipeline.markProved}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateProofTask(latestProofTask.id, "drop")}
+                            disabled={proofTaskActionKey === `${latestProofTask.id}:drop`}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
+                          >
+                            {proofTaskActionKey === `${latestProofTask.id}:drop`
+                              ? copy.proofPipeline.updatingTask
+                              : copy.proofPipeline.markDropped}
+                          </button>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
