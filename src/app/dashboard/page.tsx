@@ -89,6 +89,7 @@ export default async function Dashboard({
     currentPlan,
     reviewPending: capabilityReviewState.reviewPending,
     capabilityContract,
+    capabilityHistory,
     operationalInsights,
     workspacePolicy: workspacePolicySnapshot,
   });

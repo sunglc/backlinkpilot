@@ -7,6 +7,7 @@ export type WorkspaceSupplyReleaseReason =
   | "unlock_required"
   | "capacity_full"
   | "proof_priority"
+  | "history_unstable"
   | "missing_owner"
   | "awaiting_proven_base"
   | "awaiting_premium_base"
@@ -47,9 +48,19 @@ export interface WorkspaceSupplyReleaseState {
   recommendedProductId: string | null;
 }
 
+export interface WorkspaceSupplyCapabilityStability {
+  recentSnapshotCount: number;
+  stableFingerprintStreak: number;
+  recentChangeCount: number;
+  lastChangedAt: string | null;
+  buildoutReady: boolean;
+  premiumReady: boolean;
+}
+
 export interface WorkspaceSupplySnapshot {
   currentPlan: string;
   reviewPending: boolean;
+  capabilityStability: WorkspaceSupplyCapabilityStability;
   discovery: {
     target: number;
     counted: number;

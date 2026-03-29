@@ -11,6 +11,7 @@ import {
 } from "@/lib/managed-inbox-server";
 import type { ManagedInboxProofTaskType } from "@/lib/managed-inbox-types";
 import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
+import { readSaasCapabilityHistory } from "@/lib/saas-capability-history";
 import { readSaasCapabilityReviewState } from "@/lib/saas-capability-review-state";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
 import {
@@ -146,6 +147,7 @@ export async function POST(
     submissions: submissions || [],
   });
   const capabilityContract = await readSaasCapabilityContract();
+  const capabilityHistory = await readSaasCapabilityHistory();
   const capabilityReviewState = await readSaasCapabilityReviewState({
     userId: user.id,
     currentFingerprint: capabilityContract.capability_fingerprint,
@@ -155,6 +157,7 @@ export async function POST(
     currentPlan: plan,
     reviewPending: capabilityReviewState.reviewPending,
     capabilityContract,
+    capabilityHistory,
     operationalInsights,
     workspacePolicy,
   });

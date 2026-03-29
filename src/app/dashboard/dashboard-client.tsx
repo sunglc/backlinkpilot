@@ -2254,6 +2254,8 @@ function workspaceSupplyReleaseReasonCopy(args: {
         "标准 proven 基础还不够稳，这一层供给暂时不该放开。",
       awaiting_premium_base:
         "proof 和 receipt 基础还不够强，这一层 premium 供给先继续关着。",
+      history_unstable:
+        "最近的能力历史还不稳定，先把合同和产品面同步稳定下来，再继续释放这一层供给。",
       ready:
         "这层供给已经满足放闸条件，可以开始向当前优先产品分配。",
     }[reason];
@@ -2276,6 +2278,8 @@ function workspaceSupplyReleaseReasonCopy(args: {
       "The standard proven base is not stable enough yet, so this layer should stay closed.",
     awaiting_premium_base:
       "The proof and receipt base is not strong enough yet, so premium supply should stay closed.",
+    history_unstable:
+      "Recent capability history is still unstable, so stabilize the contract and product surfaces before releasing this supply layer.",
     ready:
       "This supply layer is ready to open and can start flowing into the current priority product.",
   }[reason];

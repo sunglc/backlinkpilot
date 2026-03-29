@@ -1,4 +1,5 @@
 import type { SaasCapabilityContract } from "@/lib/saas-capability-contract-types";
+import type { SaasCapabilityHistory } from "@/lib/saas-capability-history-types";
 import type {
   OperationalInsights,
   OperationalInsightsDiscoveryMarket,
@@ -167,10 +168,58 @@ function releaseState(args: {
   };
 }
 
+function buildCapabilityStability(args: {
+  capabilityContract: SaasCapabilityContract;
+  capabilityHistory: SaasCapabilityHistory;
+}) {
+  const history = Array.isArray(args.capabilityHistory.history)
+    ? args.capabilityHistory.history
+    : [];
+  const currentFingerprint = String(
+    args.capabilityContract.capability_fingerprint || ""
+  ).trim();
+  let stableFingerprintStreak = 0;
+
+  for (const row of history) {
+    if (String(row.capability_fingerprint || "").trim() !== currentFingerprint) {
+      break;
+    }
+
+    stableFingerprintStreak += 1;
+  }
+
+  const recentWindow = history.slice(0, 4);
+  const recentChangeCount = recentWindow.filter(
+    (row) =>
+      Boolean(row.capabilities_changed) ||
+      Boolean(row.requires_saas_review) ||
+      String(row.capability_fingerprint || "").trim() !== currentFingerprint
+  ).length;
+  const lastChangedAt =
+    recentWindow.find(
+      (row) =>
+        Boolean(row.capabilities_changed) ||
+        Boolean(row.requires_saas_review) ||
+        String(row.capability_fingerprint || "").trim() !== currentFingerprint
+    )?.generated_at || null;
+  const buildoutRequiredStreak = history.length >= 2 ? 2 : 1;
+  const premiumRequiredStreak = history.length >= 3 ? 3 : history.length >= 2 ? 2 : 1;
+
+  return {
+    recentSnapshotCount: recentWindow.length,
+    stableFingerprintStreak,
+    recentChangeCount,
+    lastChangedAt,
+    buildoutReady: stableFingerprintStreak >= buildoutRequiredStreak,
+    premiumReady: stableFingerprintStreak >= premiumRequiredStreak,
+  };
+}
+
 export function buildWorkspaceSupplySnapshot(args: {
   currentPlan: string;
   reviewPending: boolean;
   capabilityContract: SaasCapabilityContract;
+  capabilityHistory: SaasCapabilityHistory;
   operationalInsights: OperationalInsights;
   workspacePolicy: WorkspacePolicySnapshot;
 }): WorkspaceSupplySnapshot {
@@ -212,6 +261,10 @@ export function buildWorkspaceSupplySnapshot(args: {
       activeProofTasks: 0,
     }
   );
+  const capabilityStability = buildCapabilityStability({
+    capabilityContract: args.capabilityContract,
+    capabilityHistory: args.capabilityHistory,
+  });
 
   const provenOwner = pickBestOwner({
     products: submissionOwners,
@@ -311,6 +364,12 @@ export function buildWorkspaceSupplySnapshot(args: {
               reason: "proof_priority",
               recommendedProductId: null,
             })
+          : !capabilityStability.buildoutReady
+            ? releaseState({
+                open: false,
+                reason: "history_unstable",
+                recommendedProductId: null,
+              })
           : !buildoutBaseReady
             ? releaseState({
                 open: false,
@@ -352,6 +411,12 @@ export function buildWorkspaceSupplySnapshot(args: {
               reason: "proof_priority",
               recommendedProductId: null,
             })
+          : !capabilityStability.premiumReady
+            ? releaseState({
+                open: false,
+                reason: "history_unstable",
+                recommendedProductId: null,
+              })
           : !premiumBaseReady
             ? releaseState({
                 open: false,
@@ -389,6 +454,7 @@ export function buildWorkspaceSupplySnapshot(args: {
   return {
     currentPlan: args.currentPlan,
     reviewPending: args.reviewPending,
+    capabilityStability,
     discovery: {
       target: args.operationalInsights.discovery_target_new_worthy_root_domains,
       counted:
@@ -479,6 +545,8 @@ export function getWorkspaceBuildoutSupplyError(args: {
       "There is not enough submission capacity left to open the buildout lane right now.",
     proof_priority:
       "Push the current proof path first before opening the next buildout wave.",
+    history_unstable:
+      "The recent capability history is still moving. Let the current contract settle before opening the next buildout wave.",
     missing_owner:
       "No product is ready to absorb buildout supply right now.",
     awaiting_proven_base:
@@ -518,6 +586,8 @@ export function getWorkspacePremiumSupplyError(args: {
       "The premium lane is already full right now.",
     proof_priority:
       "Finish the current proof pushes before opening premium work.",
+    history_unstable:
+      "The recent capability history is still moving. Let the current contract settle before opening premium work.",
     missing_owner:
       "No product is ready to absorb premium supply right now.",
     awaiting_proven_base:
