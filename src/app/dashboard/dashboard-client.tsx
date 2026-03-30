@@ -500,17 +500,17 @@ function getDashboardCopy(locale: Locale) {
         },
       },
       strategy: {
-        eyebrow: "组合策略",
+        eyebrow: "本周重心",
         title: "别把每个产品平均推进。",
         body:
-          "长期看，这个系统应该像组合管理器，而不是待办清单。它需要告诉你这周哪些产品该先做 proof，哪些该继续 build，哪些先别开 premium。",
-        modeLabel: "当前工作模式",
-        allocationLabel: "本周 attention 分配",
-        actionLabel: "全局建议动作",
+          "系统要直接告诉你这周先盯哪个产品、先推哪个结果、哪些高级机会先别开，而不是让你自己在一堆卡片里判断。",
+        modeLabel: "当前节奏",
+        allocationLabel: "本周注意力",
+        actionLabel: "当前最该做的事",
         allocation: {
-          prove: "推 proof",
+          prove: "推结果",
           watch: "盯生效",
-          build: "继续 build",
+          build: "继续铺量",
           premium: "高级机会",
         },
         modes: {
@@ -566,15 +566,15 @@ function getDashboardCopy(locale: Locale) {
         },
       },
       capacity: {
-        eyebrow: "执行容量",
-        title: "把本周开口收在可控范围内。",
+        eyebrow: "本周开口",
+        title: "把本周同时推进的动作收在可控范围内。",
         body:
-          "长期上，这套系统不该只会推荐动作，还要控制每周同时打开多少 submission、proof 和 premium work，避免账户越来越像噪音机器。",
-        policyLabel: "当前容量策略",
+          "系统不只要推荐动作，还要控制这周同时打开多少提交、结果推进和高级机会，避免越跑越乱。",
+        policyLabel: "当前节奏状态",
         laneLabels: {
-          submission: "Submission 开口",
-          proof: "Proof 开口",
-          premium: "Premium 开口",
+          submission: "提交名额",
+          proof: "结果名额",
+          premium: "高级机会名额",
         },
         metrics: {
           used: "已占用",
@@ -1028,18 +1028,18 @@ function getDashboardCopy(locale: Locale) {
       },
     },
     strategy: {
-      eyebrow: "Portfolio Strategy",
+      eyebrow: "This week's focus",
       title: "Do not move every product equally.",
       body:
-        "Long term, this system should behave like a portfolio manager, not a task list. It should tell you which products deserve proof work, which ones should be watched, and which premium opportunities should stay separate.",
-      modeLabel: "Current operating mode",
-      allocationLabel: "Attention mix this week",
-      actionLabel: "Recommended workspace move",
+        "The system should tell the user which product deserves attention first, which result path should be pushed, and which premium work should stay separate.",
+      modeLabel: "Current rhythm",
+      allocationLabel: "Attention this week",
+      actionLabel: "Best next move",
       allocation: {
-        prove: "Push proof",
+        prove: "Push results",
         watch: "Watch effect",
         build: "Keep building",
-        premium: "Premium lane",
+        premium: "Premium work",
       },
       modes: {
         unlock: {
@@ -1094,15 +1094,15 @@ function getDashboardCopy(locale: Locale) {
       },
     },
     capacity: {
-      eyebrow: "Operating Limits",
-      title: "Keep this week's openings inside a controllable range.",
+      eyebrow: "This week's openings",
+      title: "Keep this week's active work inside a controllable range.",
       body:
-        "Long term, the system should not only recommend actions. It should also control how many submission, proof, and premium lanes stay open at the same time, so the account does not turn into a noise machine.",
-      policyLabel: "Current capacity policy",
+        "The system should not only recommend moves. It should also limit how many submission, result, and premium lanes stay open at the same time so the account does not turn noisy.",
+      policyLabel: "Current pace",
       laneLabels: {
-        submission: "Submission openings",
-        proof: "Proof openings",
-        premium: "Premium openings",
+        submission: "Submission slots",
+        proof: "Result slots",
+        premium: "Premium slots",
       },
       metrics: {
         used: "Used",
