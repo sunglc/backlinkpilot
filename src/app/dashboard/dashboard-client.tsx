@@ -4049,6 +4049,13 @@ export default function DashboardClient({
         mode: workspaceStrategy.mode,
       })
     : null;
+  const taskBuilderLeadHref = recommendedPlannerSummary
+    ? withPriorityContext(
+        `/dashboard/product/${recommendedPlannerSummary.product.id}`,
+        recommendedPlannerSummary.product.id,
+        workspaceStrategyLead?.product.id === recommendedPlannerSummary.product.id
+      )
+    : null;
   const featuredProductDetailHref = featuredProduct
     ? withPriorityContext(
         `/dashboard/product/${featuredProduct.product.id}`,
@@ -5486,6 +5493,39 @@ export default function DashboardClient({
                 {copy.builder.body}
               </p>
             </div>
+
+            {recommendedPlannerSummary ? (
+              <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                      {locale === "zh"
+                        ? "当前建任务优先"
+                        : "Current build lead"}
+                    </p>
+                    <h3 className="mt-3 text-xl font-semibold text-white">
+                      {recommendedPlannerSummary.product.name}
+                    </h3>
+                  </div>
+                  {taskBuilderLeadHref ? (
+                    <Link
+                      href={taskBuilderLeadHref}
+                      className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                    >
+                      {locale === "zh"
+                        ? "打开当前优先产品"
+                        : "Open current lead"}
+                    </Link>
+                  ) : null}
+                </div>
+                <p className="mt-4 text-sm leading-7 text-stone-300">
+                  {workspaceLeadSummary ||
+                    (locale === "zh"
+                      ? `系统当前会先把新增任务路由给 ${recommendedPlannerSummary.product.name}。`
+                      : `The workspace is routing new tasks into ${recommendedPlannerSummary.product.name} right now.`)}
+                </p>
+              </div>
+            ) : null}
 
             <div className="mt-6 max-w-sm">
               <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-stone-500">
