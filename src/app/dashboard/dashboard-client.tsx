@@ -260,13 +260,13 @@ function getDashboardCopy(locale: Locale) {
         logout: "退出登录",
       },
       header: {
-        title: "Launch 工作台",
+        title: "行动面板",
         addFirstProduct: "添加第一个产品",
         addProduct: "+ 添加产品",
         upgradePlan: "升级计划",
       },
       hero: {
-        eyebrow: "消费级外链工作台",
+        eyebrow: "消费级外链产品",
         noProductTitle: "先配置第一个产品，再开始真实分发。",
         noProductBody:
           "贴上你的首页，系统会自动补齐产品文案，并把最适合先跑的渠道排出来。",
@@ -276,9 +276,9 @@ function getDashboardCopy(locale: Locale) {
         activeTitle: "现在有一条外链任务正在跑。",
         activeBody:
           "运行中的产品会持续刷新进度。你只需要盯住结果，不需要自己追每一个站点。",
-        readyTitle: "Launch board 已经准备好，下一步是把最合适的渠道跑起来。",
+        readyTitle: "行动面板已经准备好，下一步是把最合适的渠道跑起来。",
         readyBody:
-          "我们会优先推荐还没跑过的 live 渠道，让使用路径更像消费级产品，而不是后台操作台。",
+          "我们会优先推荐还没跑过的真实渠道，让使用路径更像消费级产品，而不是后台操作台。",
         primaryNoProduct: "添加第一个产品",
         primaryUnlock: "解锁入门版",
         secondaryGrowth: "直接看增长版",
@@ -288,7 +288,7 @@ function getDashboardCopy(locale: Locale) {
         secondaryAdd: "再添加一个产品",
         summaryTitle: "这一屏先回答三件事",
         summaryItems: [
-          "当前是否已经有 live 渠道可跑",
+          "当前是否已经有真实渠道可跑",
           "哪个产品应该先推进",
           "下一步应该升级、启动还是盯进度",
         ],
@@ -307,7 +307,7 @@ function getDashboardCopy(locale: Locale) {
         active: "已激活",
       },
       board: {
-        eyebrow: "Launch Board",
+        eyebrow: "行动看板",
         title: "每个产品都应该有明确的下一步。",
         body: "这里不只是列产品，而是直接告诉你该升级、该启动，还是该去看运行中的结果。",
       },
@@ -610,18 +610,18 @@ function getDashboardCopy(locale: Locale) {
         },
       },
       builder: {
-        eyebrow: "Task Builder",
-        title: "先把任务建出来，再谈放大执行",
+        eyebrow: "创建动作",
+        title: "先把下一步动作建出来，再继续放大执行",
         body:
-          "这一层开始把“推荐覆盖计划”和“导入外链清单”变成真实任务，而不是只停留在看板判断。",
+          "这一层会把“推荐覆盖计划”和“导入外链清单”变成真正可执行的动作，不再只是停留在看板判断。",
         productLabel: "目标产品",
         autoTitle: "系统生成覆盖计划",
         autoBody:
-          "基于当前产品、已跑渠道和 discovery 供给，生成一版推荐覆盖计划，并落成任务。",
+          "基于当前产品、已跑渠道和新增目标，生成一版推荐覆盖计划，并直接落成动作。",
         autoAction: "生成覆盖计划",
-        competitorTitle: "生成竞品覆盖规划",
+        competitorTitle: "生成竞品差距规划",
         competitorBody:
-          "贴上竞品网址，系统会把它们压成一版竞品覆盖任务，告诉你先该匹配哪些渠道。",
+          "贴上竞品网址，系统会给你一版竞品差距动作，告诉你先该补哪些渠道。",
         competitorPlaceholder:
           "competitor-one.com\nhttps://competitor-two.com\ncompetitor-three.ai",
         competitorAction: "生成竞品规划",
@@ -637,7 +637,7 @@ function getDashboardCopy(locale: Locale) {
         loading: "处理中...",
         detectedCount: "识别到的条目",
         note:
-          "这一步先把任务和阶段结构立住。后面再继续接真实导入执行和积分扣费。",
+          "这一步先把动作和阶段结构立住。后面再继续接真实执行和积分计费。",
       },
     tasks: {
       eyebrow: "动作清单",
@@ -776,13 +776,13 @@ function getDashboardCopy(locale: Locale) {
       logout: "Log out",
     },
     header: {
-      title: "Launch Workspace",
+      title: "Action Board",
       addFirstProduct: "Add Your First Product",
       addProduct: "+ Add Product",
       upgradePlan: "Upgrade Plan",
     },
     hero: {
-      eyebrow: "Consumer-grade backlink workspace",
+      eyebrow: "Consumer-grade backlink app",
       noProductTitle: "Set up the first product, then start real distribution.",
       noProductBody:
         "Paste your homepage, let the app fill the basics, and we will line up the best first lane automatically.",
@@ -792,9 +792,9 @@ function getDashboardCopy(locale: Locale) {
       activeTitle: "A backlink launch is running right now.",
       activeBody:
         "Live products keep refreshing progress here. You should be watching outcomes, not manually tracking every site.",
-      readyTitle: "The launch board is ready. Now run the best next lane.",
+      readyTitle: "The action board is ready. Now run the best next path.",
       readyBody:
-        "We prioritize the next live lane that has not been used yet, so the flow feels like a consumer product instead of an operations console.",
+        "We prioritize the next real path that has not been used yet, so the flow feels like a consumer product instead of an operations console.",
       primaryNoProduct: "Add First Product",
       primaryUnlock: "Unlock Starter",
       secondaryGrowth: "See Growth",
@@ -804,7 +804,7 @@ function getDashboardCopy(locale: Locale) {
       secondaryAdd: "Add Another Product",
       summaryTitle: "This screen answers three things first",
       summaryItems: [
-        "whether you have a live lane available today",
+        "whether you have a real path available today",
         "which product should move next",
         "whether to upgrade, launch, or watch progress",
       ],
@@ -823,7 +823,7 @@ function getDashboardCopy(locale: Locale) {
       active: "Active",
     },
     board: {
-      eyebrow: "Launch Board",
+      eyebrow: "Action Board",
       title: "Every product should have a clear next step.",
       body:
         "This is not just a product list. It should tell you whether to upgrade, launch, or review a run already in motion.",
@@ -1138,18 +1138,18 @@ function getDashboardCopy(locale: Locale) {
       },
     },
     builder: {
-      eyebrow: "Task Builder",
-      title: "Create the task first, then scale the execution",
+      eyebrow: "Create actions",
+      title: "Create the next action first, then scale the run",
       body:
-        "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
+        "This is where recommended plans and imported backlink lists become real actions instead of staying as advice on the screen.",
       productLabel: "Product",
       autoTitle: "Generate a system coverage plan",
         autoBody:
-          "Use the current product, completed lanes, and discovery supply to generate a recommended coverage plan and turn it into a task.",
+          "Use the current product, completed paths, and fresh supply to generate a recommended coverage plan and turn it into action.",
         autoAction: "Generate coverage plan",
-        competitorTitle: "Build a competitor coverage map",
+        competitorTitle: "Map competitor gaps",
         competitorBody:
-          "Paste competitor URLs and the app will turn them into a competitor coverage task that shows which lanes your product should match first.",
+          "Paste competitor URLs and the app will turn them into a competitor gap plan that shows which paths your product should match first.",
         competitorPlaceholder:
           "competitor-one.com\nhttps://competitor-two.com\ncompetitor-three.ai",
         competitorAction: "Generate competitor plan",
@@ -1165,7 +1165,7 @@ function getDashboardCopy(locale: Locale) {
       loading: "Working...",
       detectedCount: "Detected lines",
       note:
-        "This step focuses on making the task and stage structure real first. Real execution and billing can plug in after that.",
+        "This step first makes the action and stage structure real. Real execution and billing can plug in after that.",
     },
     tasks: {
       eyebrow: "Action List",
