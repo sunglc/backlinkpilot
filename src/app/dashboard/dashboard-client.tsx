@@ -6166,63 +6166,74 @@ export default function DashboardClient({
                       >
                         {copy.checkout.refresh}
                       </button>
-                    ) : featuredProofAction ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleWorkspaceProofAction(
-                            featuredProduct.product.id,
-                            featuredProofAction
-                          )
-                        }
-                        disabled={
-                          proofActionKey ===
-                          `${featuredProduct.product.id}:${featuredProofAction.taskType}`
-                        }
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                      >
-                        {proofActionKey ===
-                        `${featuredProduct.product.id}:${featuredProofAction.taskType}`
-                          ? copy.productCard.starting
-                          : featuredProofAction.label}
-                      </button>
-                    ) : featuredProduct && featuredLaunchAction ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleWorkspaceLaunch(
-                            featuredProduct.product.id,
-                            featuredLaunchAction.channelId
-                          )
-                        }
-                        disabled={
-                          launchingKey ===
-                          `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
-                        }
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                      >
-                        {launchingKey ===
-                        `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
-                          ? copy.productCard.starting
-                          : copy.checkout.startNow}
-                      </button>
-                    ) : featuredProduct ? (
-                      <Link
-                        href={
-                          featuredProductDetailHref ||
-                          `/dashboard/product/${featuredProduct.product.id}`
-                        }
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                      >
-                        {copy.checkout.openProduct}
-                      </Link>
-                    ) : (
+                    ) : todayBriefMove.kind === "button" ? (
                       <button
                         onClick={openAddProduct}
                         className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                       >
-                        {copy.checkout.addProduct}
+                        {todayBriefMove.label}
                       </button>
+                    ) : todayBriefMove.kind === "refresh" ? (
+                      <button
+                        onClick={() => router.refresh()}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {todayBriefMove.label}
+                      </button>
+                    ) : todayBriefMove.kind === "proof" ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWorkspaceProofAction(
+                            todayBriefMove.productId,
+                            todayBriefMove.proofAction
+                          )
+                        }
+                        disabled={
+                          proofActionKey ===
+                          `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                        }
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      >
+                        {proofActionKey ===
+                        `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                          ? copy.productCard.starting
+                          : todayBriefMove.label}
+                      </button>
+                    ) : todayBriefMove.kind === "launch" ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWorkspaceLaunch(
+                            todayBriefMove.productId,
+                            todayBriefMove.channelId
+                          )
+                        }
+                        disabled={
+                          launchingKey ===
+                          `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                        }
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      >
+                        {launchingKey ===
+                        `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                          ? copy.productCard.starting
+                          : todayBriefMove.label}
+                      </button>
+                    ) : todayBriefMove.href.startsWith("/api/") ? (
+                      <a
+                        href={todayBriefMove.href}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {todayBriefMove.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={todayBriefMove.href}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {todayBriefMove.label}
+                      </Link>
                     )
                   ) : (
                     <>
