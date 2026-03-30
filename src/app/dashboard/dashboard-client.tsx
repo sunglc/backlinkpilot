@@ -649,13 +649,13 @@ function getDashboardCopy(locale: Locale) {
           "还没有动作。先登记一个产品，让系统开始生成覆盖计划和执行动作。",
         labels: {
           stage: "阶段",
-          preview: "任务预览",
+          preview: "动作预览",
           economics: "积分预估",
-          billing: "计费规则",
+          billing: "收费方式",
           updatedAt: "最近更新",
           success: "成功",
-          failure: "失败/辛苦费",
-          focus: "当前权重",
+          failure: "失败/人工处理费",
+          focus: "当前优先",
           fromPlan: "来源",
           createNextTasks: "生成下一批任务",
           creatingTasks: "生成中...",
@@ -668,8 +668,8 @@ function getDashboardCopy(locale: Locale) {
         kinds: {
           profile: "产品登记",
           coverage: "覆盖计划",
-          submission: "外链任务",
-          proof: "结果推进",
+          submission: "提交动作",
+          proof: "结果动作",
         },
         stages: {
           pending: "待启动",
@@ -680,27 +680,27 @@ function getDashboardCopy(locale: Locale) {
       footer:
           "这批积分还是产品层预估，不会先于真实计费生效。它现在的作用，是先让用户理解每类任务的成本结构。",
         focusLabels: {
-          prove_now: "最接近结果",
+          prove_now: "最接近公开结果",
           watch_effect: "盯住生效",
           expand_lane: "继续扩量",
-          build_queue: "补齐计划",
+          build_queue: "继续补量",
         },
         billingLabels: {
           included: "包含项",
           credit_on_success: "成功扣积分",
-          premium_service: "高级服务",
+          premium_service: "人工服务",
         },
         billingDetails: {
           included: "登记、规划和任务编排先不扣积分，先把执行路径搭起来。",
           credit_on_success: "只有真实成功动作计入积分；失败只记辛苦费，不按成功任务收费。",
           premium_service:
-            "这类机会不走普通 credit 包，后续按高级服务或单独商务处理。",
+            "这类机会不走普通积分包，后续按人工服务或单独报价处理。",
         },
         billingDisplays: {
           includedSuccess: "0",
           includedFailure: "0",
           premiumSuccess: "单独报价",
-          premiumFailure: "商务评估",
+          premiumFailure: "人工评估",
         },
       },
       emptyState: {
@@ -1177,13 +1177,13 @@ function getDashboardCopy(locale: Locale) {
         "There are no actions yet. Register one product first and the system can start building the coverage and execution flow.",
       labels: {
         stage: "Stage",
-        preview: "Task preview",
+        preview: "Action preview",
         economics: "Credit preview",
-        billing: "Billing rule",
+        billing: "Pricing rule",
         updatedAt: "Updated",
         success: "Success",
-        failure: "Failure / ops fee",
-        focus: "Current focus",
+        failure: "Failure / handling fee",
+        focus: "Current priority",
         fromPlan: "From",
         createNextTasks: "Create next tasks",
         creatingTasks: "Creating...",
@@ -1196,8 +1196,8 @@ function getDashboardCopy(locale: Locale) {
       kinds: {
         profile: "Product setup",
         coverage: "Coverage plan",
-        submission: "Backlink task",
-        proof: "Proof task",
+        submission: "Submission action",
+        proof: "Result action",
       },
       stages: {
         pending: "Pending",
@@ -1208,15 +1208,15 @@ function getDashboardCopy(locale: Locale) {
       footer:
         "These credits are still a product-layer preview. They do not charge before the real billing model exists. Right now they help users understand the cost structure of each task type.",
       focusLabels: {
-        prove_now: "Closest to proof",
+        prove_now: "Closest to visible results",
         watch_effect: "Watch effect",
         expand_lane: "Expand next",
-        build_queue: "Build queue",
+        build_queue: "Keep building",
       },
       billingLabels: {
         included: "Included",
         credit_on_success: "Credits on success",
-        premium_service: "Premium service",
+        premium_service: "Hands-on service",
       },
       billingDetails: {
         included:
@@ -1224,13 +1224,13 @@ function getDashboardCopy(locale: Locale) {
         credit_on_success:
           "Only real successful actions count toward credits. Failures stay as ops fees instead of success charges.",
         premium_service:
-          "These opportunities do not run through the normal credit pack and should route into premium handling or custom pricing.",
+          "These opportunities do not run through the normal credit pack and should route into hands-on service or custom pricing.",
       },
       billingDisplays: {
         includedSuccess: "0",
         includedFailure: "0",
         premiumSuccess: "Custom quote",
-        premiumFailure: "Ops review",
+        premiumFailure: "Manual review",
       },
     },
     emptyState: {
