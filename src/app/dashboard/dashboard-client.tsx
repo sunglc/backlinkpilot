@@ -5552,6 +5552,13 @@ export default function DashboardClient({
                   <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                     {plannerSelectionStatus.badge}
                   </div>
+                  {resolvedPlannerSummary ? (
+                    <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-stone-200">
+                      {locale === "zh"
+                        ? `当前任务目标：${resolvedPlannerSummary.product.name}`
+                        : `Current task target: ${resolvedPlannerSummary.product.name}`}
+                    </div>
+                  ) : null}
                   <p className="mt-2 text-sm leading-7 text-stone-300">
                     {plannerSelectionStatus.body}
                   </p>
