@@ -709,18 +709,18 @@ function getDashboardCopy(locale: Locale) {
         cta: "+ 添加产品",
       },
       discovery: {
-        eyebrow: "Discovery Engine",
-        title: "把目标供给和收费情报抬成正式产品层。",
+        eyebrow: "供给情报",
+        title: "把新增目标和收费机会变成一眼能懂的供给视图。",
         body:
-          "这不是运营侧自嗨数据。系统每天都会持续发现新的可发目标站，同时把收费型和商务型外链机会沉淀成单独资产层。",
-        contractTitle: "能力合同",
-        contractFresh: "合同已同步",
-        contractChanged: "能力已变化，SaaS 需要同步",
+          "系统每天都会持续补进新的可发目标，同时把收费型和商务型机会单独沉淀，避免和默认执行主线混在一起。",
+        contractTitle: "能力同步状态",
+        contractFresh: "当前已同步",
+        contractChanged: "有新能力待同步",
         contractFreshBody:
           "当前能力指纹和上一版一致，没有新的 SaaS 同步动作被触发。",
         contractChangedBody:
           "能力指纹已变化。先看 required SaaS actions，再更新产品展示、文案和能力说明。",
-        claimRuleTitle: "对外宣称规则",
+        claimRuleTitle: "对外承诺边界",
         provenTitle: "Proven 市场",
         buildoutTitle: "Priority buildout 市场",
         watchlistTitle: "Watchlist 市场",
@@ -1239,18 +1239,18 @@ function getDashboardCopy(locale: Locale) {
       cta: "+ Add Product",
     },
       discovery: {
-        eyebrow: "Discovery Engine",
-        title: "Turn target supply and paid intelligence into a first-class product layer.",
+        eyebrow: "Supply view",
+        title: "Turn fresh targets and paid opportunities into a clear supply view.",
         body:
-          "This is not ops-only telemetry. The system keeps discovering new worthwhile backlink targets every day while collecting paid and commercial opportunities into a separate asset layer.",
-        contractTitle: "Capability contract",
-        contractFresh: "Contract synced",
-        contractChanged: "Capabilities changed and SaaS needs an update",
+          "The system keeps replenishing worthwhile targets every day while keeping paid and commercial opportunities separate from the default execution path.",
+        contractTitle: "Capability sync status",
+        contractFresh: "Up to date",
+        contractChanged: "New capability update pending",
         contractFreshBody:
           "The current capability fingerprint matches the previous one, so no new SaaS sync work is being triggered right now.",
         contractChangedBody:
           "The capability fingerprint changed. Review the required SaaS actions before updating product claims, copy, and capability explanations.",
-        claimRuleTitle: "Claim rule",
+        claimRuleTitle: "Claim boundary",
         provenTitle: "Proven markets",
         buildoutTitle: "Priority buildout markets",
         watchlistTitle: "Watchlist markets",
