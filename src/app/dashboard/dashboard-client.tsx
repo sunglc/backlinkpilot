@@ -5555,6 +5555,19 @@ export default function DashboardClient({
                   <p className="mt-2 text-sm leading-7 text-stone-300">
                     {plannerSelectionStatus.body}
                   </p>
+                  {!plannerFollowsRecommendation && recommendedPlannerSummary ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPlannerProductId(recommendedPlannerSummary.product.id)
+                      }
+                      className="mt-3 rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                    >
+                      {locale === "zh"
+                        ? `切回 ${recommendedPlannerSummary.product.name}`
+                        : `Switch back to ${recommendedPlannerSummary.product.name}`}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>
