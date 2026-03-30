@@ -272,7 +272,7 @@ function getDashboardCopy(locale: Locale) {
           "贴上你的首页，系统会自动补齐产品文案，并把最适合先跑的渠道排出来。",
         freeTitle: "第一个产品已经就绪，下一步是解锁真实渠道。",
         freeBody:
-          "Starter 立刻解锁目录提交和 stealth 两条 live 渠道，直接从你现在的产品档案开始执行。",
+          "Starter 立刻解锁目录提交和 Stealth 两条真实渠道，直接从你现在的产品档案开始执行。",
         activeTitle: "现在有一条外链任务正在跑。",
         activeBody:
           "运行中的产品会持续刷新进度。你只需要盯住结果，不需要自己追每一个站点。",
@@ -299,8 +299,8 @@ function getDashboardCopy(locale: Locale) {
         launches: "启动次数",
         liveRuns: "运行中",
         successfulActions: "成功动作",
-        weeklyBurn: "预计本周 Credits",
-        weeklyBurnNote: "仅统计普通 credits，高级服务另算",
+        weeklyBurn: "预计本周积分",
+        weeklyBurnNote: "仅统计普通积分，高级服务另算",
         configuredProducts: "进入执行链",
         freeSlot: "还有 1 个免费配置名额",
         upgradeToUnlock: "升级后解锁真实提交",
@@ -317,8 +317,8 @@ function getDashboardCopy(locale: Locale) {
         noRunsYet: "还没有执行记录",
         launchCount: "启动次数",
         successfulActions: "成功动作",
-        weeklyBurn: "本周 credits 预估",
-        weeklyBurnNote: "仅普通 credits",
+        weeklyBurn: "本周积分预估",
+        weeklyBurnNote: "仅普通积分",
         budgetCall: "预算建议",
         budgetAction: "建议动作",
         reclaimTitle: "系统调度",
@@ -356,13 +356,13 @@ function getDashboardCopy(locale: Locale) {
           hold_premium: "先别开高级机会",
         },
         budgetBodies: {
-          build_queue: "当前预算压力还不高，先把 coverage 和首轮任务铺起来。",
-          watch_effect: "这周 burn 已经起来了，先等这批任务见效，不要同时再开太多新任务。",
-          prove_first: "现在最值钱的是先把 receipt 和 reply 推成公开结果，再继续烧 credits。",
+          build_queue: "当前预算压力还不高，先把覆盖面和首轮任务铺起来。",
+          watch_effect: "这周消耗已经起来了，先等这批任务见效，不要同时再开太多新任务。",
+          prove_first: "现在最值钱的是先把动作回执和真实回复推成公开结果，再继续消耗积分。",
           upgrade_now:
-            "当前 burn 和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
+            "当前消耗和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
           hold_premium:
-            "付费机会先留在高级服务层，等普通 credits 路线先跑出结果再接入。",
+            "付费机会先留在高级服务层，等普通积分路径先跑出结果再接入。",
         },
         budgetActions: {
           build_queue: "继续建任务",
@@ -379,7 +379,7 @@ function getDashboardCopy(locale: Locale) {
           "最好的下一步不是回头研究价格，而是立刻把这个产品送进真实分发。BacklinkPilot 应该在付款后直接带你进入执行。",
         successPendingTitle: "付款已完成，正在确认计划状态。",
         successPendingBody:
-          "如果页面顶部还没显示新计划，通常只是 webhook 正在同步。等几秒后刷新，这个工作台会自动切换成可执行状态。",
+          "如果页面顶部还没显示新计划，通常只是系统还在同步。等几秒后刷新，这个工作台会自动切换成可执行状态。",
         cancelledEyebrow: "付款未完成",
         cancelledTitle: "别丢失推进节奏，选回最合适的一档继续。",
         cancelledBody:
@@ -395,11 +395,11 @@ function getDashboardCopy(locale: Locale) {
         liveTitle: "今天可执行",
         liveBody: "已上线渠道会直接执行，推进中渠道会清楚标明需要哪个计划。",
         roadmapTitle: "后续路线",
-        roadmapBody: `当前共 ${LIVE_CHANNEL_COUNT} 个 live 渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个 roadmap 渠道。`,
+        roadmapBody: `当前共 ${LIVE_CHANNEL_COUNT} 个已上线渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个后续渠道。`,
         included: "已包含",
         locked: "需升级",
         availableNow: "今天可跑",
-        whenRolledOut: "rollout 完成后可跑",
+        whenRolledOut: "上线后可跑",
         requires: "需要",
       },
       modal: {
@@ -475,7 +475,7 @@ function getDashboardCopy(locale: Locale) {
           plan: {
             title: "2. 生成覆盖计划",
             empty:
-              "先有产品，系统才能基于 discovery 供给和 live 渠道生成覆盖路线。",
+              "先有产品，系统才能基于新增目标和真实渠道生成覆盖路线。",
           ready:
               "系统已经能根据当前产品、今日供给和可用渠道，给出一版可执行覆盖计划。",
             action: "创建覆盖计划",
@@ -515,19 +515,19 @@ function getDashboardCopy(locale: Locale) {
         },
         modes: {
           unlock: {
-            title: "先解锁第一条 live 渠道，再谈组合优化。",
+            title: "先解锁第一条真实渠道，再谈组合优化。",
             body:
-          "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进真实提交，后面的结果推进和预算分配才会成立。",
+              "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进真实提交，后面的结果推进和预算分配才会成立。",
           },
           upgrade: {
             title: "工作台已经开始顶到当前计划上限。",
             body:
-              "至少一个产品已经接近需要升级的密度。先扩可用计划，再继续堆渠道和任务，不然 burn 和能力边界会打架。",
+              "至少一个产品已经接近需要升级的密度。先扩可用计划，再继续堆渠道和任务，不然消耗和能力边界会打架。",
           },
           prove: {
             title: "这周先把已有信号推成更公开的结果。",
             body:
-              "现在最值钱的不是新铺一层任务，而是把已经拿到的 receipt、reply 和接近发布的线程往前推成公开结果。",
+              "现在最值钱的不是新铺一层任务，而是把已经拿到的动作回执、真实回复和接近发布的线程往前推成公开结果。",
           },
           watch: {
             title: "让已经跑出去的任务先见效。",
@@ -547,7 +547,7 @@ function getDashboardCopy(locale: Locale) {
           },
           watch: {
             title: "先盯生效",
-            body: "这些产品已经开始消耗 credits，先观察结果再继续加速。",
+            body: "这些产品已经开始消耗积分，先观察结果再继续加速。",
           },
           build: {
             title: "继续铺量",
@@ -560,7 +560,7 @@ function getDashboardCopy(locale: Locale) {
         },
         laneMetrics: {
           products: "产品数",
-          burn: "相关 credits",
+          burn: "相关积分",
           open: "打开",
           empty: "当前没有产品落在这条策略里。",
         },
@@ -597,12 +597,12 @@ function getDashboardCopy(locale: Locale) {
           },
           expand: {
             title: "可以继续扩一点",
-            body: "当前仍然偏 build 模式，还有空间继续铺首轮 submission 和 coverage。",
+            body: "当前仍然偏铺量模式，还有空间继续铺首轮提交和覆盖面。",
           },
         },
         fullError: {
           submission:
-            "本周提交名额已经满了。先盯生效或推进结果，再开新的提交任务。",
+            "本周提交名额已经满了。先盯生效或推进结果，再开新的提交动作。",
           proof:
             "本周结果名额已经满了。先把当前结果任务往前推完，再排新的结果任务。",
           premium:
