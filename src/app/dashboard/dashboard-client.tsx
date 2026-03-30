@@ -5588,7 +5588,7 @@ export default function DashboardClient({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                    {locale === "zh" ? "Supply Dispatcher" : "Supply Dispatcher"}
+                    {locale === "zh" ? "供给分配" : "Supply routing"}
                   </p>
                   <h3 className="mt-3 text-xl font-semibold text-white">
                     {workspaceSupplyFocus.title}
@@ -5610,19 +5610,25 @@ export default function DashboardClient({
                 {[
                   {
                     label:
-                      locale === "zh" ? "Proven 供给归属" : "Proven supply owner",
+                      locale === "zh"
+                        ? "已验证供给优先产品"
+                        : "Proven supply target",
                     owner: workspaceSupply.provenOwner,
                     tier: "proven" as const,
                   },
                   {
                     label:
-                      locale === "zh" ? "Buildout 供给归属" : "Buildout supply owner",
+                      locale === "zh"
+                        ? "扩展供给优先产品"
+                        : "Buildout supply target",
                     owner: workspaceSupply.buildoutOwner,
                     tier: "buildout" as const,
                   },
                   {
                     label:
-                      locale === "zh" ? "Premium 供给归属" : "Premium supply owner",
+                      locale === "zh"
+                        ? "高级机会优先产品"
+                        : "Premium supply target",
                     owner: workspaceSupply.premiumOwner,
                     tier: "premium" as const,
                   },
