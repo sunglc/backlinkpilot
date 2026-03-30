@@ -3895,6 +3895,25 @@ export default function DashboardClient({
       return [summary.product.id, ownedLanes] as const;
     })
   );
+  const workflowLeadProduct = workspaceStrategyLead || featuredProduct || null;
+  const workflowLeadLaunchAction =
+    workspaceStrategyLead && isLaunchAction(workspaceStrategyLead.primaryAction)
+      ? workspaceStrategyLead.primaryAction
+      : featuredLaunchAction;
+  const workflowLeadDetailHref = workflowLeadProduct
+    ? withPriorityContext(
+        `/dashboard/product/${workflowLeadProduct.product.id}`,
+        workflowLeadProduct.product.id,
+        workspaceStrategyLead?.product.id === workflowLeadProduct.product.id
+      )
+    : null;
+  const workflowLeadHistoryHref = workflowLeadProduct
+    ? withPriorityContext(
+        `/dashboard/product/${workflowLeadProduct.product.id}#submission-history`,
+        workflowLeadProduct.product.id,
+        workspaceStrategyLead?.product.id === workflowLeadProduct.product.id
+      )
+    : null;
 
   const workflowSteps = [
     {
@@ -3902,7 +3921,7 @@ export default function DashboardClient({
       status:
         products.length === 0
           ? ("blocked" as const)
-          : featuredProduct
+          : workflowLeadProduct
             ? ("done" as const)
             : ("ready" as const),
       title: workflowCopy.steps.register.title,
@@ -3913,7 +3932,7 @@ export default function DashboardClient({
       href:
         products.length === 0
           ? null
-          : `/dashboard/product/${featuredProduct?.product.id || products[0].id}`,
+          : workflowLeadDetailHref || `/dashboard/product/${products[0].id}`,
       actionLabel:
         products.length === 0
           ? workflowCopy.steps.register.actionAdd
@@ -3954,7 +3973,7 @@ export default function DashboardClient({
           ? ("blocked" as const)
           : activeLaunches > 0
             ? ("active" as const)
-            : featuredLaunchAction
+            : workflowLeadLaunchAction
               ? ("ready" as const)
               : submissions.length > 0
                 ? ("done" as const)
@@ -3971,8 +3990,9 @@ export default function DashboardClient({
           ? null
           : activeLaunches > 0
             ? "#task-queue"
-            : featuredLaunchAction && featuredProduct
-              ? `/dashboard/product/${featuredProduct.product.id}#submission-history`
+            : workflowLeadLaunchAction && workflowLeadProduct
+              ? workflowLeadHistoryHref ||
+                `/dashboard/product/${workflowLeadProduct.product.id}#submission-history`
               : "#task-queue",
       actionLabel:
         activeLaunches > 0
@@ -5013,23 +5033,25 @@ export default function DashboardClient({
                     >
                       {step.actionLabel}
                     </button>
-                  ) : step.id === "launch" && featuredLaunchAction && featuredProduct ? (
+                  ) : step.id === "launch" &&
+                    workflowLeadLaunchAction &&
+                    workflowLeadProduct ? (
                     <button
                       type="button"
                       onClick={() =>
                         handleWorkspaceLaunch(
-                          featuredProduct.product.id,
-                          featuredLaunchAction.channelId
+                          workflowLeadProduct.product.id,
+                          workflowLeadLaunchAction.channelId
                         )
                       }
                       disabled={
                         launchingKey ===
-                        `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                        `${workflowLeadProduct.product.id}:${workflowLeadLaunchAction.channelId}`
                       }
                       className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                     >
                       {launchingKey ===
-                      `${featuredProduct.product.id}:${featuredLaunchAction.channelId}`
+                      `${workflowLeadProduct.product.id}:${workflowLeadLaunchAction.channelId}`
                         ? copy.productCard.starting
                         : step.actionLabel}
                     </button>
