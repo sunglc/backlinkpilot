@@ -721,10 +721,10 @@ function getDashboardCopy(locale: Locale) {
         contractChangedBody:
           "能力指纹已变化。先看需要补的产品动作，再更新展示、文案和能力说明。",
         claimRuleTitle: "当前对外边界",
-        provenTitle: "Proven 市场",
-        buildoutTitle: "Priority buildout 市场",
-        watchlistTitle: "Watchlist 市场",
-        anchorsTitle: "Anchor markets",
+        provenTitle: "已验证市场",
+        buildoutTitle: "扩展中市场",
+        watchlistTitle: "观察中市场",
+        anchorsTitle: "核心市场",
         adaptiveCopyTitle: "语言自适应文案",
         adaptiveCopyBody:
           "提交文案和外联消息会按目标语言适配，不再默认只用英文。",
@@ -1251,10 +1251,10 @@ function getDashboardCopy(locale: Locale) {
         contractChangedBody:
           "The capability fingerprint changed. Review the required SaaS actions before updating product claims, copy, and capability explanations.",
         claimRuleTitle: "What is safe to claim",
-        provenTitle: "Proven markets",
-        buildoutTitle: "Priority buildout markets",
-        watchlistTitle: "Watchlist markets",
-        anchorsTitle: "Anchor markets",
+        provenTitle: "Ready now",
+        buildoutTitle: "Expanding next",
+        watchlistTitle: "Watching",
+        anchorsTitle: "Core markets",
         adaptiveCopyTitle: "Language-adaptive copy",
         adaptiveCopyBody:
           "Submission copy and outreach messaging adapt to the target language instead of defaulting to English-only messaging.",
@@ -2309,21 +2309,21 @@ function plannerSelectionStatusCopy(args: {
 
   if (args.resetReason === "reclaimed" && args.requestedProductName) {
     return {
-      badge: "Moved back to the current lead",
+      badge: "Moved back to current priority",
       body: `${args.requestedProductName} is not taking new tasks right now, so the builder moved back to ${args.recommendedProductName}.`,
     };
   }
 
   if (args.resetReason === "missing" && args.requestedProductName) {
     return {
-      badge: "Moved back to the current lead",
+      badge: "Moved back to current priority",
       body: `${args.requestedProductName} is no longer available in this workspace, so the builder moved back to ${args.recommendedProductName}.`,
     };
   }
 
   return args.followsRecommendation
     ? {
-        badge: "Following the current lead",
+        badge: "Following current priority",
         body: `The workspace is routing new tasks into ${args.recommendedProductName} right now. You can still switch to another valid product manually.`,
       }
     : {
@@ -2341,18 +2341,18 @@ function workspaceLeadSummaryCopy(args: {
     return {
       unlock: `当前系统先把 ${args.leadProductName} 作为主产品，先完成第一条可执行路径的解锁。`,
       upgrade: `当前系统先把 ${args.leadProductName} 放在最前面，因为下一步价值更像升级而不是继续铺新任务。`,
-      prove: `当前系统先推 ${args.leadProductName}，因为它最接近变成 proof。`,
+      prove: `当前系统先推 ${args.leadProductName}，因为它最接近变成公开结果。`,
       watch: `当前系统先盯 ${args.leadProductName}，因为它更该先看生效和结果信号。`,
       build: `当前系统先把新增任务喂给 ${args.leadProductName}，因为它最适合吸收本周新增供给。`,
     }[args.mode];
   }
 
   return {
-    unlock: `${args.leadProductName} is the current lead because the workspace should unlock its first executable path before spreading wider.`,
-    upgrade: `${args.leadProductName} is the current lead because the next move looks more like an upgrade decision than more task volume.`,
-    prove: `${args.leadProductName} is the current lead because it is the closest product to turning into proof.`,
-    watch: `${args.leadProductName} is the current lead because the better move is watching effect and result signals first.`,
-    build: `${args.leadProductName} is the current lead because it is the best product to absorb this week's fresh supply.`,
+    unlock: `${args.leadProductName} is the current priority because the workspace should unlock its first executable path before spreading wider.`,
+    upgrade: `${args.leadProductName} is the current priority because the next move looks more like an upgrade decision than more task volume.`,
+    prove: `${args.leadProductName} is the current priority because it is the closest product to turning into visible results.`,
+    watch: `${args.leadProductName} is the current priority because the better move is watching effect and result signals first.`,
+    build: `${args.leadProductName} is the current priority because it is the best product to absorb this week's fresh supply.`,
   }[args.mode];
 }
 
@@ -4087,7 +4087,7 @@ export default function DashboardClient({
       ? withPriorityContext(href, workspaceStrategyLead.product.id, true)
       : href;
   const todayBriefLeadLabel =
-    locale === "zh" ? "当前优先" : "Current lead";
+    locale === "zh" ? "当前优先" : "Current priority";
   const todayBriefLeadName =
     workspaceStrategyLead?.product.name || featuredProduct?.product.name || null;
   const todayBriefSignal = !products.length
@@ -5506,7 +5506,7 @@ export default function DashboardClient({
                     <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
                       {locale === "zh"
                         ? "当前建任务优先"
-                        : "Current build lead"}
+                        : "Current build priority"}
                     </p>
                     <h3 className="mt-3 text-xl font-semibold text-white">
                       {recommendedPlannerSummary.product.name}
@@ -5519,7 +5519,7 @@ export default function DashboardClient({
                     >
                       {locale === "zh"
                         ? "打开当前优先产品"
-                        : "Open current lead"}
+                        : "Open current priority"}
                     </Link>
                   ) : null}
                 </div>
@@ -5547,7 +5547,7 @@ export default function DashboardClient({
                     {summary.product.id === recommendedPlannerProductId
                       ? locale === "zh"
                         ? " · 当前优先"
-                        : " · Current lead"
+                        : " · Current priority"
                       : ""}
                   </option>
                 ))}
