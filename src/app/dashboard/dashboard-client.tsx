@@ -344,8 +344,8 @@ function getDashboardCopy(locale: Locale) {
         stageBody: {
           unlock: "产品档案已经在位，升级后就能进入真实提交。",
           running: "有一条渠道正在处理，详情页会自动刷新进度。",
-          ready: "最适合先跑的 live 渠道已经标出来，可以直接启动。",
-          momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条渠道。",
+          ready: "最适合先跑的真实渠道已经标出来，可以直接启动。",
+          momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条路径。",
           setup: "先进入产品页确认档案，再启动第一条渠道。",
         },
         budgetLabels: {
@@ -358,11 +358,11 @@ function getDashboardCopy(locale: Locale) {
         budgetBodies: {
           build_queue: "当前预算压力还不高，先把 coverage 和首轮任务铺起来。",
           watch_effect: "这周 burn 已经起来了，先等这批任务见效，不要同时再开太多新任务。",
-          prove_first: "现在最值钱的是先把 receipt 和 reply 推成 proof，再继续烧 credits。",
+          prove_first: "现在最值钱的是先把 receipt 和 reply 推成公开结果，再继续烧 credits。",
           upgrade_now:
             "当前 burn 和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
           hold_premium:
-            "付费机会先留在高级服务层，等普通 credits 路线先跑出 proof 再接入。",
+            "付费机会先留在高级服务层，等普通 credits 路线先跑出结果再接入。",
         },
         budgetActions: {
           build_queue: "继续建任务",
@@ -374,7 +374,7 @@ function getDashboardCopy(locale: Locale) {
       },
       checkout: {
         successEyebrow: "付款已完成",
-        successTitle: "计划已经解锁，直接开始第一条 live 渠道。",
+        successTitle: "计划已经解锁，直接开始第一条真实渠道。",
         successBody:
           "最好的下一步不是回头研究价格，而是立刻把这个产品送进真实分发。BacklinkPilot 应该在付款后直接带你进入执行。",
         successPendingTitle: "付款已完成，正在确认计划状态。",
@@ -383,7 +383,7 @@ function getDashboardCopy(locale: Locale) {
         cancelledEyebrow: "付款未完成",
         cancelledTitle: "别丢失推进节奏，选回最合适的一档继续。",
         cancelledBody:
-          "你的产品、launch 路径和推荐渠道都还在。选对计划后，可以直接从当前工作台接着往下跑。",
+          "你的产品、启动路径和推荐渠道都还在。选对计划后，可以直接从当前工作台接着往下跑。",
         startNow: "立即启动推荐渠道",
         openProduct: "打开推荐产品",
         addProduct: "添加第一个产品",
@@ -431,7 +431,7 @@ function getDashboardCopy(locale: Locale) {
       onboarding: {
         title: "免费配置你的第一个产品",
         body:
-          "先贴首页，自动补齐产品文案。你会先看到 launch board 的推荐，再决定什么时候进入真实提交。",
+          "先贴首页，自动补齐产品文案。你会先看到行动面板的推荐，再决定什么时候进入真实提交。",
         primary: "添加第一个产品",
         secondary: "查看计划",
         steps: [
@@ -517,7 +517,7 @@ function getDashboardCopy(locale: Locale) {
           unlock: {
             title: "先解锁第一条 live 渠道，再谈组合优化。",
             body:
-              "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进 live submission，后面的 proof 和预算分配才会成立。",
+          "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进真实提交，后面的结果推进和预算分配才会成立。",
           },
           upgrade: {
             title: "工作台已经开始顶到当前计划上限。",
@@ -525,9 +525,9 @@ function getDashboardCopy(locale: Locale) {
               "至少一个产品已经接近需要升级的密度。先扩可用计划，再继续堆渠道和任务，不然 burn 和能力边界会打架。",
           },
           prove: {
-            title: "这周先把已有信号推成更公开的 proof。",
+            title: "这周先把已有信号推成更公开的结果。",
             body:
-              "现在最值钱的不是新铺一层任务，而是把已经拿到的 receipt、reply 和接近发布的线程往前推。",
+              "现在最值钱的不是新铺一层任务，而是把已经拿到的 receipt、reply 和接近发布的线程往前推成公开结果。",
           },
           watch: {
             title: "让已经跑出去的任务先见效。",
@@ -535,14 +535,14 @@ function getDashboardCopy(locale: Locale) {
               "这周更重要的是看哪些任务开始生效，而不是继续同时打开太多新动作。",
           },
           build: {
-            title: "当前更像冷启动阶段，先把 coverage 和任务面做出来。",
+            title: "当前更像冷启动阶段，先把覆盖面和任务面做出来。",
             body:
-              "还没有足够多的 proof 压力，所以最有效的动作仍然是生成计划、补齐目标和启动首轮 lane。",
+              "还没有足够多的结果压力，所以最有效的动作仍然是生成计划、补齐目标和启动首轮渠道。",
           },
         },
         lanes: {
           prove: {
-            title: "优先推 proof",
+            title: "优先推结果",
             body: "这些产品最接近公开结果，值得优先投入精力。",
           },
           watch: {
@@ -550,12 +550,12 @@ function getDashboardCopy(locale: Locale) {
             body: "这些产品已经开始消耗 credits，先观察结果再继续加速。",
           },
           build: {
-            title: "继续 build",
-            body: "这些产品还在搭建 coverage 和任务基础，适合继续铺第一层执行面。",
+            title: "继续铺量",
+            body: "这些产品还在搭建覆盖和任务基础，适合继续铺第一层执行面。",
           },
           premium: {
-            title: "先 hold premium",
-            body: "这些产品有高级机会，但普通 proof 还不够，先不要把 premium 混进主线。",
+            title: "先别开高级机会",
+            body: "这些产品有高级机会，但普通结果还不够，先不要把高级机会混进主线。",
           },
         },
         laneMetrics: {
@@ -589,7 +589,7 @@ function getDashboardCopy(locale: Locale) {
           },
           tighten: {
             title: "先收口",
-            body: "当前开口已经偏多，优先把现有任务推向生效和 proof。",
+            body: "当前开口已经偏多，优先把现有任务推向生效和结果。",
           },
           balanced: {
             title: "保持平衡推进",
@@ -602,11 +602,11 @@ function getDashboardCopy(locale: Locale) {
         },
         fullError: {
           submission:
-            "本周 submission 开口已经满了。先盯生效或推进 proof，再开新的提交任务。",
+            "本周提交名额已经满了。先盯生效或推进结果，再开新的提交任务。",
           proof:
-            "本周 proof 开口已经满了。先把当前结果任务往前推完，再排新的 proof。",
+            "本周结果名额已经满了。先把当前结果任务往前推完，再排新的结果任务。",
           premium:
-            "当前 premium 开口已经满了。先把普通 proof 路线跑顺，再继续接高级机会。",
+            "当前高级机会名额已经满了。先把普通结果路径跑顺，再继续接高级机会。",
         },
       },
       builder: {
@@ -860,17 +860,17 @@ function getDashboardCopy(locale: Locale) {
       },
         stageBody: {
           unlock: "The product profile is already staged. Upgrade and it can enter live execution.",
-          running: "A live lane is already processing and the detail page will keep updating.",
-          ready: "The best live lane is identified and can be launched now.",
-          momentum: "This product has already started moving. The next lane should expand the distribution.",
-          setup: "Open the product page, confirm the profile, and launch the first lane after that.",
+          running: "A real path is already processing and the detail page will keep updating.",
+          ready: "The best real path is identified and can be launched now.",
+          momentum: "This product has already started moving. The next path should expand the distribution.",
+          setup: "Open the product page, confirm the profile, and launch the first path after that.",
         },
         budgetLabels: {
           build_queue: "Keep building",
           watch_effect: "Watch effect",
-          prove_first: "Turn spend into proof",
+          prove_first: "Turn spend into results",
           upgrade_now: "Upgrade now",
-          hold_premium: "Hold premium work",
+          hold_premium: "Hold paid opportunities",
         },
         budgetBodies: {
           build_queue:
@@ -878,23 +878,23 @@ function getDashboardCopy(locale: Locale) {
           watch_effect:
             "Weekly burn is already rising. Let the current tasks land before opening too many new ones.",
           prove_first:
-            "The highest-value move now is turning receipts and replies into proof before burning more credits.",
+            "The highest-value move now is turning receipts and replies into visible results before burning more credits.",
           upgrade_now:
             "The current burn and execution density are pushing past a comfortable Starter cadence. Upgrade before expanding further.",
           hold_premium:
-            "Keep paid opportunities in the premium lane until the normal credit path produces proof first.",
+            "Keep paid opportunities separate until the normal credit path produces real results first.",
         },
         budgetActions: {
           build_queue: "Keep building tasks",
           watch_effect: "Watch execution",
-          prove_first: "Push toward proof",
+          prove_first: "Push results",
           upgrade_now: "Upgrade to Growth",
-          hold_premium: "Review premium work",
+          hold_premium: "Review paid opportunities",
         },
       },
     checkout: {
       successEyebrow: "Payment received",
-      successTitle: "Your plan is unlocked. Start the first live lane now.",
+      successTitle: "Your plan is unlocked. Start the first real path now.",
       successBody:
         "The best next move is not going back to pricing. It is sending the product into real distribution immediately. BacklinkPilot should take you straight into execution after payment.",
       successPendingTitle: "Payment received. Plan status is still syncing.",
@@ -903,8 +903,8 @@ function getDashboardCopy(locale: Locale) {
       cancelledEyebrow: "Checkout not completed",
       cancelledTitle: "Do not lose the launch rhythm. Pick the right plan and continue.",
       cancelledBody:
-        "Your product, launch path, and recommended lanes are all still here. Choose the right plan and continue from this exact workspace.",
-      startNow: "Start Recommended Lane",
+        "Your product, launch path, and recommended paths are all still here. Choose the right plan and continue from this exact workspace.",
+      startNow: "Start Recommended Path",
       openProduct: "Open Recommended Product",
       addProduct: "Add First Product",
       refresh: "Refresh Workspace",
@@ -953,7 +953,7 @@ function getDashboardCopy(locale: Locale) {
     onboarding: {
       title: "Set up your first product for free",
       body:
-        "Paste your homepage, auto-detect the product copy, then let the launch board show the next move before you pay.",
+        "Paste your homepage, auto-detect the product copy, then let the action board show the next move before you pay.",
       primary: "Add First Product",
       secondary: "See Plans",
       steps: [
@@ -999,9 +999,9 @@ function getDashboardCopy(locale: Locale) {
         plan: {
           title: "2. Build the coverage plan",
           empty:
-            "The system needs a product profile before it can turn discovery supply and live lanes into a coverage path.",
+            "The system needs a product profile before it can turn discovery supply and real paths into a coverage plan.",
           ready:
-            "The app can already turn the current product, today's discovery supply, and available live lanes into an executable coverage plan.",
+            "The app can already turn the current product, today's discovery supply, and available real paths into an executable coverage plan.",
           action: "Create coverage plan",
         },
         launch: {
@@ -1011,7 +1011,7 @@ function getDashboardCopy(locale: Locale) {
           running:
             "A real task is already moving. Watch that instead of reading more capability copy.",
           ready:
-            "The highest-value move now is launching the recommended lane so the first task batch actually starts.",
+            "The highest-value move now is starting the recommended path so the first task batch actually starts.",
           actionLaunch: "Launch recommended task",
           actionQueue: "Open task queue",
         },
@@ -1031,7 +1031,7 @@ function getDashboardCopy(locale: Locale) {
       eyebrow: "This week's focus",
       title: "Do not move every product equally.",
       body:
-        "The system should tell the user which product deserves attention first, which result path should be pushed, and which premium work should stay separate.",
+        "The system should tell the user which product deserves attention first, which result path should be pushed, and which paid opportunities should stay separate.",
       modeLabel: "Current rhythm",
       allocationLabel: "Attention this week",
       actionLabel: "Best next move",
@@ -1039,13 +1039,13 @@ function getDashboardCopy(locale: Locale) {
         prove: "Push results",
         watch: "Watch effect",
         build: "Keep building",
-        premium: "Premium work",
+          premium: "Paid opportunities",
       },
       modes: {
         unlock: {
-          title: "Unlock the first live lane before optimizing the portfolio.",
+          title: "Unlock the first real path before optimizing the portfolio.",
           body:
-            "The missing piece is not more strategy. It is getting the first product into live execution so proof and budget guidance have something real to work with.",
+            "The missing piece is not more strategy. It is getting the first product into live execution so result tracking and budget guidance have something real to work with.",
         },
         upgrade: {
           title: "The workspace is starting to push past the current plan ceiling.",
@@ -1053,9 +1053,9 @@ function getDashboardCopy(locale: Locale) {
             "At least one product is reaching upgrade density. Expand the plan before stacking more lanes and tasks, or the burn pressure and capability boundary will fight each other.",
         },
         prove: {
-          title: "Turn existing signal into more public proof this week.",
+          title: "Turn existing signal into more public results this week.",
           body:
-            "The highest-value move is not opening another layer of tasks. It is pushing current receipts, replies, and near-publication threads closer to visible proof.",
+            "The highest-value move is not opening another layer of tasks. It is pushing current receipts, replies, and near-publication threads closer to visible results.",
         },
         watch: {
           title: "Let the work already in motion land first.",
@@ -1065,12 +1065,12 @@ function getDashboardCopy(locale: Locale) {
         build: {
           title: "This workspace is still in build mode, so expand coverage and the task surface.",
           body:
-            "There is not enough proof pressure yet, so the best move is still creating plans, filling the target base, and launching the first lanes.",
+            "There is not enough result pressure yet, so the best move is still creating plans, filling the target base, and launching the first paths.",
         },
       },
       lanes: {
         prove: {
-          title: "Push proof now",
+          title: "Push results now",
           body: "These products are closest to visible results and deserve the first attention.",
         },
         watch: {
@@ -1082,8 +1082,8 @@ function getDashboardCopy(locale: Locale) {
           body: "These products still need more coverage and first-layer execution before they should dominate the workspace.",
         },
         premium: {
-          title: "Hold premium work",
-          body: "These products have premium opportunities, but normal proof should land before premium becomes the main path.",
+          title: "Hold paid opportunities",
+          body: "These products have paid opportunities, but normal results should land before they become the main path.",
         },
       },
       laneMetrics: {
@@ -1097,7 +1097,7 @@ function getDashboardCopy(locale: Locale) {
       eyebrow: "This week's openings",
       title: "Keep this week's active work inside a controllable range.",
       body:
-        "The system should not only recommend moves. It should also limit how many submission, result, and premium lanes stay open at the same time so the account does not turn noisy.",
+        "The system should not only recommend moves. It should also limit how many submission, result, and paid-opportunity paths stay open at the same time so the account does not turn noisy.",
       policyLabel: "Current pace",
       laneLabels: {
         submission: "Submission slots",
@@ -1113,11 +1113,11 @@ function getDashboardCopy(locale: Locale) {
       states: {
         unlock: {
           title: "Unlock first, then worry about capacity.",
-          body: "Before live execution is really open, there is no value in opening too many lanes at once.",
+          body: "Before real execution is open, there is no value in opening too many paths at once.",
         },
         tighten: {
           title: "Tighten the aperture first.",
-          body: "The workspace is already carrying too many openings. Push current work toward effect and proof before opening more.",
+          body: "The workspace is already carrying too many openings. Push current work toward effect and results before opening more.",
         },
         balanced: {
           title: "The current pace is balanced.",
@@ -1130,11 +1130,11 @@ function getDashboardCopy(locale: Locale) {
       },
       fullError: {
         submission:
-          "The submission lane is already full for this week. Let current work land or push proof before opening more submissions.",
+          "The submission path is already full for this week. Let current work land or push results before opening more submissions.",
         proof:
-          "The proof lane is already full for this week. Finish pushing the current result tasks before queuing another proof task.",
+          "The result path is already full for this week. Finish pushing the current result tasks before queuing another result task.",
         premium:
-          "The premium lane is already full right now. Keep premium work separate until the standard proof path is clearer.",
+          "The paid-opportunity path is already full right now. Keep it separate until the standard result path is clearer.",
       },
     },
     builder: {
