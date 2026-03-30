@@ -639,14 +639,14 @@ function getDashboardCopy(locale: Locale) {
         note:
           "这一步先把任务和阶段结构立住。后面再继续接真实导入执行和积分扣费。",
       },
-      tasks: {
-        eyebrow: "Task Queue",
-        title: "把执行能力翻成任务，而不是后台日志",
-        body:
-          "每个产品登记、每批提交和每个结果推进动作，都先压成一个任务。第一版先让用户看懂阶段和积分结构，再往真实计费接。",
-        previewBadge: "预估版",
-        empty:
-          "还没有任务。先登记一个产品，让系统开始生成覆盖计划和执行任务。",
+    tasks: {
+      eyebrow: "动作清单",
+      title: "把执行进展翻成一眼能懂的动作清单",
+      body:
+        "每个产品登记、每批提交和每个结果推进动作，都会先变成一条可见动作。第一版先让用户看懂阶段和积分结构，再往真实计费接。",
+      previewBadge: "预估版",
+      empty:
+          "还没有动作。先登记一个产品，让系统开始生成覆盖计划和执行动作。",
         labels: {
           stage: "阶段",
           preview: "任务预览",
@@ -1168,13 +1168,13 @@ function getDashboardCopy(locale: Locale) {
         "This step focuses on making the task and stage structure real first. Real execution and billing can plug in after that.",
     },
     tasks: {
-      eyebrow: "Task Queue",
-      title: "Translate execution into tasks, not backend logs",
+      eyebrow: "Action List",
+      title: "Turn execution into a simple action list",
       body:
-        "Each product setup, submission batch, and proof push becomes a visible task. This first version focuses on structure and credit clarity before real billing is attached.",
+        "Each product setup, submission batch, and result push becomes one visible action. This first version focuses on stage and credit clarity before real billing is attached.",
       previewBadge: "Preview",
       empty:
-        "There are no tasks yet. Register one product first and the system can start building the coverage and execution queue.",
+        "There are no actions yet. Register one product first and the system can start building the coverage and execution flow.",
       labels: {
         stage: "Stage",
         preview: "Task preview",
