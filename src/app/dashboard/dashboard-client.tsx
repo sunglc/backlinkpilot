@@ -1305,10 +1305,10 @@ function getDashboardCopy(locale: Locale) {
 function getProofBoardCopy(locale: Locale) {
   if (locale === "zh") {
     return {
-      eyebrow: "Proof Board",
+      eyebrow: "结果看板",
       title: "优先推进最接近结果的产品",
       body:
-        "全局最优不是盯着每个局部动作，而是优先把最接近可证明结果的产品推到结果层。",
+        "全局最优不是盯着每个局部动作，而是优先把最接近可见结果的产品推到结果层。",
       stats: {
         receipts: "动作回执",
         threads: "真实回复",
@@ -1330,20 +1330,20 @@ function getProofBoardCopy(locale: Locale) {
         send_materials: "补齐资料",
         review_commercial: "评估商务条件",
         hold_review: "继续跟进",
-        push_receipts: "推进回执证明",
+        push_receipts: "推进回执结果",
         build_signal: "打开产品",
         open_active: "打开正在进行的任务",
       },
       taskStatus: {
         queued: "已排队",
         in_progress: "进行中",
-        proved: "已证明",
+        proved: "已确认",
         dropped: "已放弃",
       },
       priorities: {
         verify_published: {
           title: "先验证最接近上线的产品",
-          body: "这些产品已经接近拿到公开证明，应该优先抓证据并沉淀结果。",
+          body: "这些产品已经接近拿到公开结果，应该优先抓证据并沉淀成果。",
         },
         protect_publication: {
           title: "先守住接近发布的线程",
@@ -1362,22 +1362,22 @@ function getProofBoardCopy(locale: Locale) {
           body: "这些线程还在内部评估，关键是别让它们自然冷掉。",
         },
         push_receipts: {
-          title: "先把提交回执推进到公开证明",
+          title: "先把提交回执推进到公开结果",
           body: "虽然还没有强回复，但已有真实动作成功，值得继续追公开结果。",
         },
         build_signal: {
           title: "先继续堆厚结果信号",
-          body: "当前还没有足够强的 proof 候选，继续执行比局部微调更重要。",
+          body: "当前还没有足够强的结果候选，继续执行比局部微调更重要。",
         },
       },
     };
   }
 
   return {
-    eyebrow: "Proof Board",
+    eyebrow: "Results Board",
     title: "Push the products closest to real results first",
     body:
-      "Global optimization means prioritizing the products that are nearest to provable outcomes, not polishing isolated local steps.",
+      "Global optimization means prioritizing the products that are nearest to visible results, not polishing isolated local steps.",
     stats: {
       receipts: "Action receipts",
       threads: "Live replies",
@@ -1386,13 +1386,13 @@ function getProofBoardCopy(locale: Locale) {
     },
     globalFocusLabel: "Current global priority",
     empty:
-      "There are no obvious proof-front products yet. Keep running live lanes until the result layer gets thicker.",
+      "There are no obvious result-front products yet. Keep running live lanes until the result layer gets thicker.",
     noCandidates: "No named candidates yet",
     openProduct: "Open Product",
-    openTopProduct: "Open top proof product",
+    openTopProduct: "Open top result product",
     latestSignal: "Latest signal",
     candidates: "Candidates",
-    activeTaskLabel: "Active proof task",
+    activeTaskLabel: "Active result task",
     actionLabels: {
       verify_published: "Verify result",
       protect_publication: "Protect publication",
@@ -1412,7 +1412,7 @@ function getProofBoardCopy(locale: Locale) {
     priorities: {
       verify_published: {
         title: "Verify the products closest to going live",
-        body: "These products are closest to public proof and should be converted into visible results first.",
+        body: "These products are closest to public results and should be converted into visible outcomes first.",
       },
       protect_publication: {
         title: "Protect the threads closest to publication",
@@ -1431,12 +1431,12 @@ function getProofBoardCopy(locale: Locale) {
         body: "These conversations are still being evaluated, so follow-up discipline matters most.",
       },
       push_receipts: {
-        title: "Push submission receipts toward public proof",
+        title: "Push submission receipts toward public results",
         body: "There may not be strong live replies yet, but real actions already landed and should be driven further.",
       },
       build_signal: {
         title: "Keep building result signal",
-        body: "There are not enough strong proof candidates yet, so more execution matters more than local polishing.",
+        body: "There are not enough strong result candidates yet, so more execution matters more than local polishing.",
       },
     },
   };
@@ -1455,13 +1455,13 @@ function getTodayBriefCopy(locale: Locale) {
         move: "唯一推荐动作",
       },
       emptySignalTitle: "还没有进入结果层的产品",
-      emptySignalBody: "先让第一个产品进入真实执行，再谈 proof 和扩张。",
+      emptySignalBody: "先让第一个产品进入真实执行，再谈结果和扩张。",
       activeSignalTitle: "今天有 live 渠道在跑",
       activeSignalBody: "最该看的不是更多设置，而是这一轮什么时候开始产出真实结果。",
       readySignalTitle: "已经出现可推进的结果信号",
-      readySignalBody: "这个产品最接近进入公开 proof，应该优先推进它。",
+      readySignalBody: "这个产品最接近进入公开结果，应该优先推进它。",
       noProductBlockerTitle: "还没有可执行的产品档案",
-      noProductBlockerBody: "没有产品，后面的 proof、外联和升级都没有承载点。",
+      noProductBlockerBody: "没有产品，后面的结果推进、外联和升级都没有承载点。",
       freeBlockerTitle: "真实渠道还没解锁",
       freeBlockerBody: "产品已经配好，但还停在免费配置层，真实提交和结果还没开始累积。",
       syncBlockerTitle: "付款后同步还没完成",
@@ -1471,13 +1471,13 @@ function getTodayBriefCopy(locale: Locale) {
       proofBlockerTitle: "结果信号还不够厚",
       proofBlockerBody: "现在更重要的是继续执行，先把 receipt 和 reply 层做厚，再谈局部优化。",
       actionSetupTitle: "先把第一个产品加进来",
-      actionSetupBody: "先形成一个可执行档案，后面的 launch、proof 和 managed inbox 才有落点。",
+      actionSetupBody: "先形成一个可执行档案，后面的启动、结果推进和托管邮箱才有落点。",
       actionUnlockTitle: "先解锁 Starter",
       actionUnlockBody: "这是从配置态进入真实提交态的分水岭，目录和 stealth 会立刻开始产生结果信号。",
       actionSyncTitle: "先刷新工作台",
       actionSyncBody: "计划状态同步完以后，这一屏的推荐动作才会切换成真正可执行。",
       actionProofTitle: "先推进最接近结果的产品",
-      actionProofBody: "不要平均用力。先把最接近 proof 的产品推过去，结果感会最强。",
+      actionProofBody: "不要平均用力。先把最接近公开结果的产品推过去，结果感会最强。",
       actionLaunchTitle: "先启动推荐渠道",
       actionLaunchBody: "当前最值得做的是把推荐 lane 跑起来，让结果层开始积累。",
       actionReviewTitle: "先打开最值得看的产品",
@@ -1498,13 +1498,13 @@ function getTodayBriefCopy(locale: Locale) {
       move: "Single best move",
     },
     emptySignalTitle: "No product has entered the result layer yet",
-    emptySignalBody: "Get the first product into live execution before worrying about proof or expansion.",
+    emptySignalBody: "Get the first product into live execution before worrying about results or expansion.",
     activeSignalTitle: "A live lane is running today",
     activeSignalBody: "The thing to watch now is not more setup. It is when this run starts producing real result signal.",
-    readySignalTitle: "A product is already showing proof pressure",
-    readySignalBody: "This product is the closest to public proof and should be pushed first.",
+    readySignalTitle: "A product is already showing result pressure",
+    readySignalBody: "This product is the closest to a visible result and should be pushed first.",
     noProductBlockerTitle: "There is no executable product profile yet",
-    noProductBlockerBody: "Without a product, proof, outreach, and upgrades have nothing real to operate on.",
+    noProductBlockerBody: "Without a product, result work, outreach, and upgrades have nothing real to operate on.",
     freeBlockerTitle: "Live lanes are still locked",
     freeBlockerBody: "The product is staged, but the workspace is still stuck in setup mode and not accumulating real submission signal.",
     syncBlockerTitle: "Post-checkout sync is still catching up",
@@ -1514,13 +1514,13 @@ function getTodayBriefCopy(locale: Locale) {
     proofBlockerTitle: "The result layer is still too thin",
     proofBlockerBody: "More execution matters more than local polishing until receipts and replies get thicker.",
     actionSetupTitle: "Add the first product first",
-    actionSetupBody: "You need a real product profile before launch, proof, and managed inbox can become meaningful.",
+    actionSetupBody: "You need a real product profile before launch, result work, and managed inbox can become meaningful.",
     actionUnlockTitle: "Unlock Starter first",
     actionUnlockBody: "This is the line between setup mode and real execution. Directory and Stealth start producing signal immediately.",
     actionSyncTitle: "Refresh the workspace first",
     actionSyncBody: "The right move only becomes visible after the plan sync is complete.",
-    actionProofTitle: "Push the product closest to proof first",
-    actionProofBody: "Do not spread effort evenly. Move the product closest to proof and the result feeling gets stronger faster.",
+    actionProofTitle: "Push the product closest to visible results first",
+    actionProofBody: "Do not spread effort evenly. Move the product closest to visible results and the result feeling gets stronger faster.",
     actionLaunchTitle: "Launch the recommended lane first",
     actionLaunchBody: "The highest-value move right now is starting the recommended lane so the result layer can compound.",
     actionReviewTitle: "Open the product that matters most",
@@ -1533,7 +1533,7 @@ function getTodayBriefCopy(locale: Locale) {
 function getOutcomeLadderCopy(locale: Locale) {
   if (locale === "zh") {
     return {
-      eyebrow: "Outcome Ladder",
+      eyebrow: "结果路径",
       title: "用同一条结果路径看所有产品",
       body:
         "真正的消费级体验不是让你学会一堆运营术语，而是让你知道每个产品目前处在哪一步，以及离下一个结果还差什么。",
@@ -1546,15 +1546,15 @@ function getOutcomeLadderCopy(locale: Locale) {
         launched: "首轮已启动",
         receipts: "拿到动作回执",
         threads: "拿到真实回复",
-        close: "接近公开 proof",
-        proved: "已进入 proof",
+        close: "接近公开结果",
+        proved: "结果已确认",
       },
       stageBody: {
         staged: "这个产品已经有基本档案，但还没有进入真实执行。",
         launched: "这个产品已经开始跑真实渠道，下一步是等第一批有效动作回执。",
         receipts: "已经出现真实动作成功，下一步要把它推进到回复或公开结果。",
         threads: "已经拿到真实回复，重点是别让高质量线程冷掉。",
-        close: "它已经接近公开 proof，最值得优先推进。",
+        close: "它已经接近公开结果，最值得优先推进。",
         proved: "这个产品已经拿到最强结果信号，接下来应该复制和扩张。",
       },
       nextBody: {
@@ -1562,7 +1562,7 @@ function getOutcomeLadderCopy(locale: Locale) {
         launched: "拿到第一批成功动作回执。",
         receipts: "把回执推进到回复或公开证据。",
         threads: "把回复推进到接近发布或公开结果。",
-        close: "拿到最终 proof 并沉淀成成果。",
+        close: "拿到最终结果证据并沉淀成成果。",
         proved: "把这套打法复制到下一条渠道或下一个产品。",
       },
       actionBody: {
@@ -1570,7 +1570,7 @@ function getOutcomeLadderCopy(locale: Locale) {
         launched: "现在最值钱的动作是盯住进度和第一批结果。",
         receipts: "现在最值钱的动作是把已成功的信号推进到回复层。",
         threads: "现在最值钱的动作是守住高质量线程，别让它们自然流失。",
-        close: "现在最值钱的动作是抓 proof，而不是分散到别的产品。",
+        close: "现在最值钱的动作是把结果坐实，而不是分散到别的产品。",
         proved: "现在最值钱的动作是复制这条结果路径。",
       },
       openProduct: "打开产品",
@@ -1578,7 +1578,7 @@ function getOutcomeLadderCopy(locale: Locale) {
   }
 
   return {
-    eyebrow: "Outcome Ladder",
+    eyebrow: "Results Path",
     title: "Map every product onto the same result path",
     body:
       "A consumer-grade product should not make you learn ops jargon. It should show what stage each product is in and what is missing before the next real outcome.",
@@ -1591,23 +1591,23 @@ function getOutcomeLadderCopy(locale: Locale) {
       launched: "First lane launched",
       receipts: "Receipts landed",
       threads: "Replies landed",
-      close: "Close to public proof",
-      proved: "Proof reached",
+      close: "Close to public results",
+      proved: "Result confirmed",
     },
     stageBody: {
       staged: "The product profile exists, but it has not entered live execution yet.",
       launched: "A real lane has started. The next threshold is the first useful action receipt.",
       receipts: "Real actions have landed. The next move is pushing them toward replies or public outcomes.",
       threads: "Real replies are live now, so the priority is protecting the strong threads.",
-      close: "This product is close to public proof and deserves priority.",
+      close: "This product is close to public results and deserves priority.",
       proved: "This product already has the strongest result signal. Now the job is replication and expansion.",
     },
     nextBody: {
       staged: "Launch the first live lane.",
       launched: "Land the first successful action receipts.",
       receipts: "Push receipts toward replies or public evidence.",
-      threads: "Push replies toward publication or proof.",
-      close: "Capture the final proof and turn it into visible outcome.",
+      threads: "Push replies toward publication or visible results.",
+      close: "Capture the final evidence and turn it into a visible outcome.",
       proved: "Replicate this path into the next lane or product.",
     },
     actionBody: {
@@ -1615,7 +1615,7 @@ function getOutcomeLadderCopy(locale: Locale) {
       launched: "The highest-value move now is watching for the first real outcome.",
       receipts: "The highest-value move now is pushing successful signal toward replies.",
       threads: "The highest-value move now is protecting the strongest live threads.",
-      close: "The highest-value move now is capturing proof instead of spreading attention.",
+      close: "The highest-value move now is confirming the result instead of spreading attention.",
       proved: "The highest-value move now is copying the winning pattern.",
     },
     openProduct: "Open product",
