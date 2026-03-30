@@ -3858,6 +3858,11 @@ export default function DashboardClient({
           requestedProductName: requestedPlannerSummary?.product.name || null,
         })
       : null;
+  const builderTargetText = resolvedPlannerSummary
+    ? locale === "zh"
+      ? `这次会为 ${resolvedPlannerSummary.product.name} 建任务。`
+      : `This will create tasks for ${resolvedPlannerSummary.product.name}.`
+    : null;
   const workspaceBudgetLead =
     featuredCandidates
       .slice()
@@ -5687,6 +5692,11 @@ export default function DashboardClient({
                 <p className="mt-3 text-sm leading-7 text-stone-300">
                   {copy.builder.autoBody}
                 </p>
+                {builderTargetText ? (
+                  <p className="mt-3 text-xs leading-6 text-stone-500">
+                    {builderTargetText}
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("auto")}
@@ -5706,6 +5716,11 @@ export default function DashboardClient({
                 <p className="mt-3 text-sm leading-7 text-stone-300">
                   {copy.builder.competitorBody}
                 </p>
+                {builderTargetText ? (
+                  <p className="mt-3 text-xs leading-6 text-stone-500">
+                    {builderTargetText}
+                  </p>
+                ) : null}
                 <textarea
                   value={competitorList}
                   onChange={(event) => setCompetitorList(event.target.value)}
@@ -5735,6 +5750,11 @@ export default function DashboardClient({
                 <p className="mt-3 text-sm leading-7 text-stone-300">
                   {copy.builder.importBody}
                 </p>
+                {builderTargetText ? (
+                  <p className="mt-3 text-xs leading-6 text-stone-500">
+                    {builderTargetText}
+                  </p>
+                ) : null}
                 <textarea
                   value={importList}
                   onChange={(event) => setImportList(event.target.value)}
