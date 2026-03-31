@@ -353,6 +353,68 @@ function getProductDetailCopy(locale: Locale) {
           successful: "成功动作数",
         },
       },
+      offerBoundary: {
+        eyebrow: "当前交付层",
+        title: "先看这个产品现在走的是哪一层。",
+        body:
+          "这块不解释系统架构，只回答四件事：哪些已经在套餐内、托管邮箱现在是什么状态、哪些机会会单独处理、哪些地方已经进入人工服务层。",
+        labels: {
+          included: "套餐内",
+          addOn: "可选加购",
+          separate: "单独处理",
+          service: "按服务售卖",
+          active: "当前已开启",
+          byo: "当前用你的邮箱",
+          locked: "升级后可用",
+          openManaged: "打开托管邮箱",
+          openResults: "打开结果动作",
+          seePricing: "查看方案",
+        },
+        cards: {
+          core: {
+            eyebrow: "核心软件层",
+            freeTitle: "当前还停在软件层，真实提交还没解锁。",
+            freeBody:
+              "产品登记、结果中心和动作清单已经可用，但真实提交还没开始。升级后，这层会继续承接真正的执行。",
+            liveTitle: "这个产品正在跑套餐内的核心软件层。",
+            liveBody:
+              "真实提交、结果中心和动作清单都属于这一层。它卖的是可重复运行的软件体验，不是一次性的人工代办。",
+          },
+          managed: {
+            eyebrow: "托管外联邮箱",
+            activeTitle: "这个产品已经切到托管外联邮箱。",
+            activeBody:
+              "平台现在负责专属邮箱、代发、代回和线程回流。这是一条独立交付层，不应该和自带邮箱混在一起。",
+            byoTitle: "这个产品当前走的是你自己的邮箱。",
+            byoBody:
+              "托管邮箱没有自动生效。你现在明确走的是自带邮箱路径，后面如果要切换，再单独开启托管层。",
+            readyTitle: "当前计划已经允许切到托管邮箱。",
+            readyBody:
+              "这层是可选加购，不是默认一起送。你可以继续用自己的邮箱，也可以在需要时切过去。",
+            lockedTitle: "托管邮箱还没解锁。",
+            lockedBody:
+              "当前计划还停在核心软件层。托管邮箱应该作为更高一层的可买能力，而不是提前伪装成默认包含。",
+          },
+          paid: {
+            eyebrow: "付费机会层",
+            activeTitle: "已经出现需要单独判断的付费机会。",
+            activeBody:
+              "这类机会不该混进普通提交或 credits 里。它们应该被当成独立机会层，单独判断值不值得继续推进。",
+            idleTitle: "付费机会不会混进基础提交里。",
+            idleBody:
+              "收费型、商务型外链机会会单独沉淀和处理，不会伪装成基础套餐已经包含的结果。",
+          },
+          manual: {
+            eyebrow: "人工服务层",
+            activeTitle: "这个产品已经进入人工推进层。",
+            activeBody:
+              "现在的价值来自人工 review、补资料或定制推进，而不是再假装一切都已经自动化完成。",
+            idleTitle: "人工服务只在自动化不够时介入。",
+            idleBody:
+              "复杂 review、人工处理和定制推进应该诚实按服务说明，而不是继续包装成纯软件动作。",
+          },
+        },
+      },
       status: {
         free: "免费版",
         starter: "入门版",
@@ -689,6 +751,68 @@ function getProductDetailCopy(locale: Locale) {
         status: "Product status",
         liveChannels: "Live lanes unlocked",
         successful: "Successful actions",
+      },
+    },
+    offerBoundary: {
+      eyebrow: "Current delivery layer",
+      title: "Start by seeing what layer this product is actually using.",
+      body:
+        "This does not explain the system architecture. It answers four simple questions: what is already included in the plan, what state the managed inbox is in, what gets handled as paid opportunity work, and where manual service has started to take over.",
+      labels: {
+        included: "Included in plan",
+        addOn: "Optional add-on",
+        separate: "Handled separately",
+        service: "Sold as service",
+        active: "Active now",
+        byo: "Using your inbox",
+        locked: "Upgrade to use",
+        openManaged: "Open managed inbox",
+        openResults: "Open result actions",
+        seePricing: "See plans",
+      },
+      cards: {
+        core: {
+          eyebrow: "Core software layer",
+          freeTitle: "This product is still on the software layer only.",
+          freeBody:
+            "Setup, the results center, and the action list are already available, but live submissions are not unlocked yet. Upgrade and this same layer starts driving real execution.",
+          liveTitle: "This product is already using the core software layer.",
+          liveBody:
+            "Live submissions, the results center, and the action list all belong here. This is repeatable software value, not one-off manual fulfillment hiding inside the plan.",
+        },
+        managed: {
+          eyebrow: "Managed Outreach Inbox",
+          activeTitle: "This product is already on the managed inbox path.",
+          activeBody:
+            "The platform now owns the dedicated inbox, send, reply, and thread flow. This is a separate delivery layer and should not be blurred with bring-your-own-inbox mode.",
+          byoTitle: "This product is currently using your own inbox.",
+          byoBody:
+            "Managed mode has not silently taken over. You are clearly on the bring-your-own-inbox path unless you explicitly switch later.",
+          readyTitle: "The current plan can already add managed inbox.",
+          readyBody:
+            "This layer is optional, not silently bundled. You can stay on your own inbox or switch when you need platform-run sending.",
+          lockedTitle: "Managed inbox is not unlocked yet.",
+          lockedBody:
+            "The current plan is still on the core software layer. Managed inbox should stay an honest higher-layer purchase, not a fake default inclusion.",
+        },
+        paid: {
+          eyebrow: "Paid opportunity layer",
+          activeTitle: "This product already has paid opportunities that need separate judgment.",
+          activeBody:
+            "Commercial opportunities should not be mixed into normal submissions or credits. They belong in a separate lane where you decide whether they are worth it.",
+          idleTitle: "Paid opportunities do not belong inside base submissions.",
+          idleBody:
+            "Commercial or sponsorship-style opportunities are tracked separately instead of pretending they are already part of the base plan outcome.",
+        },
+        manual: {
+          eyebrow: "Manual service layer",
+          activeTitle: "This product has already entered a manual follow-through layer.",
+          activeBody:
+            "The value now comes from review, asset prep, or custom human follow-through. The product should say that plainly instead of pretending automation already did the whole job.",
+          idleTitle: "Manual service only shows up when automation stops being enough.",
+          idleBody:
+            "Complex review, custom handling, and human follow-through should be sold and explained as service work instead of being disguised as pure software.",
+        },
       },
     },
     status: {
@@ -2165,6 +2289,122 @@ export default function ProductDetail({
       tone: "border-white/8 bg-black/15",
     },
   ];
+  const managedInboxBadge = managedInboxActive
+    ? copy.offerBoundary.labels.active
+    : managedInbox.senderMode === "bring_your_own"
+      ? copy.offerBoundary.labels.byo
+      : managedInboxEligible
+        ? copy.offerBoundary.labels.addOn
+        : copy.offerBoundary.labels.locked;
+  const managedInboxTitle = managedInboxActive
+    ? copy.offerBoundary.cards.managed.activeTitle
+    : managedInbox.senderMode === "bring_your_own"
+      ? copy.offerBoundary.cards.managed.byoTitle
+      : managedInboxEligible
+        ? copy.offerBoundary.cards.managed.readyTitle
+        : copy.offerBoundary.cards.managed.lockedTitle;
+  const managedInboxBody = managedInboxActive
+    ? `${copy.offerBoundary.cards.managed.activeBody}${
+        managedInbox.mailboxIdentity?.email
+          ? locale === "zh"
+            ? ` 当前分配邮箱：${managedInbox.mailboxIdentity.email}。`
+            : ` Current inbox: ${managedInbox.mailboxIdentity.email}.`
+          : ""
+      }`
+    : managedInbox.senderMode === "bring_your_own"
+      ? `${copy.offerBoundary.cards.managed.byoBody}${
+          managedInbox.bringYourOwn?.senderEmail
+            ? locale === "zh"
+              ? ` 当前发件邮箱：${managedInbox.bringYourOwn.senderEmail}。`
+              : ` Current sender: ${managedInbox.bringYourOwn.senderEmail}.`
+            : ""
+        }`
+      : managedInboxEligible
+        ? copy.offerBoundary.cards.managed.readyBody
+        : copy.offerBoundary.cards.managed.lockedBody;
+  const paidOpportunityActive = commercialReviewPackets.length > 0;
+  const paidOpportunityTitle = paidOpportunityActive
+    ? copy.offerBoundary.cards.paid.activeTitle
+    : copy.offerBoundary.cards.paid.idleTitle;
+  const paidOpportunityBody = paidOpportunityActive
+    ? `${copy.offerBoundary.cards.paid.activeBody} ${
+        locale === "zh"
+          ? `当前待筛机会：${commercialReviewPackets.length} 个。`
+          : `Open opportunities to screen: ${commercialReviewPackets.length}.`
+      }`
+    : copy.offerBoundary.cards.paid.idleBody;
+  const manualServiceActive =
+    needsMaterialsPackets.length > 0 ||
+    underReviewPackets.length > 0 ||
+    latestProofTask?.status === "in_progress";
+  const manualServiceTitle = manualServiceActive
+    ? copy.offerBoundary.cards.manual.activeTitle
+    : copy.offerBoundary.cards.manual.idleTitle;
+  const manualServiceBody = manualServiceActive
+    ? copy.offerBoundary.cards.manual.activeBody
+    : copy.offerBoundary.cards.manual.idleBody;
+  const offerBoundaryCards = [
+    {
+      key: "core",
+      eyebrow: copy.offerBoundary.cards.core.eyebrow,
+      badge: copy.offerBoundary.labels.included,
+      title:
+        plan === "free"
+          ? copy.offerBoundary.cards.core.freeTitle
+          : copy.offerBoundary.cards.core.liveTitle,
+      body:
+        plan === "free"
+          ? copy.offerBoundary.cards.core.freeBody
+          : `${copy.offerBoundary.cards.core.liveBody} ${
+              locale === "zh"
+                ? `当前已解锁 ${availableLiveChannels.length} 条真实渠道。`
+                : `${availableLiveChannels.length} live lanes are currently unlocked.`
+            }`,
+      href: plan === "free" ? checkoutHref("starter") : "#submission-history",
+      actionLabel:
+        plan === "free" ? copy.hero.unlockStarter : copy.hero.viewHistory,
+      tone: "border-emerald-300/15 bg-emerald-300/[0.06]",
+      actionTone: "bg-[var(--accent-500)] text-stone-950 hover:bg-[var(--accent-300)]",
+    },
+    {
+      key: "managed",
+      eyebrow: copy.offerBoundary.cards.managed.eyebrow,
+      badge: managedInboxBadge,
+      title: managedInboxTitle,
+      body: managedInboxBody,
+      href: managedInboxEligible || managedInbox.senderMode === "bring_your_own" || managedInboxActive
+        ? "#managed-inbox"
+        : "/pricing#managed-inbox",
+      actionLabel:
+        managedInboxEligible || managedInbox.senderMode === "bring_your_own" || managedInboxActive
+          ? copy.offerBoundary.labels.openManaged
+          : copy.offerBoundary.labels.seePricing,
+      tone: "border-sky-300/15 bg-sky-300/[0.06]",
+      actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
+    },
+    {
+      key: "paid",
+      eyebrow: copy.offerBoundary.cards.paid.eyebrow,
+      badge: copy.offerBoundary.labels.separate,
+      title: paidOpportunityTitle,
+      body: paidOpportunityBody,
+      href: "#results-proof",
+      actionLabel: copy.offerBoundary.labels.openResults,
+      tone: "border-fuchsia-300/15 bg-fuchsia-300/[0.06]",
+      actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
+    },
+    {
+      key: "manual",
+      eyebrow: copy.offerBoundary.cards.manual.eyebrow,
+      badge: copy.offerBoundary.labels.service,
+      title: manualServiceTitle,
+      body: manualServiceBody,
+      href: "#proof-pipeline",
+      actionLabel: copy.offerBoundary.labels.openResults,
+      tone: "border-amber-300/15 bg-amber-300/[0.06]",
+      actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
+    },
+  ] as const;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-stone-950 text-stone-100">
@@ -2393,6 +2633,48 @@ export default function ProductDetail({
                 </div>
               ) : null}
             </div>
+          </div>
+        </section>
+
+        <section className="mt-12 rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.offerBoundary.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+              {copy.offerBoundary.title}
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-stone-400 md:text-base">
+              {copy.offerBoundary.body}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {offerBoundaryCards.map((card) => (
+              <article
+                key={card.key}
+                className={`rounded-[1.35rem] border p-5 ${card.tone}`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-current/75">
+                    {card.eyebrow}
+                  </p>
+                  <span className="rounded-full border border-white/10 bg-black/15 px-3 py-1 text-xs font-medium text-white">
+                    {card.badge}
+                  </span>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold text-white">{card.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-stone-200">{card.body}</p>
+                <div className="mt-5">
+                  <a
+                    href={card.href}
+                    className={`inline-flex rounded-full px-4 py-2 text-sm font-semibold transition ${card.actionTone}`}
+                  >
+                    {card.actionLabel}
+                  </a>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
 
