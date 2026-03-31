@@ -3193,6 +3193,78 @@ export default function DashboardClient({
   }, [plannerProductId, products, workspaceSupply.recommendedAutoCoverageProductId]);
 
   const isPaid = subscription?.status === "active";
+  const deliveryLayerCopy =
+    locale === "zh"
+      ? {
+          setup: "套餐内 · 产品配置",
+          core: "套餐内 · 核心软件层",
+          coreUpgrade: "升级后进入 · 核心软件层",
+          managed: "加购层 · 托管邮箱",
+          result: "服务动作 · 结果推进",
+        }
+      : {
+          setup: "Included · Product setup",
+          core: "Included · Core software",
+          coreUpgrade: "Upgrade to unlock · Core software",
+          managed: "Add-on · Managed inbox",
+          result: "Service action · Result push",
+        };
+  const deliveryLayerToneClasses = {
+    core: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
+    managed: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
+    result: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    neutral: "border-white/10 bg-white/[0.04] text-stone-200",
+  } as const;
+  type DeliveryLayerTone = keyof typeof deliveryLayerToneClasses;
+  type DeliveryLayerTag = {
+    label: string;
+    tone: DeliveryLayerTone;
+  };
+  const renderDeliveryLayerTag = (tag: DeliveryLayerTag) => (
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-medium ${deliveryLayerToneClasses[tag.tone]}`}
+    >
+      {tag.label}
+    </span>
+  );
+  const getDeliveryLayerTagFromHref = (href: string): DeliveryLayerTag => {
+    if (href.includes("#managed-inbox")) {
+      return { label: deliveryLayerCopy.managed, tone: "managed" };
+    }
+    if (href.includes("#proof-pipeline") || href.includes("#results-proof")) {
+      return { label: deliveryLayerCopy.result, tone: "result" };
+    }
+    if (href.includes("/pricing") || href.includes("/api/stripe/checkout")) {
+      return { label: deliveryLayerCopy.coreUpgrade, tone: "core" };
+    }
+    return { label: deliveryLayerCopy.core, tone: "core" };
+  };
+  const getDeliveryLayerTag = (
+    action:
+      | TodayBriefMove
+      | BudgetAction
+      | ProductProofAction
+      | ProductPrimaryAction
+      | null
+      | undefined
+  ): DeliveryLayerTag => {
+    if (!action) {
+      return { label: deliveryLayerCopy.core, tone: "core" };
+    }
+    if ("taskType" in action) {
+      return { label: deliveryLayerCopy.result, tone: "result" };
+    }
+    if (action.kind === "proof") {
+      return { label: deliveryLayerCopy.result, tone: "result" };
+    }
+    if (action.kind === "launch") {
+      return { label: deliveryLayerCopy.core, tone: "core" };
+    }
+    if (action.kind === "button" || action.kind === "refresh") {
+      return { label: deliveryLayerCopy.setup, tone: "neutral" };
+    }
+    return getDeliveryLayerTagFromHref(action.href);
+  };
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
   const planName = formatPlanName(currentPlan, locale);
   const proofSummaryByProductId = new Map(
@@ -4274,6 +4346,11 @@ export default function DashboardClient({
                       featuredProductDetailHref ||
                       "/dashboard",
                   };
+  const todayBriefActionTag = !products.length
+    ? { label: deliveryLayerCopy.setup, tone: "neutral" as const }
+    : !isPaid
+      ? { label: deliveryLayerCopy.coreUpgrade, tone: "core" as const }
+      : getDeliveryLayerTag(todayBriefMove);
   const orderedProductSummaries = workspaceStrategyLead
     ? [
         workspaceStrategyLead,
@@ -4760,112 +4837,115 @@ export default function DashboardClient({
               </div>
             ) : null}
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              {products.length === 0 ? (
-                <>
-                  <button
-                    onClick={openAddProduct}
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.hero.primaryNoProduct}
-                  </button>
-                  <Link
-                    href="/pricing"
-                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.hero.secondaryPricing}
-                  </Link>
-                </>
-              ) : !isPaid ? (
-                <>
-                  <a
-                    href="/api/stripe/checkout?plan=starter"
-                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.hero.primaryUnlock}
-                  </a>
-                  <a
-                    href="/api/stripe/checkout?plan=growth"
-                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.hero.secondaryGrowth}
-                  </a>
-                </>
-              ) : products.length > 0 ? (
-                <>
-                  {todayBriefMove.kind === "refresh" ? (
+            <div className="mt-7">
+              {renderDeliveryLayerTag(todayBriefActionTag)}
+              <div className="mt-3 flex flex-wrap gap-3">
+                {products.length === 0 ? (
+                  <>
                     <button
-                      type="button"
-                      onClick={() => router.refresh()}
+                      onClick={openAddProduct}
                       className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                     >
-                      {todayBriefMove.label}
+                      {copy.hero.primaryNoProduct}
                     </button>
-                  ) : todayBriefMove.kind === "launch" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleWorkspaceLaunch(
-                          todayBriefMove.productId,
-                          todayBriefMove.channelId
-                        )
-                      }
-                      disabled={
-                        launchingKey ===
+                    <Link
+                      href="/pricing"
+                      className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.hero.secondaryPricing}
+                    </Link>
+                  </>
+                ) : !isPaid ? (
+                  <>
+                    <a
+                      href="/api/stripe/checkout?plan=starter"
+                      className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                    >
+                      {copy.hero.primaryUnlock}
+                    </a>
+                    <a
+                      href="/api/stripe/checkout?plan=growth"
+                      className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.hero.secondaryGrowth}
+                    </a>
+                  </>
+                ) : products.length > 0 ? (
+                  <>
+                    {todayBriefMove.kind === "refresh" ? (
+                      <button
+                        type="button"
+                        onClick={() => router.refresh()}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      >
+                        {todayBriefMove.label}
+                      </button>
+                    ) : todayBriefMove.kind === "launch" ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWorkspaceLaunch(
+                            todayBriefMove.productId,
+                            todayBriefMove.channelId
+                          )
+                        }
+                        disabled={
+                          launchingKey ===
+                          `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                        }
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      >
+                        {launchingKey ===
                         `${todayBriefMove.productId}:${todayBriefMove.channelId}`
-                      }
-                      className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                    >
-                      {launchingKey ===
-                      `${todayBriefMove.productId}:${todayBriefMove.channelId}`
-                        ? copy.productCard.starting
-                        : todayBriefMove.label}
-                    </button>
-                  ) : todayBriefMove.kind === "proof" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleWorkspaceProofAction(
-                          todayBriefMove.productId,
-                          todayBriefMove.proofAction
-                        )
-                      }
-                      disabled={
-                        proofActionKey ===
+                          ? copy.productCard.starting
+                          : todayBriefMove.label}
+                      </button>
+                    ) : todayBriefMove.kind === "proof" ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWorkspaceProofAction(
+                            todayBriefMove.productId,
+                            todayBriefMove.proofAction
+                          )
+                        }
+                        disabled={
+                          proofActionKey ===
+                          `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                        }
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      >
+                        {proofActionKey ===
                         `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
-                      }
-                      className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                          ? copy.productCard.starting
+                          : todayBriefMove.label}
+                      </button>
+                    ) : todayBriefMove.kind === "link" ? (
+                      todayBriefMove.href.startsWith("/api/") ? (
+                        <a
+                          href={todayBriefMove.href}
+                          className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                        >
+                          {todayBriefMove.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={todayBriefMove.href}
+                          className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                        >
+                          {todayBriefMove.label}
+                        </Link>
+                      )
+                    ) : null}
+                    <button
+                      onClick={openAddProduct}
+                      className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
                     >
-                      {proofActionKey ===
-                      `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
-                        ? copy.productCard.starting
-                        : todayBriefMove.label}
+                      {copy.hero.secondaryAdd}
                     </button>
-                  ) : todayBriefMove.kind === "link" ? (
-                    todayBriefMove.href.startsWith("/api/") ? (
-                      <a
-                        href={todayBriefMove.href}
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                      >
-                        {todayBriefMove.label}
-                      </a>
-                    ) : (
-                      <Link
-                        href={todayBriefMove.href}
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                      >
-                        {todayBriefMove.label}
-                      </Link>
-                    )
-                  ) : null}
-                  <button
-                    onClick={openAddProduct}
-                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.hero.secondaryAdd}
-                  </button>
-                </>
-              ) : null}
+                  </>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-8 grid gap-3 md:grid-cols-3">
@@ -6071,6 +6151,7 @@ export default function DashboardClient({
                     {builderTargetText}
                   </p>
                 ) : null}
+                <div className="mt-3">{renderDeliveryLayerTag({ label: deliveryLayerCopy.core, tone: "core" })}</div>
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("auto")}
@@ -6105,6 +6186,7 @@ export default function DashboardClient({
                 <div className="mt-3 text-xs text-stone-500">
                   {copy.builder.detectedCount}: {competitorLineCount}
                 </div>
+                <div className="mt-3">{renderDeliveryLayerTag({ label: deliveryLayerCopy.core, tone: "core" })}</div>
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("competitor")}
@@ -6164,6 +6246,7 @@ export default function DashboardClient({
                 <div className="mt-3 text-xs text-stone-500">
                   {copy.builder.detectedCount}: {importLineCount}
                 </div>
+                <div className="mt-3">{renderDeliveryLayerTag({ label: deliveryLayerCopy.core, tone: "core" })}</div>
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("import")}
@@ -7369,6 +7452,9 @@ export default function DashboardClient({
                                   {copy.productCard.budgetAction}
                                 </div>
                                 <div className="mt-3">
+                                  {renderDeliveryLayerTag(getDeliveryLayerTag(budgetAction))}
+                                </div>
+                                <div className="mt-3">
                                   {budgetAction.kind === "proof" ? (
                                     <button
                                       type="button"
@@ -7452,7 +7538,15 @@ export default function DashboardClient({
                             </div>
                           </div>
 
-                          <div className="mt-5 flex flex-wrap gap-3">
+                          <div className="mt-5">
+                            {renderDeliveryLayerTag(
+                              proofAction
+                                ? getDeliveryLayerTag(proofAction)
+                                : launchAction
+                                  ? getDeliveryLayerTag(launchAction)
+                                  : getDeliveryLayerTag(linkAction || null)
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-3">
                             {summary.proof.activeTask ? (
                               <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-stone-300">
                                 {proofCopy.activeTaskLabel}:{" "}
@@ -7530,6 +7624,7 @@ export default function DashboardClient({
                             >
                               {copy.productCard.open}
                             </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
