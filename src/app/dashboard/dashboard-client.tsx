@@ -391,6 +391,27 @@ function getDashboardCopy(locale: Locale) {
         starter: "回到入门版",
         growth: "直接看增长版",
       },
+      upgradeOffers: {
+        title: "升级后会直接得到什么",
+        starter: {
+          title: "先补上核心执行层",
+          body: "Starter 会把产品从纯配置态推进到真实执行，直接解锁 live 渠道、动作清单和结果路径。",
+        },
+        growth: {
+          title: "再补上托管邮箱层",
+          body: "Growth 在核心执行之外，再加上托管邮箱，让平台代发、代回和线程回流真正接上。",
+        },
+        premiumNote:
+          "付费机会仍然是单独服务，不会因为升级就被伪装成基础套餐已包含。",
+        needCore: {
+          title: "当前缺的是核心执行层",
+          body: "先升级到 Starter，把真实渠道和结果路径跑起来，再谈更深一层的加购。",
+        },
+        needManaged: {
+          title: "当前缺的是托管邮箱层",
+          body: "当前核心执行已经在位。继续扩密度时，缺的是托管邮箱，而不是更多泛泛的后台能力。",
+        },
+      },
       lanes: {
         liveTitle: "今天可执行",
         liveBody: "已上线渠道会直接执行，推进中渠道会清楚标明需要哪个计划。",
@@ -910,6 +931,27 @@ function getDashboardCopy(locale: Locale) {
       refresh: "Refresh Workspace",
       starter: "Back to Starter",
       growth: "See Growth",
+    },
+    upgradeOffers: {
+      title: "What the upgrade unlocks right away",
+      starter: {
+        title: "Add the core execution layer first",
+        body: "Starter moves the product out of pure setup and into real execution with live lanes, action flow, and the result path.",
+      },
+      growth: {
+        title: "Then add the managed inbox layer",
+        body: "Growth adds managed inbox on top of core execution so send, reply, and thread flow can run through the platform.",
+      },
+      premiumNote:
+        "Paid opportunities still stay separate service work and do not turn into fake base-plan promises after upgrade.",
+      needCore: {
+        title: "The missing layer is core execution",
+        body: "Upgrade to Starter first so live lanes and the result path can actually run before you add anything deeper.",
+      },
+      needManaged: {
+        title: "The missing layer is managed inbox",
+        body: "Core execution is already in place. The next real gap is managed inbox, not more vague backend capability.",
+      },
     },
     lanes: {
       liveTitle: "Runnable today",
@@ -3281,6 +3323,32 @@ export default function DashboardClient({
     return { label: deliveryLayerCopy.core, tone: "core" };
   };
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
+  const upgradeOfferCards = [
+    {
+      key: "starter",
+      tag: { label: deliveryLayerCopy.coreUpgrade, tone: "core" as const },
+      title: copy.upgradeOffers.starter.title,
+      body: copy.upgradeOffers.starter.body,
+    },
+    {
+      key: "growth",
+      tag: { label: deliveryLayerCopy.managed, tone: "managed" as const },
+      title: copy.upgradeOffers.growth.title,
+      body: copy.upgradeOffers.growth.body,
+    },
+  ] as const;
+  const currentUpgradeNeed =
+    currentPlan === "free"
+      ? {
+          tag: { label: deliveryLayerCopy.coreUpgrade, tone: "core" as const },
+          title: copy.upgradeOffers.needCore.title,
+          body: copy.upgradeOffers.needCore.body,
+        }
+      : {
+          tag: { label: deliveryLayerCopy.managed, tone: "managed" as const },
+          title: copy.upgradeOffers.needManaged.title,
+          body: copy.upgradeOffers.needManaged.body,
+        };
   const planName = formatPlanName(currentPlan, locale);
   const proofSummaryByProductId = new Map(
     productProofSummaries.map((summary) => [summary.productId, summary])
@@ -4884,6 +4952,25 @@ export default function DashboardClient({
                     >
                       {copy.hero.secondaryGrowth}
                     </a>
+                    <div className="mt-2 grid w-full gap-3 sm:grid-cols-2">
+                      {upgradeOfferCards.map((card) => (
+                        <div
+                          key={card.key}
+                          className="rounded-[1.1rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                        >
+                          {renderDeliveryLayerTag(card.tag)}
+                          <div className="mt-3 text-sm font-semibold text-white">
+                            {card.title}
+                          </div>
+                          <p className="mt-2 text-xs leading-6 text-stone-400">
+                            {card.body}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="w-full text-xs leading-6 text-stone-500">
+                      {copy.upgradeOffers.premiumNote}
+                    </p>
                   </>
                 ) : products.length > 0 ? (
                   <>
@@ -6612,6 +6699,25 @@ export default function DashboardClient({
                       >
                         {copy.checkout.growth}
                       </a>
+                      <div className="mt-2 grid w-full gap-3 sm:grid-cols-2">
+                        {upgradeOfferCards.map((card) => (
+                          <div
+                            key={`checkout-${card.key}`}
+                            className="rounded-[1.1rem] border border-white/10 bg-black/15 p-4"
+                          >
+                            {renderDeliveryLayerTag(card.tag)}
+                            <div className="mt-3 text-sm font-semibold text-white">
+                              {card.title}
+                            </div>
+                            <p className="mt-2 text-xs leading-6 text-stone-400">
+                              {card.body}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="w-full text-xs leading-6 text-stone-500">
+                        {copy.upgradeOffers.premiumNote}
+                      </p>
                     </>
                   )}
                 </div>
@@ -7468,6 +7574,17 @@ export default function DashboardClient({
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                                   {copy.productCard.budgetAction}
                                 </div>
+                                {budgetDecision.key === "upgrade_now" ? (
+                                  <div className="mt-3 rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                                    {renderDeliveryLayerTag(currentUpgradeNeed.tag)}
+                                    <div className="mt-3 text-sm font-semibold text-white">
+                                      {currentUpgradeNeed.title}
+                                    </div>
+                                    <p className="mt-2 text-xs leading-6 text-stone-400">
+                                      {currentUpgradeNeed.body}
+                                    </p>
+                                  </div>
+                                ) : null}
                                 <div className="mt-3">
                                   {renderDeliveryLayerTag(getDeliveryLayerTag(budgetAction))}
                                 </div>
