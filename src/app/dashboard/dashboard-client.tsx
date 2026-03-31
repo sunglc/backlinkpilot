@@ -3201,6 +3201,7 @@ export default function DashboardClient({
           coreUpgrade: "升级后进入 · 核心软件层",
           managed: "加购层 · 托管邮箱",
           result: "服务动作 · 结果推进",
+          premium: "服务动作 · 付费机会",
         }
       : {
           setup: "Included · Product setup",
@@ -3208,11 +3209,13 @@ export default function DashboardClient({
           coreUpgrade: "Upgrade to unlock · Core software",
           managed: "Add-on · Managed inbox",
           result: "Service action · Result push",
+          premium: "Service action · Paid opportunity",
         };
   const deliveryLayerToneClasses = {
     core: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
     managed: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
     result: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
+    premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
     neutral: "border-white/10 bg-white/[0.04] text-stone-200",
   } as const;
   type DeliveryLayerTone = keyof typeof deliveryLayerToneClasses;
@@ -3264,6 +3267,18 @@ export default function DashboardClient({
       return { label: deliveryLayerCopy.setup, tone: "neutral" };
     }
     return getDeliveryLayerTagFromHref(action.href);
+  };
+  const getWorkspaceTaskDeliveryLayerTag = (task: WorkspaceTask): DeliveryLayerTag => {
+    if (task.billingRule?.type === "premium_service") {
+      return { label: deliveryLayerCopy.premium, tone: "premium" };
+    }
+    if (task.kind === "proof") {
+      return { label: deliveryLayerCopy.result, tone: "result" };
+    }
+    if (task.kind === "profile") {
+      return { label: deliveryLayerCopy.setup, tone: "neutral" };
+    }
+    return { label: deliveryLayerCopy.core, tone: "core" };
   };
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
   const planName = formatPlanName(currentPlan, locale);
@@ -6303,6 +6318,7 @@ export default function DashboardClient({
                         <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-stone-300">
                           {taskQueueCopy.kinds[task.kind]}
                         </span>
+                        {renderDeliveryLayerTag(getWorkspaceTaskDeliveryLayerTag(task))}
                         <span
                           className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceTaskStageClasses(
                             task.stage
@@ -6423,6 +6439,7 @@ export default function DashboardClient({
                           {formatDashboardDate(task.updatedAt, locale)}
                         </div>
                         <div className="flex flex-wrap items-center justify-end gap-2">
+                          {renderDeliveryLayerTag(getWorkspaceTaskDeliveryLayerTag(task))}
                           {task.kind === "coverage" &&
                           task.taskPlanMode === "competitor_map" &&
                           task.taskPlanId ? (
