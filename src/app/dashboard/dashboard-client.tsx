@@ -1305,25 +1305,31 @@ function getDashboardCopy(locale: Locale) {
 function getProofBoardCopy(locale: Locale) {
   if (locale === "zh") {
     return {
-      eyebrow: "结果看板",
-      title: "优先推进最接近结果的产品",
+      eyebrow: "结果中心",
+      title: "先看已经拿到的结果，再推进最接近公开结果的产品",
       body:
-        "全局最优不是盯着每个局部动作，而是优先把最接近可见结果的产品推到结果层。",
+        "用户买的不是工作台本身，而是可见结果。这里先把真实动作、真实回复、接近公开结果和已确认结果压成一个统一入口。",
       stats: {
-        receipts: "动作回执",
+        receipts: "真实动作",
         threads: "真实回复",
-        close: "接近发布",
-        verify: "待验证",
+        close: "接近公开结果",
+        verify: "公开结果",
       },
-      globalFocusLabel: "当前全局优先级",
-      empty:
-        "当前还没有明显接近结果的产品。先继续跑 live 渠道，把结果信号做厚。",
-      noCandidates: "还没有明确候选",
+      globalFocusLabel: "当前最值得推进的结果动作",
+      productsEyebrow: "最接近结果的产品",
+      productsTitle: "别平均用力，先推这几个",
+      productsBody:
+        "这几个产品离公开结果最近。先把它们推过去，再考虑加新产品或扩大动作面。",
+      resultPathLabel: "结果路径",
+      latestSignal: "最近结果信号",
       openProduct: "打开产品",
-      openTopProduct: "打开全局优先产品",
-      latestSignal: "最近信号",
-      candidates: "候选",
-      activeTaskLabel: "当前进行中的结果任务",
+      openTopProduct: "打开当前结果重点",
+      noCandidates: "还没有明确线索",
+      candidates: "线索",
+      activeTaskLabel: "进行中的结果动作",
+      currentPriority: "当前优先",
+      empty:
+        "当前还没有明显进入结果层的产品。先让第一个产品跑出真实动作和回复，再来放大结果。",
       actionLabels: {
         verify_published: "验证结果",
         protect_publication: "推进接近发布",
@@ -1374,25 +1380,31 @@ function getProofBoardCopy(locale: Locale) {
   }
 
   return {
-    eyebrow: "Results Board",
-    title: "Push the products closest to real results first",
+    eyebrow: "Results Center",
+    title: "See what is landing now, then push the products closest to public results",
     body:
-      "Global optimization means prioritizing the products that are nearest to visible results, not polishing isolated local steps.",
+      "Users are buying visible outcomes, not dashboard complexity. This view keeps real actions, live replies, near-publication threads, and confirmed results in one place.",
     stats: {
-      receipts: "Action receipts",
+      receipts: "Real actions",
       threads: "Live replies",
-      close: "Close to publication",
-      verify: "Ready to verify",
+      close: "Near public results",
+      verify: "Public results",
     },
-    globalFocusLabel: "Current global priority",
+    globalFocusLabel: "Best next result move",
+    productsEyebrow: "Closest visible results",
+    productsTitle: "Push these before you spread attention",
+    productsBody:
+      "These products are currently the closest to visible results. Push them first before opening more surface area.",
+    resultPathLabel: "Result path",
+    latestSignal: "Latest result signal",
+    openProduct: "Open product",
+    openTopProduct: "Open current result priority",
+    noCandidates: "No named signals yet",
+    candidates: "Signals",
+    activeTaskLabel: "Active result move",
+    currentPriority: "Current priority",
     empty:
-      "There are no obvious result-front products yet. Keep running live lanes until the result layer gets thicker.",
-    noCandidates: "No named candidates yet",
-    openProduct: "Open Product",
-    openTopProduct: "Open top result product",
-    latestSignal: "Latest signal",
-    candidates: "Candidates",
-    activeTaskLabel: "Active result task",
+      "No product is clearly in the result layer yet. Land the first real actions and live replies before widening the surface area.",
     actionLabels: {
       verify_published: "Verify result",
       protect_publication: "Protect publication",
@@ -3488,6 +3500,19 @@ export default function DashboardClient({
       proved: 0,
     } satisfies Record<OutcomeStage, number>
   );
+  const resultCenterProducts = outcomeLeaders.slice(0, 3);
+  const resultCenterLead = resultCenterProducts[0] || null;
+  const resultCenterLeadStage = resultCenterLead
+    ? getOutcomeStage(resultCenterLead)
+    : null;
+  const resultCenterLeadProofAction =
+    resultCenterLead && resultCenterLead.proof.priority !== "build_signal"
+      ? proofActionForSummary(resultCenterLead, proofCopy)
+      : null;
+  const resultCenterLeadLaunchAction =
+    resultCenterLead && isLaunchAction(resultCenterLead.primaryAction)
+      ? resultCenterLead.primaryAction
+      : null;
   const workspaceProofStats = productSummaries.reduce(
     (totals, summary) => ({
       receipts: totals.receipts + summary.proof.counts.receipts,
@@ -3521,14 +3546,6 @@ export default function DashboardClient({
     featuredCandidates.find((summary) => summary.stage === "unlock") ||
     featuredCandidates[0] ||
     null;
-  const topProofAction =
-    actionableProofProducts[0]
-      ? proofActionForSummary(actionableProofProducts[0], proofCopy)
-      : null;
-  const featuredProofAction =
-    featuredProduct && featuredProduct.proof.priority !== "build_signal"
-      ? proofActionForSummary(featuredProduct, proofCopy)
-      : null;
   const featuredLaunchAction =
     featuredProduct && isLaunchAction(featuredProduct.primaryAction)
       ? featuredProduct.primaryAction
@@ -4877,6 +4894,316 @@ export default function DashboardClient({
           </div>
         </section>
 
+        {products.length > 0 ? (
+          <section className="mt-8 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
+            <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(159,224,207,0.12),rgba(255,255,255,0.04))] p-7">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {proofCopy.eyebrow}
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {proofCopy.title}
+              </h2>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
+                {proofCopy.body}
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {(
+                  [
+                    "staged",
+                    "launched",
+                    "receipts",
+                    "threads",
+                    "close",
+                    "proved",
+                  ] as const
+                ).map((stage) => (
+                  <div
+                    key={stage}
+                    className="rounded-full border border-[var(--line-soft)] bg-black/15 px-4 py-2 text-xs text-stone-300"
+                  >
+                    {outcomeCopy.stages[stage]} · {outcomeStageCounts[stage]}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {(
+                  [
+                    ["receipts", workspaceProofStats.receipts],
+                    ["threads", workspaceProofStats.threads],
+                    ["close", workspaceProofStats.close],
+                    ["verify", workspaceProofStats.verify],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
+                  >
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {proofCopy.stats[key]}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className={`mt-6 rounded-[1.25rem] border p-5 ${proofPriorityClasses(
+                  globalProofPriority
+                )}`}
+              >
+                <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
+                  {proofCopy.globalFocusLabel}
+                </div>
+                {resultCenterLead ? (
+                  <div className="mt-3 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs font-medium text-current">
+                    {proofCopy.currentPriority}: {resultCenterLead.product.name}
+                  </div>
+                ) : null}
+                <h3 className="mt-3 text-2xl font-semibold text-white">
+                  {proofCopy.priorities[globalProofPriority].title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-200">
+                  {proofCopy.priorities[globalProofPriority].body}
+                </p>
+                {resultCenterLeadStage ? (
+                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
+                    {proofCopy.resultPathLabel}: {outcomeCopy.stages[resultCenterLeadStage]}
+                  </div>
+                ) : null}
+                {resultCenterLead?.proof.activeTask ? (
+                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
+                    {proofCopy.activeTaskLabel}:{" "}
+                    {getProofTaskStatusLabel(
+                      resultCenterLead.proof.activeTask.status,
+                      proofCopy
+                    )}
+                  </div>
+                ) : null}
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {resultCenterLead && resultCenterLeadProofAction ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceProofAction(
+                          resultCenterLead.product.id,
+                          resultCenterLeadProofAction
+                        )
+                      }
+                      disabled={
+                        proofActionKey ===
+                        `${resultCenterLead.product.id}:${resultCenterLeadProofAction.taskType}`
+                      }
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
+                    >
+                      {proofActionKey ===
+                      `${resultCenterLead.product.id}:${resultCenterLeadProofAction.taskType}`
+                        ? copy.productCard.starting
+                        : resultCenterLeadProofAction.label}
+                    </button>
+                  ) : resultCenterLead && resultCenterLeadLaunchAction ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceLaunch(
+                          resultCenterLead.product.id,
+                          resultCenterLeadLaunchAction.channelId
+                        )
+                      }
+                      disabled={
+                        launchingKey ===
+                        `${resultCenterLead.product.id}:${resultCenterLeadLaunchAction.channelId}`
+                      }
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
+                    >
+                      {launchingKey ===
+                      `${resultCenterLead.product.id}:${resultCenterLeadLaunchAction.channelId}`
+                        ? copy.productCard.starting
+                        : resultCenterLeadLaunchAction.label}
+                    </button>
+                  ) : resultCenterLead ? (
+                    <Link
+                      href={withPriorityContext(
+                        `/dashboard/product/${resultCenterLead.product.id}`,
+                        resultCenterLead.product.id,
+                        workspaceStrategyLead?.product.id ===
+                          resultCenterLead.product.id
+                      )}
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
+                    >
+                      {proofCopy.openTopProduct}
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+              <div className="max-w-3xl">
+                <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                  {proofCopy.productsEyebrow}
+                </p>
+                <h3 className="mt-4 text-2xl font-semibold text-white">
+                  {proofCopy.productsTitle}
+                </h3>
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {proofCopy.productsBody}
+                </p>
+              </div>
+
+              {resultCenterProducts.length > 0 ? (
+                <div className="mt-6 grid gap-4">
+                  {resultCenterProducts.map((summary) => {
+                    const proofAction =
+                      summary.proof.priority !== "build_signal"
+                        ? proofActionForSummary(summary, proofCopy)
+                        : null;
+                    const launchAction = isLaunchAction(summary.primaryAction)
+                      ? summary.primaryAction
+                      : null;
+                    const stage = getOutcomeStage(summary);
+
+                    return (
+                      <div
+                        key={summary.product.id}
+                        className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-medium text-stone-100">
+                            {outcomeCopy.stages[stage]}
+                          </span>
+                          {workspaceStrategyLead?.product.id === summary.product.id ? (
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
+                                summary.proof.priority
+                              )}`}
+                            >
+                              {proofCopy.currentPriority}
+                            </span>
+                          ) : null}
+                          <div className="text-lg font-semibold text-white">
+                            {summary.product.name}
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {outcomeCopy.stageBody[stage]}
+                        </p>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                          {(
+                            [
+                              ["receipts", summary.proof.counts.receipts],
+                              ["threads", summary.proof.counts.threads],
+                              ["close", summary.proof.counts.close],
+                              ["verify", summary.proof.counts.verify],
+                            ] as const
+                          ).map(([key, value]) => (
+                            <div
+                              key={`${summary.product.id}:${key}`}
+                              className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
+                            >
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {proofCopy.stats[key]}
+                              </div>
+                              <div className="mt-2 text-lg font-semibold text-white">
+                                {value}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
+                          {summary.proof.candidateLabels.length > 0 ? (
+                            summary.proof.candidateLabels.map((label) => (
+                              <span
+                                key={`${summary.product.id}-${label}`}
+                                className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
+                              >
+                                {proofCopy.candidates}: {label}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
+                              {proofCopy.noCandidates}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
+                          <span>
+                            {proofCopy.latestSignal}:{" "}
+                            {summary.proof.lastSignalAt
+                              ? formatDashboardDate(summary.proof.lastSignalAt, locale)
+                              : "—"}
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {proofAction ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleWorkspaceProofAction(
+                                    summary.product.id,
+                                    proofAction
+                                  )
+                                }
+                                disabled={
+                                  proofActionKey ===
+                                  `${summary.product.id}:${proofAction.taskType}`
+                                }
+                                className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                              >
+                                {proofActionKey ===
+                                `${summary.product.id}:${proofAction.taskType}`
+                                  ? copy.productCard.starting
+                                  : proofAction.label}
+                              </button>
+                            ) : launchAction ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleWorkspaceLaunch(
+                                    summary.product.id,
+                                    launchAction.channelId
+                                  )
+                                }
+                                disabled={
+                                  launchingKey ===
+                                  `${summary.product.id}:${launchAction.channelId}`
+                                }
+                                className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                              >
+                                {launchingKey ===
+                                `${summary.product.id}:${launchAction.channelId}`
+                                  ? copy.productCard.starting
+                                  : launchAction.label}
+                              </button>
+                            ) : null}
+                            <Link
+                              href={withPriorityContext(
+                                `/dashboard/product/${summary.product.id}`,
+                                summary.product.id,
+                                workspaceStrategyLead?.product.id === summary.product.id
+                              )}
+                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                            >
+                              {proofCopy.openProduct}
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-6 text-sm leading-7 text-stone-400">
+                  {proofCopy.empty}
+                </p>
+              )}
+            </div>
+          </section>
+        ) : null}
+
         <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -6024,159 +6351,6 @@ export default function DashboardClient({
           </p>
         </section>
 
-        {products.length > 0 ? (
-          <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
-            <div className="max-w-3xl">
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                {outcomeCopy.eyebrow}
-              </p>
-              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-                {outcomeCopy.title}
-              </h2>
-              <p className="mt-4 text-sm leading-7 text-stone-400">
-                {outcomeCopy.body}
-              </p>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {(
-                [
-                  "staged",
-                  "launched",
-                  "receipts",
-                  "threads",
-                  "close",
-                  "proved",
-                ] as const
-              ).map((stage) => (
-                <div
-                  key={stage}
-                  className="rounded-full border border-[var(--line-soft)] bg-black/15 px-4 py-2 text-xs text-stone-300"
-                >
-                  {outcomeCopy.stages[stage]} · {outcomeStageCounts[stage]}
-                </div>
-              ))}
-            </div>
-
-            {outcomeLeaders.length > 0 ? (
-              <div className="mt-6 grid gap-4">
-                {outcomeLeaders.slice(0, 4).map((summary) => {
-                  const stage = getOutcomeStage(summary);
-                  const proofAction =
-                    summary.proof.priority !== "build_signal"
-                      ? proofActionForSummary(summary, proofCopy)
-                      : null;
-                  const launchAction = isLaunchAction(summary.primaryAction)
-                    ? summary.primaryAction
-                    : null;
-
-                  return (
-                    <div
-                      key={`${summary.product.id}:${stage}`}
-                      className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
-                    >
-                      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="max-w-3xl">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-medium text-stone-100">
-                              {outcomeCopy.stageLabel}: {outcomeCopy.stages[stage]}
-                            </span>
-                            <span className="text-lg font-semibold text-white">
-                              {summary.product.name}
-                            </span>
-                          </div>
-
-                          <p className="mt-3 text-sm leading-7 text-stone-300">
-                            {outcomeCopy.stageBody[stage]}
-                          </p>
-
-                          <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                            <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
-                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                                {outcomeCopy.nextLabel}
-                              </div>
-                              <div className="mt-2 text-sm leading-7 text-stone-200">
-                                {outcomeCopy.nextBody[stage]}
-                              </div>
-                            </div>
-                            <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
-                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                                {outcomeCopy.actionLabel}
-                              </div>
-                              <div className="mt-2 text-sm leading-7 text-stone-200">
-                                {outcomeCopy.actionBody[stage]}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                          {proofAction ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleWorkspaceProofAction(
-                                  summary.product.id,
-                                  proofAction
-                                )
-                              }
-                              disabled={
-                                proofActionKey ===
-                                `${summary.product.id}:${proofAction.taskType}`
-                              }
-                              className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
-                            >
-                              {proofActionKey ===
-                              `${summary.product.id}:${proofAction.taskType}`
-                                ? copy.productCard.starting
-                                : proofAction.label}
-                            </button>
-                          ) : launchAction ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleWorkspaceLaunch(
-                                  summary.product.id,
-                                  launchAction.channelId
-                                )
-                              }
-                              disabled={
-                                launchingKey ===
-                                `${summary.product.id}:${launchAction.channelId}`
-                              }
-                              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                            >
-                              {launchingKey ===
-                              `${summary.product.id}:${launchAction.channelId}`
-                                ? copy.productCard.starting
-                                : launchAction.label}
-                            </button>
-                          ) : (
-                            <Link
-                              href={withPriorityContext(
-                                `/dashboard/product/${summary.product.id}`,
-                                summary.product.id,
-                                workspaceStrategyLead?.product.id === summary.product.id
-                              )}
-                              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                            >
-                              {outcomeCopy.openProduct}
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="mt-6 text-sm leading-7 text-stone-400">
-                {outcomeCopy.empty}
-              </p>
-            )}
-          </section>
-        ) : null}
-
         {isCheckoutSuccess || isCheckoutCancelled ? (
           <section className="mt-8">
             <div className="rounded-[2rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(208,166,90,0.14),rgba(159,224,207,0.09))] p-7 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
@@ -6731,199 +6905,6 @@ export default function DashboardClient({
               )}
             </div>
           </div>
-          </section>
-        ) : null}
-
-        {products.length > 0 ? (
-          <section className="mt-12 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
-            <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(159,224,207,0.09),rgba(255,255,255,0.04))] p-7">
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                {proofCopy.eyebrow}
-              </p>
-              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
-                {proofCopy.title}
-              </h2>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
-                {proofCopy.body}
-              </p>
-
-              <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {(
-                  [
-                    ["receipts", workspaceProofStats.receipts],
-                    ["threads", workspaceProofStats.threads],
-                    ["close", workspaceProofStats.close],
-                    ["verify", workspaceProofStats.verify],
-                  ] as const
-                ).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
-                  >
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                      {proofCopy.stats[key]}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                className={`mt-6 rounded-[1.25rem] border p-5 ${proofPriorityClasses(
-                  globalProofPriority
-                )}`}
-              >
-                <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
-                  {proofCopy.globalFocusLabel}
-                </div>
-                <h3 className="mt-3 text-2xl font-semibold text-white">
-                  {proofCopy.priorities[globalProofPriority].title}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-stone-200">
-                  {proofCopy.priorities[globalProofPriority].body}
-                </p>
-                {topProofProducts[0]?.proof.activeTask ? (
-                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
-                    {proofCopy.activeTaskLabel}:{" "}
-                    {getProofTaskStatusLabel(
-                      topProofProducts[0].proof.activeTask.status,
-                      proofCopy
-                    )}
-                  </div>
-                ) : null}
-                {topProofAction ? (
-                  <div className="mt-5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleWorkspaceProofAction(
-                          topProofProducts[0].product.id,
-                          topProofAction
-                        )
-                      }
-                      disabled={
-                        proofActionKey ===
-                        `${topProofProducts[0].product.id}:${topProofAction.taskType}`
-                      }
-                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
-                    >
-                      {proofActionKey ===
-                      `${topProofProducts[0].product.id}:${topProofAction.taskType}`
-                        ? copy.productCard.starting
-                        : topProofAction.label}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                {proofCopy.eyebrow}
-              </p>
-              <h3 className="mt-4 text-2xl font-semibold text-white">
-                {proofCopy.title}
-              </h3>
-
-              {topProofProducts.length > 0 ? (
-                <div className="mt-6 grid gap-4">
-                  {topProofProducts.map((summary) => {
-                    const proofAction = proofActionForSummary(summary, proofCopy);
-
-                    return (
-                      <div
-                        key={summary.product.id}
-                        className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
-                              summary.proof.priority
-                            )}`}
-                          >
-                            {proofCopy.priorities[summary.proof.priority].title}
-                          </span>
-                          <div className="text-lg font-semibold text-white">
-                            {summary.product.name}
-                          </div>
-                        </div>
-                        <p className="mt-3 text-sm leading-7 text-stone-300">
-                          {proofCopy.priorities[summary.proof.priority].body}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
-                          {summary.proof.candidateLabels.length > 0 ? (
-                            summary.proof.candidateLabels.map((label) => (
-                              <span
-                                key={`${summary.product.id}-${label}`}
-                                className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
-                              >
-                                {proofCopy.candidates}: {label}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
-                              {proofCopy.noCandidates}
-                            </span>
-                          )}
-                        </div>
-                        {summary.proof.activeTask ? (
-                          <div className="mt-4 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
-                            {proofCopy.activeTaskLabel}:{" "}
-                            {getProofTaskStatusLabel(
-                              summary.proof.activeTask.status,
-                              proofCopy
-                            )}
-                          </div>
-                        ) : null}
-                        <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
-                          <span>
-                            {proofCopy.latestSignal}:{" "}
-                            {summary.proof.lastSignalAt
-                              ? formatDashboardDate(summary.proof.lastSignalAt, locale)
-                              : "—"}
-                          </span>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleWorkspaceProofAction(
-                                  summary.product.id,
-                                  proofAction
-                                )
-                              }
-                              disabled={
-                                proofActionKey ===
-                                `${summary.product.id}:${proofAction.taskType}`
-                              }
-                              className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                            >
-                              {proofActionKey ===
-                              `${summary.product.id}:${proofAction.taskType}`
-                                ? copy.productCard.starting
-                                : proofAction.label}
-                            </button>
-                            <Link
-                              href={withPriorityContext(
-                                `/dashboard/product/${summary.product.id}`,
-                                summary.product.id,
-                                workspaceStrategyLead?.product.id === summary.product.id
-                              )}
-                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                            >
-                              {proofCopy.openProduct}
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="mt-6 text-sm leading-7 text-stone-400">
-                  {proofCopy.empty}
-                </p>
-              )}
-            </div>
           </section>
         ) : null}
 
