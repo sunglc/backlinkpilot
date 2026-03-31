@@ -453,6 +453,64 @@ function getProductDetailCopy(locale: Locale) {
         launchNext: "启动推荐渠道",
         retryLane: "重跑这一条渠道",
       },
+      resultsProof: {
+        title: "结果证明页",
+        body:
+          "这里不再把回执、回复和接近发布的线索混在一起。它只回答四件事：已经拿到哪些公开结果、哪些马上就要公开、哪些只是内部信号，以及现在能不能对外讲。",
+        stats: {
+          public: "公开结果",
+          nearPublic: "接近公开",
+          threads: "真实回复",
+          internal: "内部信号",
+        },
+        statusLabel: "当前证明状态",
+        statuses: {
+          public: {
+            badge: "可对外展示",
+            title: "已经出现可展示的公开结果。",
+            body: "这些线程已经明显指向上线、收录或公开页面。现在最值钱的是抓页面证据、补验证，并把它们沉淀成真正的成果层。",
+          },
+          nearPublic: {
+            badge: "接近公开，暂勿外宣",
+            title: "已经接近公开结果，但还不能对外说。",
+            body: "这些线索只差最后确认。现在该守住最后一轮推进，而不是提前包装成成果。",
+          },
+          threads: {
+            badge: "内部推进中",
+            title: "已经有真实回复，但还只是内部推进。",
+            body: "回复和审核信号说明方向对了，但还不是公开结果。先继续跟进，不要过早对外承诺。",
+          },
+          receipts: {
+            badge: "只有内部信号",
+            title: "已经有真实动作，但还没有公开证明。",
+            body: "提交回执说明执行在推进，但还不能拿来当最终成果。下一步是把它推到公开可见。",
+          },
+          empty: {
+            badge: "尚未进入证明层",
+            title: "还没有进入结果证明层。",
+            body: "先把 live 渠道和托管外联跑起来，等第一批回执和回复累积起来，这里才会开始变得有价值。",
+          },
+        },
+        publicTitle: "现在可以展示的结果",
+        publicBody:
+          "只有已经指向公开页面、上线或收录完成的线索，才应该进入这一区。",
+        publicEmpty:
+          "当前还没有足够稳的公开结果。先继续把最接近发布的线索推过去。",
+        nearTitle: "最接近公开的线索",
+        nearBody:
+          "这些不是最终成果，但已经足够接近，值得优先保护和跟进。",
+        nearEmpty:
+          "当前还没有明显接近公开的线索。继续累积回复和高质量动作。",
+        internalTitle: "内部信号，不要拿去外宣",
+        internalBody:
+          "这些回执和早期回复能说明方向对了，但还不能直接当作公开成果展示。",
+        internalEmpty:
+          "当前还没有足够的内部信号。先跑出第一批真实动作和回复。",
+        publicBadge: "公开结果",
+        internalBadge: "内部信号",
+        latestSignal: "最近信号",
+        openProofPipeline: "打开结果动作",
+      },
       proofPipeline: {
         title: "结果推进管线",
         body:
@@ -680,10 +738,10 @@ function getProductDetailCopy(locale: Locale) {
       pending: "Pending...",
       waitingWorker: "Waiting for worker to pick up this job...",
     },
-    recap: {
-      title: "Launch recap",
-      body:
-        "This section translates the latest run into normal product language first, then tells the user what the next sensible move is.",
+      recap: {
+        title: "Launch recap",
+        body:
+          "This section translates the latest run into normal product language first, then tells the user what the next sensible move is.",
       prelaunchEyebrow: "Before first launch",
       prelaunchTitle: "No live run yet. Start the first live lane.",
       prelaunchBody:
@@ -732,14 +790,72 @@ function getProductDetailCopy(locale: Locale) {
         "This run has not left behind clear success receipts yet. As execution continues, more concrete proof should appear here.",
       noBlockers: "There are no obvious blockers from the latest run that need review.",
       openHistory: "View Submission History",
-      openDashboard: "Back to Dashboard",
-      launchNext: "Launch Recommended Lane",
-      retryLane: "Retry This Lane",
-    },
-    proofPipeline: {
-      title: "Proof pipeline",
-      body:
-        "This moves the view away from local actions and toward a bigger question: how close is this product to a result you can actually prove?",
+        openDashboard: "Back to Dashboard",
+        launchNext: "Launch Recommended Lane",
+        retryLane: "Retry This Lane",
+      },
+      resultsProof: {
+        title: "Results proof",
+        body:
+          "This is where receipts, replies, near-publication threads, and public outcomes stop blending together. It answers four questions: what is public now, what is close to public, what is still internal signal, and what is safe to say externally.",
+        stats: {
+          public: "Public results",
+          nearPublic: "Near public",
+          threads: "Live replies",
+          internal: "Internal signal",
+        },
+        statusLabel: "Current proof status",
+        statuses: {
+          public: {
+            badge: "Safe to show",
+            title: "This product already has public result candidates.",
+            body: "At least one thread already points toward a public page, live placement, or completed listing. Capture proof and turn it into a visible outcome layer now.",
+          },
+          nearPublic: {
+            badge: "Close, not public yet",
+            title: "This product is close to public proof, but not there yet.",
+            body: "These signals are one step away from public proof. Protect the final move instead of marketing them too early.",
+          },
+          threads: {
+            badge: "Internal progress",
+            title: "This product already has live replies, but not public proof yet.",
+            body: "Replies and review signals show traction, but they are still internal progress. Keep pushing instead of claiming too much too early.",
+          },
+          receipts: {
+            badge: "Internal signal only",
+            title: "Real actions landed, but there is no public proof yet.",
+            body: "Submission receipts show execution is working, but they are not final outcomes. The next move is pushing them toward something publicly visible.",
+          },
+          empty: {
+            badge: "No proof layer yet",
+            title: "This product has not entered the proof layer yet.",
+            body: "Run the live lanes and managed outreach first. This section becomes valuable only after real actions and replies start landing.",
+          },
+        },
+        publicTitle: "Safe to show now",
+        publicBody:
+          "Only threads that already point toward public pages, live placements, or completed listings belong here.",
+        publicEmpty:
+          "There is no stable public proof yet. Push the strongest near-public signals further first.",
+        nearTitle: "Closest to public proof",
+        nearBody:
+          "These are not final outcomes yet, but they are close enough to deserve most of the attention.",
+        nearEmpty:
+          "There are no strong near-public signals yet. Keep building replies and stronger action quality.",
+        internalTitle: "Internal signal, not external proof",
+        internalBody:
+          "These receipts and early thread signals show traction, but they should stay internal until they turn public.",
+        internalEmpty:
+          "There is not enough internal signal yet. Land the first real actions and replies first.",
+        publicBadge: "Public proof",
+        internalBadge: "Internal signal",
+        latestSignal: "Latest signal",
+        openProofPipeline: "Open proof actions",
+      },
+      proofPipeline: {
+        title: "Proof pipeline",
+        body:
+          "This moves the view away from local actions and toward a bigger question: how close is this product to a result you can actually prove?",
       stats: {
         receipts: "Submission receipts",
         threads: "Live reply threads",
@@ -1758,6 +1874,42 @@ export default function ProductDetail({
     close: publicationReadyPackets.length,
     verify: publishedPackets.length,
   };
+  const publicProofPackets = publishedPackets.slice(0, 3);
+  const nearPublicPackets = [
+    ...publicationReadyPackets,
+    ...needsMaterialsPackets,
+    ...underReviewPackets,
+    ...commercialReviewPackets,
+    ...threadOpenPackets,
+  ].slice(0, 3);
+  const internalSignalReceipts = latestSuccessReceipts.slice(0, 3);
+  const resultsProofStatus =
+    publicProofPackets.length > 0
+      ? "public"
+      : nearPublicPackets.length > 0
+        ? "nearPublic"
+        : repliedPackets.length > 0
+          ? "threads"
+          : totalSuccessfulActions > 0
+            ? "receipts"
+            : "empty";
+  const resultsProofStatusTone =
+    resultsProofStatus === "public"
+      ? "border-lime-300/15 bg-lime-300/[0.06]"
+      : resultsProofStatus === "nearPublic"
+        ? "border-emerald-300/15 bg-emerald-300/[0.06]"
+        : resultsProofStatus === "threads"
+          ? "border-sky-300/15 bg-sky-300/[0.06]"
+          : resultsProofStatus === "receipts"
+            ? "border-amber-300/15 bg-amber-300/[0.06]"
+            : "border-white/10 bg-white/[0.04]";
+  const resultsProofLastSignal =
+    publicProofPackets[0]?.lastReplyAt ||
+    nearPublicPackets[0]?.lastReplyAt ||
+    nearPublicPackets[0]?.sentAt ||
+    repliedPackets[0]?.lastReplyAt ||
+    latestResolvedSubmission?.created_at ||
+    null;
   const latestProofTask = managedInbox.proofTasks[0] || null;
   const latestProofTaskStatusLabel = latestProofTask
     ? copy.proofPipeline.taskStatus[latestProofTask.status]
@@ -3191,6 +3343,214 @@ export default function ProductDetail({
             })}
           </div>
         </section>
+
+        {latestResolvedSubmission || managedLaunchPackets.length > 0 ? (
+          <section id="results-proof" className="mt-12 scroll-mt-24">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.resultsProof.title}
+              </p>
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {copy.resultsProof.title}
+              </h2>
+              <p className="mt-4 text-base leading-7 text-stone-400">
+                {copy.resultsProof.body}
+              </p>
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {(
+                [
+                  ["public", publicProofPackets.length],
+                  ["nearPublic", nearPublicPackets.length],
+                  ["threads", repliedPackets.length],
+                  ["internal", totalSuccessfulActions],
+                ] as const
+              ).map(([key, value]) => (
+                <div
+                  key={key}
+                  className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/[0.04] p-5"
+                >
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.resultsProof.stats[key]}
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className={`rounded-[1.75rem] border p-6 ${resultsProofStatusTone}`}>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.resultsProof.statusLabel}
+                </div>
+                <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs font-medium text-white">
+                  {copy.resultsProof.statuses[resultsProofStatus].badge}
+                </div>
+                <h3 className="mt-4 text-2xl font-semibold text-white">
+                  {copy.resultsProof.statuses[resultsProofStatus].title}
+                </h3>
+                <p className="mt-4 text-sm leading-7 text-stone-300">
+                  {copy.resultsProof.statuses[resultsProofStatus].body}
+                </p>
+                {resultsProofLastSignal ? (
+                  <div className="mt-5 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
+                    {copy.resultsProof.latestSignal}:{" "}
+                    {formatSubmissionDate(resultsProofLastSignal, locale)}
+                  </div>
+                ) : null}
+                <div className="mt-5">
+                  <a
+                    href="#proof-pipeline"
+                    className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
+                  >
+                    {copy.resultsProof.openProofPipeline}
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-3">
+                <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.resultsProof.publicBadge}
+                  </div>
+                  <h3 className="mt-4 text-xl font-semibold text-white">
+                    {copy.resultsProof.publicTitle}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-stone-400">
+                    {copy.resultsProof.publicBody}
+                  </p>
+
+                  {publicProofPackets.length > 0 ? (
+                    <div className="mt-5 space-y-3">
+                      {publicProofPackets.map((packet) => (
+                        <div
+                          key={packet.id}
+                          className="rounded-[1.15rem] border border-lime-300/15 bg-lime-300/[0.04] p-4"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-lime-300/15 bg-lime-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-lime-100">
+                              {managedInboxCopy.managed.threadStage.published}
+                            </span>
+                            <div className="text-sm font-semibold text-white">{packet.title}</div>
+                          </div>
+                          <div className="mt-2 text-xs text-stone-500">{packet.targetDomain}</div>
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {packet.lastReplySnippet || packet.nextStep}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-5 text-sm leading-7 text-stone-400">
+                      {copy.resultsProof.publicEmpty}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.proofPipeline.priorityTitle}
+                  </div>
+                  <h3 className="mt-4 text-xl font-semibold text-white">
+                    {copy.resultsProof.nearTitle}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-stone-400">
+                    {copy.resultsProof.nearBody}
+                  </p>
+
+                  {nearPublicPackets.length > 0 ? (
+                    <div className="mt-5 space-y-3">
+                      {nearPublicPackets.map((packet) => (
+                        <div
+                          key={packet.id}
+                          className="rounded-[1.15rem] border border-white/10 bg-black/15 p-4"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            {packet.threadStage ? (
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketThreadStageClasses(
+                                  packet.threadStage
+                                )}`}
+                              >
+                                {managedInboxCopy.managed.threadStage[packet.threadStage]}
+                              </span>
+                            ) : null}
+                            <div className="text-sm font-semibold text-white">{packet.title}</div>
+                          </div>
+                          <div className="mt-2 text-xs text-stone-500">{packet.targetDomain}</div>
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {packet.threadStageReason ||
+                              (packet.threadStage
+                                ? managedInboxCopy.managed.threadStageReason[packet.threadStage]
+                                : packet.nextStep)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-5 text-sm leading-7 text-stone-400">
+                      {copy.resultsProof.nearEmpty}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.resultsProof.internalBadge}
+                  </div>
+                  <h3 className="mt-4 text-xl font-semibold text-white">
+                    {copy.resultsProof.internalTitle}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-stone-400">
+                    {copy.resultsProof.internalBody}
+                  </p>
+
+                  {internalSignalReceipts.length > 0 || latestBlockers.length > 0 ? (
+                    <div className="mt-5 space-y-3">
+                      {internalSignalReceipts.map((result, index) => (
+                        <div
+                          key={`${result.site}-${index}`}
+                          className="rounded-[1.15rem] border border-emerald-300/12 bg-emerald-300/[0.04] p-4"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald-200">
+                              {copy.recap.successBadge}
+                            </span>
+                            <div className="text-sm font-semibold text-white">{result.site}</div>
+                          </div>
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {summarizeResultOutput(result.output, locale)}
+                          </p>
+                        </div>
+                      ))}
+                      {latestBlockers.slice(0, 2).map((result, index) => (
+                        <div
+                          key={`${result.site}-blocked-${index}`}
+                          className="rounded-[1.15rem] border border-red-300/12 bg-red-300/[0.04] p-4"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-red-300/15 bg-red-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-red-200">
+                              {copy.recap.blockedBadge}
+                            </span>
+                            <div className="text-sm font-semibold text-white">{result.site}</div>
+                          </div>
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {summarizeResultOutput(result.output, locale)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-5 text-sm leading-7 text-stone-400">
+                      {copy.resultsProof.internalEmpty}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {latestResolvedSubmission || managedLaunchPackets.length > 0 ? (
           <section id="proof-pipeline" className="mt-12 scroll-mt-24">
