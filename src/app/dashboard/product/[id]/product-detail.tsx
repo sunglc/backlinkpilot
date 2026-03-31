@@ -2405,6 +2405,48 @@ export default function ProductDetail({
       actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
     },
   ] as const;
+  const actionLayerCopy =
+    locale === "zh"
+      ? {
+          coreIncluded: "套餐内 · 核心软件层",
+          coreUpgrade: "升级后进入 · 核心软件层",
+          managedActive: "当前已开启 · 托管邮箱",
+          managedAddOn: "可选加购 · 托管邮箱",
+          managedLocked: "升级后可用 · 托管邮箱",
+          byo: "当前路径 · 你自己的邮箱",
+          resultService: "当前结果动作 · 人工服务层",
+        }
+      : {
+          coreIncluded: "Included · Core software",
+          coreUpgrade: "Unlocks · Core software",
+          managedActive: "Active now · Managed inbox",
+          managedAddOn: "Optional add-on · Managed inbox",
+          managedLocked: "Upgrade to use · Managed inbox",
+          byo: "Current path · Your inbox",
+          resultService: "Current result action · Manual service",
+        };
+  const actionLayerToneClasses = {
+    core: "border-emerald-300/15 bg-emerald-300/10 text-emerald-100",
+    managed: "border-sky-300/15 bg-sky-300/10 text-sky-100",
+    service: "border-amber-300/15 bg-amber-300/10 text-amber-100",
+    neutral: "border-white/10 bg-white/[0.05] text-stone-200",
+  } as const;
+  const renderActionLayerTag = (
+    label: string,
+    tone: keyof typeof actionLayerToneClasses
+  ) => (
+    <span
+      className={`inline-flex rounded-full border px-3 py-1.5 text-[11px] font-medium ${actionLayerToneClasses[tone]}`}
+    >
+      {label}
+    </span>
+  );
+  const coreActionTag = plan === "free" ? actionLayerCopy.coreUpgrade : actionLayerCopy.coreIncluded;
+  const managedActionTag = managedInboxActive
+    ? actionLayerCopy.managedActive
+    : managedInboxEligible
+      ? actionLayerCopy.managedAddOn
+      : actionLayerCopy.managedLocked;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-stone-950 text-stone-100">
@@ -2808,91 +2850,94 @@ export default function ProductDetail({
               </p>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              {plan === "free" ? (
-                <>
-                  <a
-                    href={checkoutHref("starter")}
-                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.hero.unlockStarter}
-                  </a>
-                  <a
-                    href={checkoutHref("growth")}
-                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.hero.unlockGrowth}
-                  </a>
-                </>
-              ) : activeSubmission ? (
-                <>
-                  <a
-                    href="#submission-history"
-                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.recap.openHistory}
-                  </a>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.recap.openDashboard}
-                  </Link>
-                </>
-              ) : latestResolvedSubmission?.status === "failed" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => startSubmission(latestResolvedSubmission.channel)}
-                    disabled={submitting === latestResolvedSubmission.channel}
-                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                  >
-                    {submitting === latestResolvedSubmission.channel
-                      ? copy.channels.starting
-                      : copy.recap.retryLane}
-                  </button>
-                  <a
-                    href="#submission-history"
-                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.recap.openHistory}
-                  </a>
-                </>
-              ) : recommendedNextLiveChannel ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => startSubmission(recommendedNextLiveChannel.id)}
-                    disabled={submitting === recommendedNextLiveChannel.id}
-                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                  >
-                    {submitting === recommendedNextLiveChannel.id
-                      ? copy.channels.starting
-                      : copy.recap.launchNext}
-                  </button>
-                  <a
-                    href="#submission-history"
-                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.recap.openHistory}
-                  </a>
-                </>
-              ) : (
-                <>
-                  <a
-                    href="#submission-history"
-                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                  >
-                    {copy.recap.openHistory}
-                  </a>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                  >
-                    {copy.recap.openDashboard}
-                  </Link>
-                </>
-              )}
+            <div className="mt-6">
+              {renderActionLayerTag(coreActionTag, "core")}
+              <div className="mt-3 flex flex-wrap gap-3">
+                {plan === "free" ? (
+                  <>
+                    <a
+                      href={checkoutHref("starter")}
+                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                    >
+                      {copy.hero.unlockStarter}
+                    </a>
+                    <a
+                      href={checkoutHref("growth")}
+                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.hero.unlockGrowth}
+                    </a>
+                  </>
+                ) : activeSubmission ? (
+                  <>
+                    <a
+                      href="#submission-history"
+                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                    >
+                      {copy.recap.openHistory}
+                    </a>
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.recap.openDashboard}
+                    </Link>
+                  </>
+                ) : latestResolvedSubmission?.status === "failed" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => startSubmission(latestResolvedSubmission.channel)}
+                      disabled={submitting === latestResolvedSubmission.channel}
+                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                    >
+                      {submitting === latestResolvedSubmission.channel
+                        ? copy.channels.starting
+                        : copy.recap.retryLane}
+                    </button>
+                    <a
+                      href="#submission-history"
+                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.recap.openHistory}
+                    </a>
+                  </>
+                ) : recommendedNextLiveChannel ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => startSubmission(recommendedNextLiveChannel.id)}
+                      disabled={submitting === recommendedNextLiveChannel.id}
+                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                    >
+                      {submitting === recommendedNextLiveChannel.id
+                        ? copy.channels.starting
+                        : copy.recap.launchNext}
+                    </button>
+                    <a
+                      href="#submission-history"
+                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.recap.openHistory}
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <a
+                      href="#submission-history"
+                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                    >
+                      {copy.recap.openHistory}
+                    </a>
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                    >
+                      {copy.recap.openDashboard}
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -3335,44 +3380,47 @@ export default function ProductDetail({
                   )}
                 </div>
 
-                <div className="mt-6 flex flex-wrap gap-3">
-                  {managedInboxActive ? (
-                    <>
-                      <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
-                        {managedInboxCopy.managed.active}
-                      </div>
+                <div className="mt-6">
+                  {renderActionLayerTag(managedActionTag, "managed")}
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    {managedInboxActive ? (
+                      <>
+                        <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
+                          {managedInboxCopy.managed.active}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={queueManagedBatch}
+                          disabled={managedInboxAction === "launch_batch"}
+                          className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
+                        >
+                          {managedInboxAction === "launch_batch"
+                            ? copy.channels.starting
+                            : managedLaunchRequest
+                              ? managedInboxCopy.managed.launchRefresh
+                              : managedInboxCopy.managed.launchCta}
+                        </button>
+                      </>
+                    ) : managedInboxEligible ? (
                       <button
                         type="button"
-                        onClick={queueManagedBatch}
-                        disabled={managedInboxAction === "launch_batch"}
+                        onClick={activateManagedSender}
+                        disabled={managedInboxAction === "activate_managed"}
                         className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
                       >
-                        {managedInboxAction === "launch_batch"
+                        {managedInboxAction === "activate_managed"
                           ? copy.channels.starting
-                          : managedLaunchRequest
-                            ? managedInboxCopy.managed.launchRefresh
-                            : managedInboxCopy.managed.launchCta}
+                          : managedInboxCopy.managed.activate}
                       </button>
-                    </>
-                  ) : managedInboxEligible ? (
-                    <button
-                      type="button"
-                      onClick={activateManagedSender}
-                      disabled={managedInboxAction === "activate_managed"}
-                      className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
-                    >
-                      {managedInboxAction === "activate_managed"
-                        ? copy.channels.starting
-                        : managedInboxCopy.managed.activate}
-                    </button>
-                  ) : (
-                    <a
-                      href={checkoutHref("growth")}
-                      className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
-                    >
-                      {managedInboxCopy.managed.upgrade}
-                    </a>
-                  )}
+                    ) : (
+                      <a
+                        href={checkoutHref("growth")}
+                        className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+                      >
+                        {managedInboxCopy.managed.upgrade}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -3409,11 +3457,15 @@ export default function ProductDetail({
                     onClick={saveBringYourOwnSender}
                     disabled={managedInboxAction === "save_byo"}
                     className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6 disabled:opacity-60"
-                  >
-                    {managedInboxAction === "save_byo"
+                    >
+                      {managedInboxAction === "save_byo"
                       ? copy.channels.starting
                       : managedInboxCopy.byo.save}
                   </button>
+                </div>
+
+                <div className="mt-4">
+                  {renderActionLayerTag(actionLayerCopy.byo, "neutral")}
                 </div>
 
                 <p className="mt-4 text-sm leading-7 text-stone-500">
@@ -3682,12 +3734,15 @@ export default function ProductDetail({
                   </div>
                 ) : null}
                 <div className="mt-5">
-                  <a
-                    href="#proof-pipeline"
-                    className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
-                  >
-                    {copy.resultsProof.openProofPipeline}
-                  </a>
+                  {renderActionLayerTag(actionLayerCopy.resultService, "service")}
+                  <div className="mt-3">
+                    <a
+                      href="#proof-pipeline"
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
+                    >
+                      {copy.resultsProof.openProofPipeline}
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -3917,44 +3972,47 @@ export default function ProductDetail({
                         {latestProofTask.note}
                       </p>
                     ) : null}
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      {latestProofTask.status === "queued" ? (
-                        <button
-                          type="button"
-                          onClick={() => updateProofTask(latestProofTask.id, "start")}
-                          disabled={proofTaskActionKey === `${latestProofTask.id}:start`}
-                          className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                        >
-                          {proofTaskActionKey === `${latestProofTask.id}:start`
-                            ? copy.proofPipeline.updatingTask
-                            : copy.proofPipeline.startingTask}
-                        </button>
-                      ) : null}
-                      {(latestProofTask.status === "queued" ||
-                        latestProofTask.status === "in_progress") ? (
-                        <>
+                    <div className="mt-4">
+                      {renderActionLayerTag(actionLayerCopy.resultService, "service")}
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {latestProofTask.status === "queued" ? (
                           <button
                             type="button"
-                            onClick={() => updateProofTask(latestProofTask.id, "prove")}
-                            disabled={proofTaskActionKey === `${latestProofTask.id}:prove`}
-                            className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                            onClick={() => updateProofTask(latestProofTask.id, "start")}
+                            disabled={proofTaskActionKey === `${latestProofTask.id}:start`}
+                            className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                           >
-                            {proofTaskActionKey === `${latestProofTask.id}:prove`
+                            {proofTaskActionKey === `${latestProofTask.id}:start`
                               ? copy.proofPipeline.updatingTask
-                              : copy.proofPipeline.markProved}
+                              : copy.proofPipeline.startingTask}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => updateProofTask(latestProofTask.id, "drop")}
-                            disabled={proofTaskActionKey === `${latestProofTask.id}:drop`}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
-                          >
-                            {proofTaskActionKey === `${latestProofTask.id}:drop`
-                              ? copy.proofPipeline.updatingTask
-                              : copy.proofPipeline.markDropped}
-                          </button>
-                        </>
-                      ) : null}
+                        ) : null}
+                        {(latestProofTask.status === "queued" ||
+                          latestProofTask.status === "in_progress") ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => updateProofTask(latestProofTask.id, "prove")}
+                              disabled={proofTaskActionKey === `${latestProofTask.id}:prove`}
+                              className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                            >
+                              {proofTaskActionKey === `${latestProofTask.id}:prove`
+                                ? copy.proofPipeline.updatingTask
+                                : copy.proofPipeline.markProved}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateProofTask(latestProofTask.id, "drop")}
+                              disabled={proofTaskActionKey === `${latestProofTask.id}:drop`}
+                              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
+                            >
+                              {proofTaskActionKey === `${latestProofTask.id}:drop`
+                                ? copy.proofPipeline.updatingTask
+                                : copy.proofPipeline.markDropped}
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 ) : null}
