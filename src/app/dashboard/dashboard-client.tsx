@@ -783,6 +783,13 @@ function getDashboardCopy(locale: Locale) {
         inventoryTitle: "收费机会",
         inventoryBody:
           "收费型和商务型机会会持续被收集，但会和默认执行主线分开，避免把普通执行路径搞乱。",
+        paidDeskTitle: "付费机会入口",
+        paidDeskBody:
+          "这一层不是基础套餐默认结果，而是需要单独判断和处理的机会层。只有主线结果先稳住，系统才会建议你打开。",
+        paidDeskOwnerLabel: "当前优先产品",
+        paidDeskOpenAction: "打开当前优先产品",
+        paidDeskListAction: "查看动作清单",
+        paidDeskNoOwner: "当前还没有适合承接这层机会的产品。",
         sampleTitle: "收费机会样例",
         sampleEmpty: "当前还没有收费机会样例，下一轮巡航后会自动出现。",
         openTarget: "查看目标",
@@ -1334,6 +1341,13 @@ function getDashboardCopy(locale: Locale) {
       inventoryTitle: "Paid opportunities",
       inventoryBody:
         "Paid and commercial opportunities are collected continuously, but kept separate from the default send path so raw volume does not muddy the core product path.",
+      paidDeskTitle: "Paid opportunity desk",
+      paidDeskBody:
+        "This is not part of the default plan outcome. It stays as a separate service layer until the core result path is stable enough to justify opening it.",
+      paidDeskOwnerLabel: "Current priority product",
+      paidDeskOpenAction: "Open the current priority product",
+      paidDeskListAction: "Open the action list",
+      paidDeskNoOwner: "No product is ready to absorb this layer yet.",
       sampleTitle: "Paid opportunity examples",
       sampleEmpty:
         "There are no representative paid targets yet. The next discovery run should fill them in automatically.",
@@ -4061,6 +4075,17 @@ export default function DashboardClient({
     locale,
     workspaceSupply,
   });
+  const premiumDeskOwner = workspaceSupply.premiumOwner;
+  const premiumDeskHref = premiumDeskOwner
+    ? withPriorityContext(
+        `/dashboard/product/${premiumDeskOwner.productId}#managed-inbox`,
+        premiumDeskOwner.productId,
+        workspaceStrategyLead?.product.id === premiumDeskOwner.productId
+      )
+    : "#task-queue";
+  const premiumDeskActionLabel = premiumDeskOwner
+    ? copy.discovery.paidDeskOpenAction
+    : copy.discovery.paidDeskListAction;
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -6985,6 +7010,97 @@ export default function DashboardClient({
                       ? "无"
                       : "None"}
                 </span>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.discovery.paidDeskTitle}
+                  </div>
+                  <div className="mt-3">
+                    {renderDeliveryLayerTag({
+                      label: deliveryLayerCopy.premium,
+                      tone: "premium",
+                    })}
+                  </div>
+                </div>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceSupplyReleaseClasses(
+                    workspaceSupply.release.premium.open
+                  )}`}
+                >
+                  {workspaceSupplyReleaseLabel({
+                    locale,
+                    open: workspaceSupply.release.premium.open,
+                  })}
+                </span>
+              </div>
+              <p className="mt-4 text-sm leading-7 text-stone-300">
+                {copy.discovery.paidDeskBody}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  [
+                    copy.discovery.paidBacklogLabel,
+                    `${operationalInsights.paid_target_backlog_count}`,
+                  ],
+                  [
+                    copy.discovery.paidRootsLabel,
+                    `${operationalInsights.paid_target_root_domain_count}`,
+                  ],
+                  [
+                    copy.discovery.paidNewLabel,
+                    `${operationalInsights.paid_target_new_today_count}`,
+                  ],
+                ].map(([label, value]) => (
+                  <div
+                    key={`premium-desk-${label}`}
+                    className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3"
+                  >
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                      {label}
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-white">{value}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.discovery.paidDeskOwnerLabel}
+                </div>
+                <div className="mt-2 text-sm font-medium text-white">
+                  {premiumDeskOwner
+                    ? premiumDeskOwner.productName
+                    : copy.discovery.paidDeskNoOwner}
+                </div>
+                <p className="mt-2 text-xs leading-6 text-stone-500">
+                  {premiumDeskOwner
+                    ? workspaceSupplyReasonLabel(premiumDeskOwner, locale)
+                    : workspaceSupplyReleaseReasonCopy({
+                        locale,
+                        snapshot: workspaceSupply,
+                        tier: "premium",
+                      })}
+                </p>
+                {premiumDeskOwner ? (
+                  <p className="mt-2 text-xs leading-6 text-stone-500">
+                    {workspaceSupplyReleaseReasonCopy({
+                      locale,
+                      snapshot: workspaceSupply,
+                      tier: "premium",
+                    })}
+                  </p>
+                ) : null}
+                <div className="mt-4">
+                  <Link
+                    href={premiumDeskHref}
+                    className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                  >
+                    {premiumDeskActionLabel}
+                  </Link>
+                </div>
               </div>
             </div>
 
