@@ -88,6 +88,38 @@ function getHomeCopy(locale: Locale) {
           },
         ],
       },
+      offerSection: {
+        eyebrow: "你买到的是什么",
+        title: "先讲清楚商品边界，再讲更多功能。",
+        body:
+          "BacklinkPilot 不该看起来像一个模糊的 SEO 工具箱。它应该让用户一眼知道：哪些是套餐里的软件，哪些是可选代办，哪些属于单独处理的机会层。",
+        items: [
+          {
+            title: "核心软件层",
+            badge: "套餐内",
+            detail:
+              "产品登记、真实提交、结果中心和动作清单，属于订阅内的核心软件体验。",
+          },
+          {
+            title: "托管外联邮箱",
+            badge: "可选加购",
+            detail:
+              "买了才会分配专属邮箱，并由平台代发、代回、代跟进；不买就走你自己的邮箱。",
+          },
+          {
+            title: "付费机会层",
+            badge: "单独处理",
+            detail:
+              "收费型、商务型外链机会会单独沉淀，不会混进普通提交 credits 里一起卖。",
+          },
+          {
+            title: "人工服务层",
+            badge: "按服务售卖",
+            detail:
+              "复杂 review、人工处理和定制推进应该诚实按服务说明，而不是伪装成已经自动化。",
+          },
+        ],
+      },
       sendingSection: {
         eyebrow: "代发层",
         title: "买托管外联邮箱，或者用你自己的邮箱。",
@@ -293,6 +325,38 @@ function getHomeCopy(locale: Locale) {
           title: "The next layer of value is managed sending, not more templates",
           detail:
             "As the product expands into resource-page and editorial outreach, the real value is not another canned email. It is the platform providing sender infrastructure, deliverability protection, and reply flow.",
+        },
+      ],
+    },
+    offerSection: {
+      eyebrow: "What you are buying",
+      title: "Clarify the product boundary before adding more features.",
+      body:
+        "BacklinkPilot should not feel like one fuzzy SEO toolbox. A customer should immediately understand what is included software, what is an optional platform-run add-on, and what belongs in a separate service lane.",
+      items: [
+        {
+          title: "Core software layer",
+          badge: "Included in plan",
+          detail:
+            "Product setup, live submissions, the results center, and the action list belong to the core subscription product.",
+        },
+        {
+          title: "Managed Outreach Inbox",
+          badge: "Optional add-on",
+          detail:
+            "Buy it to get a dedicated inbox with platform-handled send, reply, and follow-up. Skip it and use your own inbox instead.",
+        },
+        {
+          title: "Paid opportunity layer",
+          badge: "Handled separately",
+          detail:
+            "Commercial backlink opportunities should live in a separate premium lane instead of being mixed into normal submission credits.",
+        },
+        {
+          title: "Manual service layer",
+          badge: "Sold as service",
+          detail:
+            "Complex review, custom handling, and human follow-through should be explained and sold as service work, not disguised as already-automated software.",
         },
       ],
     },
@@ -778,6 +842,36 @@ export default async function Home({
                 <p className="max-w-2xl text-base leading-7 text-stone-400">
                   {point.detail}
                 </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[var(--line-soft)] bg-white/[0.02] px-5 py-18 md:px-8 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.offerSection.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {copy.offerSection.title}
+            </h2>
+            <p className="mt-5 max-w-3xl text-base leading-7 text-stone-400">
+              {copy.offerSection.body}
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {copy.offerSection.items.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-[1.75rem] border border-[var(--line-soft)] bg-black/15 p-6"
+              >
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-stone-200">
+                  {item.badge}
+                </span>
+                <h3 className="mt-4 text-xl font-medium text-stone-100">{item.title}</h3>
+                <p className="mt-4 text-sm leading-7 text-stone-400">{item.detail}</p>
               </div>
             ))}
           </div>

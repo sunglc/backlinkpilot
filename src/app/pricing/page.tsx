@@ -101,6 +101,46 @@ function getPricingCopy(locale: Locale) {
           },
         ],
       },
+      offer: {
+        eyebrow: "你买到的是什么",
+        title: "把商品边界讲清楚，比堆功能名更重要。",
+        body:
+          "BacklinkPilot 不该看起来像一个模糊的 SEO 功能包。它应该把软件、平台代办、付费机会和人工服务拆成清楚的购买层。",
+        items: [
+          {
+            name: "核心软件层",
+            badge: "套餐内",
+            body:
+              "包括产品登记、真实提交、结果中心和动作清单。这是你每月订阅真正买到的核心产品。",
+            boundary:
+              "这里卖的是可重复运行的软件体验，不是一次性的人工代办。",
+          },
+          {
+            name: "托管外联邮箱",
+            badge: "可选加购",
+            body:
+              "买了之后，平台分配专属邮箱、代发、代回，并把线程回流到产品里；不买，就明确走你自己的邮箱。",
+            boundary:
+              "这是独立加购项，不该被假装成所有套餐默认包含。",
+          },
+          {
+            name: "付费机会层",
+            badge: "单独处理",
+            body:
+              "收费型、商务型外链机会会沉淀成资产层，但不会混进普通提交 credits 里一起卖。",
+            boundary:
+              "它应该作为单独机会层或高级服务处理，而不是悄悄塞进基础套餐。",
+          },
+          {
+            name: "人工服务层",
+            badge: "按服务售卖",
+            body:
+              "复杂资料补齐、人工 review、定制推进，应该诚实按服务边界卖，而不是包装成自动化已经覆盖。",
+            boundary:
+              "当价值来自人工介入时，就该按人工服务说明，不该继续冒充纯软件能力。",
+          },
+        ],
+      },
       sending: {
         eyebrow: "代发价值",
         title: "托管外联邮箱，应该是一个明确可买的功能项。",
@@ -192,7 +232,10 @@ function getPricingCopy(locale: Locale) {
           ["已上线提交渠道", "2", "2", "2"],
           ["包含产品数", "1", "3", "10"],
           ["月度提交容量", "100", "500", "不限"],
+          ["核心软件层", "包含", "包含", "包含"],
           ["外联发送模式", "自己的邮箱", "自己的邮箱 / 托管加购", "自己的邮箱 / 托管优先"],
+          ["付费机会", "单独处理", "单独处理", "单独处理"],
+          ["人工服务", "按需", "按需", "优先处理"],
           ["适合谁", "单产品启动", "活跃增长", "团队与代理"],
         ],
       },
@@ -323,6 +366,46 @@ function getPricingCopy(locale: Locale) {
         },
       ],
     },
+    offer: {
+      eyebrow: "What you are buying",
+      title: "Clear product boundaries matter more than a feature pile.",
+      body:
+        "BacklinkPilot should not feel like one fuzzy SEO bundle. It should separate the software layer, the platform-run layer, paid opportunities, and manual services into explicit product choices.",
+      items: [
+        {
+          name: "Core software layer",
+          badge: "Included in plan",
+          body:
+            "This covers product setup, live submissions, the results center, and the action list. It is the core software experience your subscription is buying.",
+          boundary:
+            "This is repeatable software, not one-off manual fulfillment hidden inside the plan.",
+        },
+        {
+          name: "Managed Outreach Inbox",
+          badge: "Optional add-on",
+          body:
+            "If the customer buys it, the platform assigns a dedicated inbox, sends, replies, and routes the thread back into the product. If not, they use their own inbox.",
+          boundary:
+            "This is an explicit add-on, not something that should quietly pretend to be included everywhere.",
+        },
+        {
+          name: "Paid opportunity layer",
+          badge: "Handled separately",
+          body:
+            "Commercial and paid backlink opportunities can be tracked as a premium layer, but they should not be mixed into normal submission credits.",
+          boundary:
+            "This belongs in a separate paid lane or premium service, not inside the base plan by implication.",
+        },
+        {
+          name: "Manual service layer",
+          badge: "Sold as service",
+          body:
+            "Complex review, custom handling, and human-assisted follow-through should be sold honestly as service work when automation is not the thing creating the value.",
+          boundary:
+            "When humans are doing the work, the product should say so instead of pretending software already covers it.",
+        },
+      ],
+    },
     sending: {
       eyebrow: "Sending value",
       title: "Managed Outreach Inbox should be a clear purchasable product item.",
@@ -414,7 +497,10 @@ function getPricingCopy(locale: Locale) {
           ["Live submission channels", "2", "2", "2"],
           ["Products included", "1", "3", "10"],
           ["Monthly submission capacity", "100", "500", "Unlimited"],
+          ["Core software layer", "Included", "Included", "Included"],
           ["Outreach sender mode", "Own inbox", "Own inbox / managed add-on", "Own inbox / priority managed"],
+          ["Paid opportunities", "Separate lane", "Separate lane", "Separate lane"],
+          ["Manual service", "By request", "By request", "Priority handling"],
           ["Best for", "Solo launches", "Active growth", "Teams and agencies"],
         ],
       },
@@ -660,6 +746,38 @@ export default async function Pricing() {
                 <h3 className="text-lg font-medium text-stone-100">{card.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-stone-400">{card.body}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 py-14 md:px-8 md:py-18">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              {copy.offer.eyebrow}
+            </p>
+            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
+              {copy.offer.title}
+            </h2>
+            <p className="mt-4 text-base leading-7 text-stone-400">
+              {copy.offer.body}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {copy.offer.items.map((item) => (
+              <article
+                key={item.name}
+                className="rounded-[1.75rem] border border-[var(--line-soft)] bg-black/15 p-6"
+              >
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-stone-200">
+                  {item.badge}
+                </span>
+                <h3 className="mt-4 text-xl font-medium text-stone-100">{item.name}</h3>
+                <p className="mt-4 text-sm leading-7 text-stone-400">{item.body}</p>
+                <p className="mt-4 text-xs leading-6 text-stone-500">{item.boundary}</p>
+              </article>
             ))}
           </div>
         </div>
