@@ -3199,6 +3199,7 @@ export default function DashboardClient({
     productProofSummaries.map((summary) => [summary.productId, summary])
   );
   const canAddProduct = isPaid || products.length < FREE_PREVIEW_PRODUCT_LIMIT;
+  const isSingleProductMode = products.length === 1;
   const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
   const roadmapChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
   const liveChannelsForPlan = isPaid
@@ -3450,6 +3451,7 @@ export default function DashboardClient({
       proof,
     };
   });
+  const singleProductSummary = isSingleProductMode ? productSummaries[0] || null : null;
   const proofLedProducts = productSummaries
     .filter(
       (summary) =>
@@ -4078,6 +4080,44 @@ export default function DashboardClient({
         workspaceStrategyLead?.product.id === recommendedPlannerSummary.product.id
       )
     : null;
+  const taskBuilderBody = singleProductSummary
+    ? locale === "zh"
+      ? `现在先围绕 ${singleProductSummary.product.name} 建下一步动作，不再把注意力切到多产品管理。`
+      : `Build the next actions around ${singleProductSummary.product.name} first instead of splitting attention across multiple products.`
+    : copy.builder.body;
+  const taskBuilderLeadEyebrow = isSingleProductMode
+    ? locale === "zh"
+      ? "当前动作目标"
+      : "Current action target"
+    : locale === "zh"
+      ? "当前建任务优先"
+      : "Current build priority";
+  const taskBuilderLeadBody =
+    isSingleProductMode && recommendedPlannerSummary
+      ? locale === "zh"
+        ? `这块现在会一直围绕 ${recommendedPlannerSummary.product.name} 建动作，让你先把一个产品跑出结果。`
+        : `This section now stays focused on ${recommendedPlannerSummary.product.name} so you can get one product to results first.`
+      : workspaceLeadSummary ||
+        (recommendedPlannerSummary
+          ? locale === "zh"
+            ? `系统当前会先把新增任务路由给 ${recommendedPlannerSummary.product.name}。`
+            : `The workspace is routing new tasks into ${recommendedPlannerSummary.product.name} right now.`
+          : "");
+  const actionListTitle = singleProductSummary
+    ? locale === "zh"
+      ? `${singleProductSummary.product.name} 的动作清单`
+      : `${singleProductSummary.product.name} action list`
+    : taskQueueCopy.title;
+  const actionListBody = singleProductSummary
+    ? locale === "zh"
+      ? `这里是 ${singleProductSummary.product.name} 接下来最值得推进的动作，不再把多个产品的事情混在一起。`
+      : `This is the next set of actions for ${singleProductSummary.product.name}, without mixing in other products.`
+    : taskQueueCopy.body;
+  const actionListPreviewBadge = singleProductSummary
+    ? locale === "zh"
+      ? "当前产品"
+      : "Current product"
+    : taskQueueCopy.previewBadge;
   const featuredProductDetailHref = featuredProduct
     ? withPriorityContext(
         `/dashboard/product/${featuredProduct.product.id}`,
@@ -5334,6 +5374,7 @@ export default function DashboardClient({
           </div>
         </section>
 
+        {!isSingleProductMode ? (
         <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -5413,8 +5454,9 @@ export default function DashboardClient({
 
           <p className="mt-6 text-sm leading-7 text-stone-500">{workflowCopy.note}</p>
         </section>
+        ) : null}
 
-        {products.length > 0 ? (
+        {products.length > 1 ? (
           <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
             <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
               <div>
@@ -5679,7 +5721,7 @@ export default function DashboardClient({
           </section>
         ) : null}
 
-        {products.length > 0 ? (
+        {products.length > 1 ? (
           <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
               <div>
@@ -5822,7 +5864,7 @@ export default function DashboardClient({
                 {copy.builder.title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-stone-400">
-                {copy.builder.body}
+                {taskBuilderBody}
               </p>
             </div>
 
@@ -5831,9 +5873,7 @@ export default function DashboardClient({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                      {locale === "zh"
-                        ? "当前建任务优先"
-                        : "Current build priority"}
+                      {taskBuilderLeadEyebrow}
                     </p>
                     <h3 className="mt-3 text-xl font-semibold text-white">
                       {recommendedPlannerSummary.product.name}
@@ -5851,14 +5891,12 @@ export default function DashboardClient({
                   ) : null}
                 </div>
                 <p className="mt-4 text-sm leading-7 text-stone-300">
-                  {workspaceLeadSummary ||
-                    (locale === "zh"
-                      ? `系统当前会先把新增任务路由给 ${recommendedPlannerSummary.product.name}。`
-                      : `The workspace is routing new tasks into ${recommendedPlannerSummary.product.name} right now.`)}
+                  {taskBuilderLeadBody}
                 </p>
               </div>
             ) : null}
 
+            {!isSingleProductMode ? (
             <div className="mt-6 max-w-sm">
               <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-stone-500">
                 {copy.builder.productLabel}
@@ -5910,7 +5948,9 @@ export default function DashboardClient({
                 </div>
               ) : null}
             </div>
+            ) : null}
 
+            {!isSingleProductMode ? (
             <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -6016,6 +6056,7 @@ export default function DashboardClient({
                 ))}
               </div>
             </div>
+            ) : null}
 
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
               <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
@@ -6155,14 +6196,14 @@ export default function DashboardClient({
                 {taskQueueCopy.eyebrow}
               </p>
               <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-                {taskQueueCopy.title}
+                {actionListTitle}
               </h2>
               <p className="mt-4 text-sm leading-7 text-stone-400">
-                {taskQueueCopy.body}
+                {actionListBody}
               </p>
             </div>
             <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
-              {taskQueueCopy.previewBadge}
+              {actionListPreviewBadge}
             </span>
           </div>
 
@@ -6191,7 +6232,9 @@ export default function DashboardClient({
                             {taskQueueCopy.labels.focus}: {task.focusLabel}
                           </span>
                         ) : null}
-                        <span className="text-sm text-stone-500">{task.productName}</span>
+                        {!isSingleProductMode ? (
+                          <span className="text-sm text-stone-500">{task.productName}</span>
+                        ) : null}
                         {task.sourcePlanTitle ? (
                           <span className="text-sm text-stone-500">
                             {taskQueueCopy.labels.fromPlan}: {task.sourcePlanTitle}
