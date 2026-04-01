@@ -4122,13 +4122,20 @@ export default function DashboardClient({
         workspaceStrategyLead?.product.id === premiumDeskOwner.productId
       )
     : "#task-queue";
-  const premiumDeskActionLabel = premiumDeskOwner
-    ? copy.discovery.paidDeskOpenAction
-    : copy.discovery.paidDeskListAction;
   const premiumDeskReadinessBody = workspaceSupply.release.premium.open
     ? copy.discovery.paidDeskOpenBody
     : copy.discovery.paidDeskHoldBody;
   const premiumDeskGuideHref = "#paid-opportunity-guide";
+  const premiumDeskDecisionAction =
+    workspaceSupply.release.premium.open && premiumDeskOwner
+      ? {
+          href: premiumDeskHref,
+          label: copy.discovery.paidDeskOpenAction,
+        }
+      : {
+          href: premiumDeskGuideHref,
+          label: copy.discovery.paidDeskGuideAction,
+        };
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -7136,18 +7143,12 @@ export default function DashboardClient({
                     })}
                   </p>
                 ) : null}
-                <div className="mt-4 flex flex-wrap gap-3">
+                <div className="mt-4">
                   <Link
-                    href={premiumDeskGuideHref}
+                    href={premiumDeskDecisionAction.href}
                     className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                   >
-                    {copy.discovery.paidDeskGuideAction}
-                  </Link>
-                  <Link
-                    href={premiumDeskHref}
-                    className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                  >
-                    {premiumDeskActionLabel}
+                    {premiumDeskDecisionAction.label}
                   </Link>
                 </div>
               </div>
