@@ -13,6 +13,7 @@ import {
   type ChannelContract,
 } from "@/lib/execution-contract";
 import { getChannelLaunchGuardMessage } from "@/lib/distribution-safety";
+import type { ChannelReviewRequest } from "@/lib/channel-review-requests-types";
 import { type Locale } from "@/lib/locale-config";
 import type {
   ProductProofPriority,
@@ -109,7 +110,7 @@ type ProductPrimaryAction =
     };
 type WorkflowStepStatus = "blocked" | "ready" | "active" | "done" | "live";
 type WorkspaceTaskStage = "pending" | "planned" | "awaiting_effect" | "live";
-type WorkspaceTaskKind = "profile" | "coverage" | "submission" | "proof";
+type WorkspaceTaskKind = "profile" | "coverage" | "submission" | "proof" | "review";
 type WorkspaceTaskBillingType =
   | "included"
   | "credit_on_success"
@@ -206,6 +207,7 @@ interface WorkspaceTask {
   focusLabel?: string;
   billingRule?: WorkspaceTaskBillingRule;
   coverageBreakdown?: WorkspaceTaskPlanCoverageBreakdown | null;
+  reviewStatus?: ChannelReviewRequest["status"] | null;
 }
 
 type ProductProofAction = {
@@ -693,6 +695,7 @@ function getDashboardCopy(locale: Locale) {
           coverage: "覆盖计划",
           submission: "提交动作",
           proof: "结果动作",
+          review: "人工审核",
         },
         stages: {
           pending: "待启动",
@@ -707,6 +710,8 @@ function getDashboardCopy(locale: Locale) {
           watch_effect: "盯住生效",
           expand_lane: "继续扩量",
           build_queue: "继续补量",
+          review_wait: "等人工判断",
+          review_done: "查看审核结论",
         },
         billingLabels: {
           included: "包含项",
@@ -1268,6 +1273,7 @@ function getDashboardCopy(locale: Locale) {
         coverage: "Coverage plan",
         submission: "Submission action",
         proof: "Result action",
+        review: "Manual review",
       },
       stages: {
         pending: "Pending",
@@ -1282,6 +1288,8 @@ function getDashboardCopy(locale: Locale) {
         watch_effect: "Watch effect",
         expand_lane: "Expand next",
         build_queue: "Keep building",
+        review_wait: "Wait for review",
+        review_done: "Review decision",
       },
       billingLabels: {
         included: "Included",
@@ -1759,6 +1767,39 @@ function workspaceTaskStageRank(stage: WorkspaceTaskStage) {
   }[stage];
 }
 
+function localizedReviewRequestStatus(
+  status: ChannelReviewRequest["status"],
+  locale: Locale
+) {
+  if (locale === "zh") {
+    return status === "approved"
+      ? "审核已通过"
+      : status === "rejected"
+        ? "审核未通过"
+        : "人工审核已排队";
+  }
+
+  return status === "approved"
+    ? "Review approved"
+    : status === "rejected"
+      ? "Review not approved"
+      : "Manual review queued";
+}
+
+function channelReviewRequestStatusClasses(
+  status: ChannelReviewRequest["status"]
+) {
+  if (status === "approved") {
+    return "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100";
+  }
+
+  if (status === "rejected") {
+    return "border-red-300/15 bg-red-300/[0.08] text-red-200";
+  }
+
+  return "border-amber-300/15 bg-amber-300/[0.08] text-amber-100";
+}
+
 function workspaceTaskPriorityScore(task: WorkspaceTask) {
   const baseStageScore = {
     pending: 10,
@@ -1773,6 +1814,10 @@ function workspaceTaskPriorityScore(task: WorkspaceTask) {
 
   if (task.kind === "submission") {
     return baseStageScore + 45;
+  }
+
+  if (task.kind === "review") {
+    return baseStageScore + 25;
   }
 
   if (
@@ -1800,6 +1845,12 @@ function workspaceTaskFocusLabel(
 
   if (task.kind === "submission" || task.stage === "awaiting_effect") {
     return copy.tasks.focusLabels.watch_effect;
+  }
+
+  if (task.kind === "review") {
+    return task.reviewStatus === "queued"
+      ? copy.tasks.focusLabels.review_wait
+      : copy.tasks.focusLabels.review_done;
   }
 
   if (
@@ -3271,6 +3322,7 @@ export default function DashboardClient({
   );
   const [capabilityReview, setCapabilityReview] =
     useState<SaasCapabilityReviewState>(capabilityReviewState);
+  const [channelReviewRequests, setChannelReviewRequests] = useState<ChannelReviewRequest[]>([]);
   const [capabilityReviewAction, setCapabilityReviewAction] = useState(false);
   const [capabilityReviewError, setCapabilityReviewError] = useState("");
   const previousRecommendedPlannerProductId = useRef(
@@ -3280,6 +3332,45 @@ export default function DashboardClient({
   useEffect(() => {
     setCapabilityReview(capabilityReviewState);
   }, [capabilityReviewState]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChannelReviewRequests() {
+      if (products.length === 0) {
+        setChannelReviewRequests([]);
+        return;
+      }
+
+      const results = await Promise.all(
+        products.map(async (product) => {
+          const response = await fetch(`/api/products/${product.id}/review-requests`).catch(
+            () => null
+          );
+
+          if (!response?.ok) {
+            return [] as ChannelReviewRequest[];
+          }
+
+          const payload = (await response.json().catch(() => null)) as
+            | { requests?: ChannelReviewRequest[] }
+            | null;
+
+          return payload?.requests || [];
+        })
+      );
+
+      if (!cancelled) {
+        setChannelReviewRequests(results.flat());
+      }
+    }
+
+    loadChannelReviewRequests();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [products]);
 
   useEffect(() => {
     if (!products.some((product) => product.id === plannerProductId)) {
@@ -3374,6 +3465,15 @@ export default function DashboardClient({
     }
     if (task.kind === "profile") {
       return { label: deliveryLayerCopy.setup, tone: "neutral" };
+    }
+    if (task.kind === "review") {
+      return {
+        label:
+          locale === "zh"
+            ? "服务动作 · 人工审核"
+            : "Service action · Manual review",
+        tone: "neutral",
+      };
     }
     return { label: deliveryLayerCopy.core, tone: "core" };
   };
@@ -3782,6 +3882,9 @@ export default function DashboardClient({
       const taskPlans = workspaceTaskPlans.filter(
         (plan) => plan.productId === summary.product.id
       );
+      const reviewRequests = channelReviewRequests.filter(
+        (request) => request.productId === summary.product.id
+      );
 
       taskPlans.forEach((plan) => {
         const economics = taskEconomics({ kind: "coverage" });
@@ -3927,6 +4030,60 @@ export default function DashboardClient({
           updatedAt: submission.created_at,
           ...economics,
           coverageBreakdown: null,
+        });
+      });
+
+      reviewRequests.slice(0, 2).forEach((reviewRequest) => {
+        const economics = taskEconomics({ kind: "profile" });
+        const localizedChannel =
+          CHANNELS.find((channel) => channel.id === reviewRequest.channelId) || null;
+        const channelLabel = localizedChannel
+          ? getLocalizedChannel(localizedChannel, locale).name
+          : reviewRequest.channelName;
+        const title =
+          reviewRequest.status === "approved"
+            ? locale === "zh"
+              ? `${channelLabel} 已通过人工审核`
+              : `${channelLabel} passed manual review`
+            : reviewRequest.status === "rejected"
+              ? locale === "zh"
+                ? `${channelLabel} 未通过人工审核`
+                : `${channelLabel} was not approved for manual review`
+              : locale === "zh"
+                ? `${channelLabel} 人工审核已排队`
+                : `${channelLabel} is queued for manual review`;
+        const preview =
+          reviewRequest.status === "approved"
+            ? locale === "zh"
+              ? "这条路线已经通过人工审核。下一步在产品详情里看是否值得继续人工承接。"
+              : "This route passed manual review. Open the product to decide whether it deserves further human-handled execution."
+            : reviewRequest.status === "rejected"
+              ? locale === "zh"
+                ? "当前结论是不建议推进。先把默认开放路径跑稳，除非产品故事明显变化。"
+                : "The current decision is to keep this route closed. Stay on the default-open path unless the product story changes materially."
+              : locale === "zh"
+                ? "系统已经把这条路线记入人工审核队列。先保持主线执行，等人工判断是否值得打开。"
+                : "The app already logged this route for manual review. Keep the main path moving while a human decides whether it is worth opening.";
+
+        tasks.push({
+          id: `review:${summary.product.id}:${reviewRequest.id}`,
+          productId: summary.product.id,
+          productName: summary.product.name,
+          kind: "review",
+          taskPlanId: null,
+          taskPlanMode: null,
+          sourcePlanId: null,
+          sourcePlanTitle: null,
+          materializedChannelIds: [],
+          childPlanIds: [],
+          stage: reviewRequest.status === "queued" ? "pending" : "planned",
+          title,
+          preview,
+          href: `${baseHref}`,
+          updatedAt: reviewRequest.updatedAt,
+          ...economics,
+          coverageBreakdown: null,
+          reviewStatus: reviewRequest.status,
         });
       });
 
@@ -6498,13 +6655,23 @@ export default function DashboardClient({
                           {taskQueueCopy.kinds[task.kind]}
                         </span>
                         {renderDeliveryLayerTag(getWorkspaceTaskDeliveryLayerTag(task))}
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceTaskStageClasses(
-                            task.stage
-                          )}`}
-                        >
-                          {taskQueueCopy.stages[task.stage]}
-                        </span>
+                        {task.kind === "review" && task.reviewStatus ? (
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-medium ${channelReviewRequestStatusClasses(
+                              task.reviewStatus
+                            )}`}
+                          >
+                            {localizedReviewRequestStatus(task.reviewStatus, locale)}
+                          </span>
+                        ) : (
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceTaskStageClasses(
+                              task.stage
+                            )}`}
+                          >
+                            {taskQueueCopy.stages[task.stage]}
+                          </span>
+                        )}
                         {task.focusLabel ? (
                           <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1 text-xs text-emerald-100">
                             {taskQueueCopy.labels.focus}: {task.focusLabel}
