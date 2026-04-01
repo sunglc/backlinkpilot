@@ -789,6 +789,7 @@ function getDashboardCopy(locale: Locale) {
         paidDeskOwnerLabel: "当前优先产品",
         paidDeskOpenAction: "打开当前优先产品",
         paidDeskListAction: "查看动作清单",
+        paidDeskGuideAction: "查看单独处理说明",
         paidDeskNoOwner: "当前还没有适合承接这层机会的产品。",
         paidDeskReadinessTitle: "现在适不适合打开",
         paidDeskOpenBody:
@@ -799,6 +800,15 @@ function getDashboardCopy(locale: Locale) {
         paidDeskHowCollect: "单独收集",
         paidDeskHowReview: "人工判断",
         paidDeskHowQuote: "单独报价",
+        paidGuideTitle: "付费机会怎么单独处理",
+        paidGuideBody:
+          "这层不是基础套餐自动发出的动作，而是一层单独服务。先看为什么它单独处理、什么时候值得开，以及当前是谁在承接。",
+        paidGuideWhyTitle: "为什么单独处理",
+        paidGuideWhyBody:
+          "因为这里经常涉及价格、商务条件和非标准发布路径，不该伪装成基础软件自动结果。",
+        paidGuideWhenTitle: "什么时候值得开",
+        paidGuideOwnerTitle: "当前谁在承接",
+        paidGuideOwnerEmpty: "现在还没有产品适合承接这层服务，先把主线结果做稳。",
         sampleTitle: "收费机会样例",
         sampleEmpty: "当前还没有收费机会样例，下一轮巡航后会自动出现。",
         openTarget: "查看目标",
@@ -1356,6 +1366,7 @@ function getDashboardCopy(locale: Locale) {
       paidDeskOwnerLabel: "Current priority product",
       paidDeskOpenAction: "Open the current priority product",
       paidDeskListAction: "Open the action list",
+      paidDeskGuideAction: "See how this service works",
       paidDeskNoOwner: "No product is ready to absorb this layer yet.",
       paidDeskReadinessTitle: "Should this layer open now?",
       paidDeskOpenBody:
@@ -1366,6 +1377,16 @@ function getDashboardCopy(locale: Locale) {
       paidDeskHowCollect: "Collected separately",
       paidDeskHowReview: "Manually reviewed",
       paidDeskHowQuote: "Quoted separately",
+      paidGuideTitle: "How paid opportunities are handled separately",
+      paidGuideBody:
+        "This is not an automatic base-plan action. Start with why it is separated, when it is worth opening, and which product owns it right now.",
+      paidGuideWhyTitle: "Why it is separate",
+      paidGuideWhyBody:
+        "These opportunities often involve pricing, commercial terms, and non-standard publishing paths, so they should not be presented as normal software automation.",
+      paidGuideWhenTitle: "When it is worth opening",
+      paidGuideOwnerTitle: "Who owns it right now",
+      paidGuideOwnerEmpty:
+        "No product is ready to absorb this service layer yet. Stabilize the core result path first.",
       sampleTitle: "Paid opportunity examples",
       sampleEmpty:
         "There are no representative paid targets yet. The next discovery run should fill them in automatically.",
@@ -4107,6 +4128,7 @@ export default function DashboardClient({
   const premiumDeskReadinessBody = workspaceSupply.release.premium.open
     ? copy.discovery.paidDeskOpenBody
     : copy.discovery.paidDeskHoldBody;
+  const premiumDeskGuideHref = "#paid-opportunity-guide";
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -7114,7 +7136,13 @@ export default function DashboardClient({
                     })}
                   </p>
                 ) : null}
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={premiumDeskGuideHref}
+                    className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                  >
+                    {copy.discovery.paidDeskGuideAction}
+                  </Link>
                   <Link
                     href={premiumDeskHref}
                     className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
@@ -7320,6 +7348,100 @@ export default function DashboardClient({
               )}
             </div>
           </div>
+          </section>
+        ) : null}
+
+        {products.length > 0 ? (
+          <section
+            id="paid-opportunity-guide"
+            className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7"
+          >
+            <div className="max-w-4xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {copy.discovery.inventoryTitle}
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                {copy.discovery.paidGuideTitle}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-stone-400">
+                {copy.discovery.paidGuideBody}
+              </p>
+            </div>
+
+            <div className="mt-6 grid gap-4 xl:grid-cols-3">
+              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.discovery.paidGuideWhyTitle}
+                </div>
+                <div className="mt-3">
+                  {renderDeliveryLayerTag({
+                    label: deliveryLayerCopy.premium,
+                    tone: "premium",
+                  })}
+                </div>
+                <p className="mt-4 text-sm leading-7 text-stone-300">
+                  {copy.discovery.paidGuideWhyBody}
+                </p>
+              </div>
+
+              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.discovery.paidGuideWhenTitle}
+                  </div>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceSupplyReleaseClasses(
+                      workspaceSupply.release.premium.open
+                    )}`}
+                  >
+                    {workspaceSupplyReleaseLabel({
+                      locale,
+                      open: workspaceSupply.release.premium.open,
+                    })}
+                  </span>
+                </div>
+                <p className="mt-4 text-sm leading-7 text-stone-300">
+                  {premiumDeskReadinessBody}
+                </p>
+                <p className="mt-3 text-xs leading-6 text-stone-500">
+                  {workspaceSupplyReleaseReasonCopy({
+                    locale,
+                    snapshot: workspaceSupply,
+                    tier: "premium",
+                  })}
+                </p>
+              </div>
+
+              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                  {copy.discovery.paidGuideOwnerTitle}
+                </div>
+                <div className="mt-4 text-sm font-medium text-white">
+                  {premiumDeskOwner
+                    ? premiumDeskOwner.productName
+                    : copy.discovery.paidGuideOwnerEmpty}
+                </div>
+                <p className="mt-3 text-xs leading-6 text-stone-500">
+                  {premiumDeskOwner
+                    ? workspaceSupplyReasonLabel(premiumDeskOwner, locale)
+                    : workspaceSupplyReleaseReasonCopy({
+                        locale,
+                        snapshot: workspaceSupply,
+                        tier: "premium",
+                      })}
+                </p>
+                {premiumDeskOwner ? (
+                  <div className="mt-4">
+                    <Link
+                      href={premiumDeskHref}
+                      className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                    >
+                      {copy.discovery.paidDeskOpenAction}
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </section>
         ) : null}
 
