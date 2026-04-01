@@ -790,6 +790,15 @@ function getDashboardCopy(locale: Locale) {
         paidDeskOpenAction: "打开当前优先产品",
         paidDeskListAction: "查看动作清单",
         paidDeskNoOwner: "当前还没有适合承接这层机会的产品。",
+        paidDeskReadinessTitle: "现在适不适合打开",
+        paidDeskOpenBody:
+          "当前主线结果已经足够稳，可以开始单独筛这层机会，但仍然不该和基础主线混在一起。",
+        paidDeskHoldBody:
+          "先把主线结果跑稳，再打开这层机会，避免把预算和注意力一起拉散。",
+        paidDeskHowTitle: "这层服务怎么走",
+        paidDeskHowCollect: "单独收集",
+        paidDeskHowReview: "人工判断",
+        paidDeskHowQuote: "单独报价",
         sampleTitle: "收费机会样例",
         sampleEmpty: "当前还没有收费机会样例，下一轮巡航后会自动出现。",
         openTarget: "查看目标",
@@ -1348,6 +1357,15 @@ function getDashboardCopy(locale: Locale) {
       paidDeskOpenAction: "Open the current priority product",
       paidDeskListAction: "Open the action list",
       paidDeskNoOwner: "No product is ready to absorb this layer yet.",
+      paidDeskReadinessTitle: "Should this layer open now?",
+      paidDeskOpenBody:
+        "The core result path is stable enough now, so this layer can be reviewed separately without pretending it belongs to the default plan path.",
+      paidDeskHoldBody:
+        "Keep the core result path stable first, then open this layer so budget and attention do not get split too early.",
+      paidDeskHowTitle: "How this service works",
+      paidDeskHowCollect: "Collected separately",
+      paidDeskHowReview: "Manually reviewed",
+      paidDeskHowQuote: "Quoted separately",
       sampleTitle: "Paid opportunity examples",
       sampleEmpty:
         "There are no representative paid targets yet. The next discovery run should fill them in automatically.",
@@ -4086,6 +4104,9 @@ export default function DashboardClient({
   const premiumDeskActionLabel = premiumDeskOwner
     ? copy.discovery.paidDeskOpenAction
     : copy.discovery.paidDeskListAction;
+  const premiumDeskReadinessBody = workspaceSupply.release.premium.open
+    ? copy.discovery.paidDeskOpenBody
+    : copy.discovery.paidDeskHoldBody;
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -7100,6 +7121,35 @@ export default function DashboardClient({
                   >
                     {premiumDeskActionLabel}
                   </Link>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.discovery.paidDeskReadinessTitle}
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-stone-300">
+                    {premiumDeskReadinessBody}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                    {copy.discovery.paidDeskHowTitle}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[
+                      copy.discovery.paidDeskHowCollect,
+                      copy.discovery.paidDeskHowReview,
+                      copy.discovery.paidDeskHowQuote,
+                    ].map((label) => (
+                      <span
+                        key={`premium-flow-${label}`}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-stone-200"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
