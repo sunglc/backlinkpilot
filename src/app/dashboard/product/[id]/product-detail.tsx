@@ -24,6 +24,7 @@ import type {
   ManagedInboxRecord,
 } from "@/lib/managed-inbox-types";
 import type { Locale } from "@/lib/locale-config";
+import type { ChannelReviewRequest } from "@/lib/channel-review-requests-types";
 import type { User } from "@supabase/supabase-js";
 
 interface SiteResult {
@@ -452,6 +453,17 @@ function getProductDetailCopy(locale: Locale) {
         runningPrefix: "执行中",
         ready: "默认开放",
         planned: "推进中",
+        reviewNeeded: "需要人工审核",
+        reviewAction: "请求人工审核",
+        reviewActioning: "请求中...",
+        reviewQueued: "人工审核已排队",
+        reviewApproved: "审核已通过",
+        reviewRejected: "审核未通过",
+        reviewRequestedAt: "请求时间",
+        reviewHelp: "这条路线不会默认自动执行。先走人工相关性审核，再决定值不值得继续推进。",
+        reviewQueuedBody: "系统已经记下这条路线的人工审核请求。现在先保留主线执行，等人工判断是否值得推进。",
+        reviewApprovedBody: "这条路线已经通过人工审核。它会按人工承接节奏推进，而不是直接进入默认自动执行。",
+        reviewRejectedBody: "这条路线当前不建议推进。除非产品定位或场景明显变化，否则先把注意力留在默认开放路径。",
       },
       history: {
         title: "执行历史",
@@ -723,6 +735,7 @@ function getProductDetailCopy(locale: Locale) {
       },
       errors: {
         startFailed: "暂时无法创建这个提交任务。",
+        reviewRequestFailed: "暂时无法提交人工审核请求。",
       },
       formatting: {
         successfulActions: "成功动作",
@@ -854,6 +867,17 @@ function getProductDetailCopy(locale: Locale) {
       runningPrefix: "Running",
       ready: "Ready now",
       planned: "Planned",
+      reviewNeeded: "Manual review required",
+      reviewAction: "Request manual review",
+      reviewActioning: "Requesting...",
+      reviewQueued: "Manual review queued",
+      reviewApproved: "Review approved",
+      reviewRejected: "Review not approved",
+      reviewRequestedAt: "Requested",
+      reviewHelp: "This route does not run automatically by default. It goes through a manual relevance review before we decide whether it should move forward.",
+      reviewQueuedBody: "The app already logged this route for manual review. Keep the main path moving while a human decides whether it is worth opening.",
+      reviewApprovedBody: "This route already passed manual review. It still moves as a human-handled path instead of default automatic execution.",
+      reviewRejectedBody: "This route is not worth opening right now. Keep attention on the default-open path unless the product story changes materially.",
     },
     history: {
       title: "Submission history",
@@ -1127,6 +1151,7 @@ function getProductDetailCopy(locale: Locale) {
     },
     errors: {
       startFailed: "Could not create that submission.",
+      reviewRequestFailed: "Could not queue the manual review request.",
     },
     formatting: {
       successfulActions: "successful actions",
@@ -1295,6 +1320,39 @@ function roadmapLaneMessage(
     : locale === "zh"
       ? "升级后可用。"
       : "Upgrade to unlock this lane.";
+}
+
+function localizedChannelReviewRequestStatus(
+  status: ChannelReviewRequest["status"],
+  locale: Locale
+) {
+  if (locale === "zh") {
+    return status === "approved"
+      ? "审核已通过"
+      : status === "rejected"
+        ? "审核未通过"
+        : "人工审核已排队";
+  }
+
+  return status === "approved"
+    ? "Review approved"
+    : status === "rejected"
+      ? "Review not approved"
+      : "Manual review queued";
+}
+
+function channelReviewRequestStatusClasses(
+  status: ChannelReviewRequest["status"]
+) {
+  if (status === "approved") {
+    return "border-emerald-300/15 bg-emerald-300/10 text-emerald-100";
+  }
+
+  if (status === "rejected") {
+    return "border-red-300/15 bg-red-300/10 text-red-200";
+  }
+
+  return "border-amber-300/15 bg-amber-300/10 text-amber-100";
 }
 
 function minimumPlanForChannel(channel: ChannelContract) {
@@ -1737,6 +1795,9 @@ export default function ProductDetail({
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [channelReviewRequests, setChannelReviewRequests] = useState<ChannelReviewRequest[]>([]);
+  const [reviewingChannelId, setReviewingChannelId] = useState<string | null>(null);
+  const [reviewRequestError, setReviewRequestError] = useState("");
   const [managedInbox, setManagedInbox] = useState(managedInboxRecord);
   const [managedInboxLive, setManagedInboxLive] = useState(managedInboxLiveActivity);
   const [senderEmail, setSenderEmail] = useState(
@@ -1778,6 +1839,37 @@ export default function ProductDetail({
     setSenderEmail(managedInboxRecord.bringYourOwn?.senderEmail || user.email || "");
   }, [managedInboxRecord, managedInboxLiveActivity, user.email]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChannelReviewRequests() {
+      const response = await fetch(`/api/products/${product.id}/review-requests`).catch(
+        () => null
+      );
+
+      if (!response?.ok) {
+        if (!cancelled) {
+          setChannelReviewRequests([]);
+        }
+        return;
+      }
+
+      const payload = (await response.json().catch(() => null)) as
+        | { requests?: ChannelReviewRequest[] }
+        | null;
+
+      if (!cancelled) {
+        setChannelReviewRequests(payload?.requests || []);
+      }
+    }
+
+    loadChannelReviewRequests();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product.id]);
+
   async function startSubmission(channelId: string) {
     setSubmitting(channelId);
     setActionError("");
@@ -1811,6 +1903,37 @@ export default function ProductDetail({
 
     setSubmitting(null);
     router.refresh();
+  }
+
+  async function requestChannelReview(channel: ChannelContract) {
+    setReviewingChannelId(channel.id);
+    setReviewRequestError("");
+
+    try {
+      const response = await fetch(`/api/products/${product.id}/review-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId: channel.id }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { reviewRequest?: ChannelReviewRequest; error?: string }
+        | null;
+
+      if (!response.ok || !payload?.reviewRequest) {
+        throw new Error(payload?.error || copy.errors.reviewRequestFailed);
+      }
+
+      setChannelReviewRequests((current) => [
+        payload.reviewRequest!,
+        ...current.filter((request) => request.id !== payload.reviewRequest!.id),
+      ]);
+    } catch (error) {
+      setReviewRequestError(
+        error instanceof Error ? error.message : copy.errors.reviewRequestFailed
+      );
+    } finally {
+      setReviewingChannelId(null);
+    }
   }
 
   async function updateManagedInbox(
@@ -1906,6 +2029,8 @@ export default function ProductDetail({
     (channel) => !DEFAULT_EXECUTION_CHANNELS.some((item) => item.id === channel.id)
   );
   const managedInboxEligible = plan === "growth" || plan === "scale";
+  const latestReviewRequestForChannel = (channelId: string) =>
+    channelReviewRequests.find((request) => request.channelId === channelId) || null;
   const availableLiveChannels = liveChannels.filter((channel) => channel.plans.includes(plan));
   const currentPlanIndex = PLAN_ORDER.indexOf(
     (PLAN_ORDER.includes(plan as (typeof PLAN_ORDER)[number])
@@ -4430,11 +4555,28 @@ export default function ProductDetail({
               </h2>
             </div>
 
+            {reviewRequestError ? (
+              <div className="mt-6 rounded-[1.25rem] border border-red-300/15 bg-red-300/10 p-4 text-sm text-red-100">
+                {reviewRequestError}
+              </div>
+            ) : null}
+
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {plannedChannels.map((channel) => {
                 const localizedChannel = getLocalizedChannel(channel, locale);
                 const available = channel.plans.includes(plan);
                 const minimumPlan = minimumPlanForChannel(channel);
+                const policy = getChannelSafetyPolicy(channel.id);
+                const reviewRequest = latestReviewRequestForChannel(channel.id);
+                const canRequestManualReview =
+                  available && policy.executionMode === "manual_review";
+                const reviewBody = reviewRequest
+                  ? reviewRequest.status === "approved"
+                    ? copy.channels.reviewApprovedBody
+                    : reviewRequest.status === "rejected"
+                      ? copy.channels.reviewRejectedBody
+                      : copy.channels.reviewQueuedBody
+                  : copy.channels.reviewHelp;
 
                 return (
                   <div
@@ -4469,6 +4611,44 @@ export default function ProductDetail({
                     <div className="mt-6 rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-stone-400">
                       {roadmapLaneMessage(channel, available, locale)}
                     </div>
+
+                    {canRequestManualReview ? (
+                      <div className="mt-4 rounded-[1.25rem] border border-amber-300/15 bg-amber-300/[0.06] p-4">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-[11px] font-medium ${
+                              reviewRequest
+                                ? channelReviewRequestStatusClasses(reviewRequest.status)
+                                : "border-white/10 bg-white/[0.04] text-stone-100"
+                            }`}
+                          >
+                            {reviewRequest
+                              ? localizedChannelReviewRequestStatus(reviewRequest.status, locale)
+                              : copy.channels.reviewNeeded}
+                          </span>
+                          {reviewRequest ? (
+                            <span className="text-xs text-stone-400">
+                              {copy.channels.reviewRequestedAt}: {formatSubmissionDate(reviewRequest.updatedAt, locale)}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <p className="mt-3 text-sm leading-7 text-stone-300">{reviewBody}</p>
+
+                        {!reviewRequest || reviewRequest.status === "rejected" ? (
+                          <button
+                            type="button"
+                            onClick={() => requestChannelReview(channel)}
+                            disabled={reviewingChannelId === channel.id}
+                            className="mt-4 inline-flex rounded-full border border-amber-300/25 bg-amber-300/10 px-5 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-300/15 disabled:opacity-60"
+                          >
+                            {reviewingChannelId === channel.id
+                              ? copy.channels.reviewActioning
+                              : copy.channels.reviewAction}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
