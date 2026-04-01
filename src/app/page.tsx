@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import LocaleToggle from "@/components/locale-toggle";
 import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
-import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
+import { DEFAULT_EXECUTION_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
@@ -16,7 +16,7 @@ function getHomeCopy(locale: Locale) {
       metadata: {
         title: "BacklinkPilot - 自动驾驶你的外链增长",
         description:
-          "把产品网址贴进来，自动识别信息并启动真实目录与 stealth 外链执行。先免费完成首个产品配置，再按执行量付费。",
+          "把产品网址贴进来，自动识别信息并启动真实目录提交流程。其他渠道按人工审核或 rollout 推进。先免费完成首个产品配置，再按执行量付费。",
       },
       nav: {
         product: "产品",
@@ -31,12 +31,12 @@ function getHomeCopy(locale: Locale) {
         titleTop: "贴上你的首页。",
         titleBottom: "带着一套可执行的外链启动方案离开。",
         body:
-          "BacklinkPilot 会把一个普通产品网址变成可直接提交的产品档案，再把它送入真实的目录与 stealth 渠道，而不是让你去学习代理商式的复杂流程。",
+          "BacklinkPilot 会把一个普通产品网址变成可直接提交的产品档案，再把它送入真实目录提交流程和经过审核的后续渠道，而不是让你去学习代理商式的复杂流程。",
         primaryCta: "免费开始配置",
         secondaryCta: "查看价格",
         signals: [
           "500+ 经过筛选的目录",
-          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+          `今天默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道`,
           "首个产品可免费配置",
           "可选托管外联邮箱",
           "AI 辅助识别文案",
@@ -45,16 +45,16 @@ function getHomeCopy(locale: Locale) {
       panel: {
         eyebrow: "首个产品配置",
         title: "一个网址进来，一份可执行档案出来。",
-        live: "已上线",
+        live: "默认开放",
         homepageUrl: "首页网址",
         profile: "自动识别的产品档案",
         productName: "产品名称",
         description: "描述",
         profileBody:
-          "为独立开发者和小团队提供自动化外链配置，让目录分发、stealth 提交和启动期传播更容易落地。",
+          "为独立开发者和小团队提供自动化外链配置，让目录分发和审核后的后续渠道更容易落地。",
         readiness: "提交准备度",
         directoryNetwork: "目录网络",
-        stealthRoute: "Stealth 渠道",
+        stealthRoute: "审核后渠道",
         outreachLanes: "外联渠道",
         ready: "就绪",
         rollout: "推进中",
@@ -74,7 +74,7 @@ function getHomeCopy(locale: Locale) {
           {
             title: "围绕真实提交场景构建",
             detail:
-              "目录和 stealth 渠道今天就能跑，其他渠道明确标记为推进中，而不是假装已经全部上线。",
+              "目录提交流程今天就能跑，其他渠道明确标记为人工审核或推进中，而不是假装已经全部上线。",
           },
           {
             title: "为 maker 而不是 SEO 团队设计",
@@ -161,7 +161,7 @@ function getHomeCopy(locale: Locale) {
             step: "02",
             title: "确认产品定位",
             copy:
-              "修改自动识别出的名称和描述，然后决定什么时候升级，进入真实的目录与 stealth 提交流程。",
+              "修改自动识别出的名称和描述，然后决定什么时候升级，进入真实的目录提交流程。",
             aside: "不用从零写提交文案",
           },
           {
@@ -183,17 +183,17 @@ function getHomeCopy(locale: Locale) {
         lanes: "个渠道",
         ready: "就绪",
         soon: "即将推出",
-        roadmap: `总路线图：${TOTAL_CHANNEL_COUNT} 个渠道，今天已上线：${LIVE_CHANNEL_COUNT} 个。`,
+        roadmap: `总路线图：${TOTAL_CHANNEL_COUNT} 个渠道，今天默认开放：${DEFAULT_EXECUTION_CHANNEL_COUNT} 个。`,
         groups: [
           {
             label: "今天可跑",
             tone: "text-emerald-300",
-            items: ["目录提交", "Stealth 浏览器提交"],
+            items: ["目录提交"],
           },
           {
             label: "下一步推进",
             tone: "text-amber-200",
-            items: ["社区提交", "资源页外联", "社交分发", "编辑外联"],
+            items: ["资源页外联（人工审核）", "社交分发（人工审核）", "编辑外联（人工审核）"],
           },
         ],
       },
@@ -240,11 +240,11 @@ function getHomeCopy(locale: Locale) {
           },
           {
             q: "升级之后会发生什么？",
-            a: "你保存下来的产品档案会变成真实渠道的执行源。目录和 stealth 路线可以直接从这个档案开始跑。",
+            a: "你保存下来的产品档案会先变成真实目录提交流程的执行源，其他渠道只会在人工审核或 rollout 后进入。",
           },
           {
             q: "现在是不是所有渠道都上线了？",
-            a: `不是。今天上线了 ${LIVE_CHANNEL_COUNT} 个渠道，剩余 ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个会明确标记为推进中，不会过度承诺。`,
+            a: `不是。今天默认开放了 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道，剩余 ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个会明确标记为人工审核或推进中，不会过度承诺。`,
           },
         ],
       },
@@ -255,7 +255,7 @@ function getHomeCopy(locale: Locale) {
     metadata: {
       title: "BacklinkPilot — Autopilot for Your Backlinks",
       description:
-        "Paste your product URL, auto-detect site copy, and launch into real directory and stealth backlink workflows. Set up the first product for free, then pay for execution.",
+        "Paste your product URL, auto-detect site copy, and launch into real directory submission. Other paths stay behind manual review or rollout until the product earns it.",
     },
     nav: {
       product: "Product",
@@ -270,12 +270,12 @@ function getHomeCopy(locale: Locale) {
       titleTop: "Paste your homepage.",
       titleBottom: "Leave with a live backlink launch plan.",
       body:
-        "BacklinkPilot turns a plain product URL into a submission-ready profile, then routes it into real directory and stealth channels without making you learn agency-style workflows.",
+        "BacklinkPilot turns a plain product URL into a submission-ready profile, then routes it into real directory submission and reviewed follow-on paths without making you learn agency-style workflows.",
       primaryCta: "Start Free Setup",
       secondaryCta: "See Pricing",
       signals: [
         "500+ vetted directories",
-        `${LIVE_CHANNEL_COUNT} live channels today`,
+        `${DEFAULT_EXECUTION_CHANNEL_COUNT} default-open channels today`,
         "Free first-product setup",
         "Optional managed outreach inbox",
         "AI-assisted copy detection",
@@ -284,16 +284,16 @@ function getHomeCopy(locale: Locale) {
     panel: {
       eyebrow: "First-product setup",
       title: "One URL in, ready-to-run profile out.",
-      live: "Live now",
+      live: "Default-open",
       homepageUrl: "Homepage URL",
       profile: "Auto-detected profile",
       productName: "Product name",
       description: "Description",
       profileBody:
-        "Automated backlink setup for makers who want vetted directory reach, stealth unlocks, and a clean launch path.",
+        "Automated distribution setup for makers who want vetted directory reach, reviewed expansion paths, and a clean launch path.",
       readiness: "Submission readiness",
       directoryNetwork: "Directory network",
-      stealthRoute: "Stealth route",
+      stealthRoute: "Reviewed routes",
       outreachLanes: "Outreach lanes",
       ready: "Ready",
       rollout: "Rollout",
@@ -314,7 +314,7 @@ function getHomeCopy(locale: Locale) {
         {
           title: "Built for real submission work",
           detail:
-            "Directories and stealth routes are live now. The rest of the network is shown honestly as rollout, not fake coverage.",
+            "Directory submission is live now. The rest of the network is shown honestly as manual review or rollout, not fake coverage.",
         },
         {
           title: "Made for makers, not SEO teams",
@@ -401,7 +401,7 @@ function getHomeCopy(locale: Locale) {
           step: "02",
           title: "Confirm the positioning",
           copy:
-            "Edit the detected name and description, then choose when to upgrade into live directory and stealth submission lanes.",
+            "Edit the detected name and description, then choose when to upgrade into live directory submission.",
           aside: "No need to write submission copy from scratch",
         },
         {
@@ -423,21 +423,20 @@ function getHomeCopy(locale: Locale) {
       lanes: "lanes",
       ready: "Ready",
       soon: "Soon",
-      roadmap: `Total roadmap: ${TOTAL_CHANNEL_COUNT} channels. Live today: ${LIVE_CHANNEL_COUNT}.`,
+      roadmap: `Total roadmap: ${TOTAL_CHANNEL_COUNT} channels. Default-open today: ${DEFAULT_EXECUTION_CHANNEL_COUNT}.`,
       groups: [
         {
           label: "Live now",
           tone: "text-emerald-300",
-          items: ["Directory Submission", "Stealth Browser Submission"],
+          items: ["Directory Submission"],
         },
         {
           label: "Rolling out next",
           tone: "text-amber-200",
           items: [
-            "Community Submission",
-            "Resource Page Outreach",
-            "Social Distribution",
-            "Editorial Outreach",
+            "Resource Page Outreach (manual review)",
+            "Social Distribution (manual review)",
+            "Editorial Outreach (manual review)",
           ],
         },
       ],
@@ -485,11 +484,11 @@ function getHomeCopy(locale: Locale) {
         },
         {
           q: "What happens after I upgrade?",
-          a: "Your saved product profile becomes the source of truth for live channels. Directory and stealth routes can start from that profile immediately.",
+          a: "Your saved product profile becomes the source of truth for default execution. Directory Submission starts from that profile first, while other paths stay behind review or rollout.",
         },
         {
           q: "Is everything already live?",
-          a: `No. ${LIVE_CHANNEL_COUNT} channels are live today, and the remaining ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} are shown as rollout so the product does not over-promise.`,
+          a: `No. ${DEFAULT_EXECUTION_CHANNEL_COUNT} channels are default-open today, and the remaining ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} stay in manual review or rollout so the product does not over-promise.`,
         },
       ],
     },

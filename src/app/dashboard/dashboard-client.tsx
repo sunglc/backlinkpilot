@@ -7,10 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import LocaleToggle from "@/components/locale-toggle";
 import {
   CHANNELS,
-  LIVE_CHANNEL_COUNT,
+  DEFAULT_EXECUTION_CHANNEL_COUNT,
+  DEFAULT_EXECUTION_CHANNELS,
   TOTAL_CHANNEL_COUNT,
   type ChannelContract,
 } from "@/lib/execution-contract";
+import { getChannelLaunchGuardMessage } from "@/lib/distribution-safety";
 import { type Locale } from "@/lib/locale-config";
 import type {
   ProductProofPriority,
@@ -272,7 +274,7 @@ function getDashboardCopy(locale: Locale) {
           "贴上你的首页，系统会自动补齐产品文案，并把最适合先跑的渠道排出来。",
         freeTitle: "第一个产品已经就绪，下一步是解锁真实渠道。",
         freeBody:
-          "Starter 立刻解锁目录提交和 Stealth 两条真实渠道，直接从你现在的产品档案开始执行。",
+          "Starter 会先解锁目录提交这条默认执行渠道，其他渠道继续保持人工审核或推进中。",
         activeTitle: "现在有一条外链任务正在跑。",
         activeBody:
           "运行中的产品会持续刷新进度。你只需要盯住结果，不需要自己追每一个站点。",
@@ -414,9 +416,9 @@ function getDashboardCopy(locale: Locale) {
       },
       lanes: {
         liveTitle: "今天可执行",
-        liveBody: "已上线渠道会直接执行，推进中渠道会清楚标明需要哪个计划。",
+        liveBody: "默认开放渠道会直接执行，其他渠道会清楚标明需要人工审核或哪个计划。",
         roadmapTitle: "后续路线",
-        roadmapBody: `当前共 ${LIVE_CHANNEL_COUNT} 个已上线渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个后续渠道。`,
+        roadmapBody: `当前默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道，另有 ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道保持人工审核或推进中。`,
         included: "已包含",
         locked: "需升级",
         availableNow: "今天可跑",
@@ -466,7 +468,7 @@ function getDashboardCopy(locale: Locale) {
           },
           {
             title: "3. 准备好再升级",
-            copy: `当你准备启动真实提交时，再解锁 ${LIVE_CHANNEL_COUNT} 个已上线渠道。`,
+            copy: `当你准备启动默认自动执行时，再解锁 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个默认开放渠道。`,
           },
         ],
       },
@@ -835,7 +837,7 @@ function getDashboardCopy(locale: Locale) {
         "Paste your homepage, let the app fill the basics, and we will line up the best first lane automatically.",
       freeTitle: "Your first product is staged. The next step is unlocking live lanes.",
       freeBody:
-        "Starter unlocks Directory Submission and Stealth immediately, both running from the product profile you already saved.",
+        "Starter unlocks Directory Submission as the first default execution lane, while the rest stay behind manual review or rollout.",
       activeTitle: "A backlink launch is running right now.",
       activeBody:
         "Live products keep refreshing progress here. You should be watching outcomes, not manually tracking every site.",
@@ -984,7 +986,7 @@ function getDashboardCopy(locale: Locale) {
       liveBody:
         "Live lanes can execute immediately. Planned lanes stay visible so the upgrade path is obvious.",
       roadmapTitle: "Roadmap lanes",
-      roadmapBody: `There are ${LIVE_CHANNEL_COUNT} live lanes today and ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} roadmap lanes behind rollout.`,
+      roadmapBody: `There are ${DEFAULT_EXECUTION_CHANNEL_COUNT} default execution lanes today, and ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} lanes that stay in manual review or rollout.`,
       included: "Included",
       locked: "Upgrade",
       availableNow: "Runnable now",
@@ -1037,7 +1039,7 @@ function getDashboardCopy(locale: Locale) {
         },
         {
           title: "3. Upgrade when ready",
-          copy: `Unlock ${LIVE_CHANNEL_COUNT} live lanes when you want real submissions to begin.`,
+          copy: `Unlock ${DEFAULT_EXECUTION_CHANNEL_COUNT} default execution lanes when you want real submissions to begin.`,
         },
       ],
     },
@@ -1580,7 +1582,7 @@ function getTodayBriefCopy(locale: Locale) {
       actionSetupTitle: "先把第一个产品加进来",
       actionSetupBody: "先形成一个可执行档案，后面的启动、结果推进和托管邮箱才有落点。",
       actionUnlockTitle: "先解锁 Starter",
-      actionUnlockBody: "这是从配置态进入真实提交态的分水岭，目录和 stealth 会立刻开始产生结果信号。",
+      actionUnlockBody: "这是从配置态进入真实提交态的分水岭。目录提交会先开始产生真实结果信号，其他渠道继续走人工审核或推进中。",
       actionSyncTitle: "先刷新一下",
       actionSyncBody: "计划状态同步完以后，这一屏的推荐动作才会切换成真正可执行。",
       actionProofTitle: "先推进最接近结果的产品",
@@ -1623,7 +1625,7 @@ function getTodayBriefCopy(locale: Locale) {
     actionSetupTitle: "Add the first product first",
     actionSetupBody: "You need a real product profile before launch, result work, and managed inbox can become meaningful.",
     actionUnlockTitle: "Unlock Starter first",
-    actionUnlockBody: "This is the line between setup mode and real execution. Directory and Stealth start producing signal immediately.",
+    actionUnlockBody: "This is the line between setup mode and real execution. Directory Submission starts producing real signal first, while the rest stay in manual review or rollout.",
     actionSyncTitle: "Refresh once first",
     actionSyncBody: "The right move only becomes visible after the plan sync is complete.",
     actionProofTitle: "Push the product closest to visible results first",
@@ -3085,24 +3087,24 @@ function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
         desc: "提交到经过筛选的 AI 工具目录，自动完成表单填写。",
       },
       stealth: {
-        name: "Stealth 浏览器提交",
-        desc: "使用同一套目录网络，但带上 stealth 防护去通过更难的站点。",
+        name: "高风险浏览器路线",
+        desc: "高风险路线，已从默认客户执行里移除，不再作为标准自动渠道。",
       },
       community: {
-        name: "社区提交",
-        desc: "GitHub、Product Hunt 和开发者社区处于受控 rollout 中。",
+        name: "社区/平台路线",
+        desc: "开发者社区和平台型站点不作为默认自动推广渠道。",
       },
       resource_page: {
         name: "资源页外联",
-        desc: "编辑类资源页外联仍在受控 rollout 中。",
+        desc: "资源页外联需要先人工审核相关性，再决定是否推进。",
       },
       social: {
         name: "社交分发",
-        desc: "X 和 Pinterest 分发目前仍在客户 worker 之外执行。",
+        desc: "社交分发需要先人工判断场景和平台适配。",
       },
       editorial: {
         name: "编辑外联",
-        desc: "编辑外联渠道仍在受控 rollout 中。",
+        desc: "编辑外联保持人工审核，避免把普通分发做成打扰式推广。",
       },
     };
 
@@ -3408,8 +3410,10 @@ export default function DashboardClient({
   );
   const canAddProduct = isPaid || products.length < FREE_PREVIEW_PRODUCT_LIMIT;
   const isSingleProductMode = products.length === 1;
-  const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
-  const roadmapChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
+  const liveChannels = DEFAULT_EXECUTION_CHANNELS;
+  const roadmapChannels = CHANNELS.filter(
+    (channel) => !DEFAULT_EXECUTION_CHANNELS.some((item) => item.id === channel.id)
+  );
   const liveChannelsForPlan = isPaid
     ? liveChannels.filter((channel) => channel.plans.includes(currentPlan))
     : [];
@@ -4557,6 +4561,18 @@ export default function DashboardClient({
   }
 
   async function handleWorkspaceLaunch(productId: string, channelId: string) {
+    const channel = CHANNELS.find((item) => item.id === channelId);
+    const launchGuardMessage = getChannelLaunchGuardMessage({
+      locale,
+      channelId,
+      channelName: channel?.name || channelId,
+    });
+
+    if (launchGuardMessage) {
+      setWorkspaceActionError(launchGuardMessage);
+      return;
+    }
+
     const laneGuardMessage = workspaceLaneGuardMessage({
       lane: "submission",
       locale,
@@ -4574,16 +4590,17 @@ export default function DashboardClient({
     setLaunchingKey(actionKey);
     setWorkspaceActionError("");
 
-    const supabase = createClient();
-    const { error } = await supabase.from("submissions").insert({
-      user_id: user.id,
-      product_id: productId,
-      channel: channelId,
-      status: "queued",
+    const response = await fetch(`/api/products/${productId}/submissions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channelId }),
     });
 
-    if (error) {
-      setWorkspaceActionError(error.message || copy.errors.saveFailed);
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      setWorkspaceActionError(payload?.error || copy.errors.saveFailed);
       setLaunchingKey(null);
       return;
     }
@@ -7822,7 +7839,7 @@ export default function DashboardClient({
                                 {copy.productCard.channelsReady}
                               </div>
                               <div className="mt-2 text-2xl font-semibold text-white">
-                                {liveChannelsForPlan.length}/{LIVE_CHANNEL_COUNT}
+                                {liveChannelsForPlan.length}/{DEFAULT_EXECUTION_CHANNEL_COUNT}
                               </div>
                             </div>
                             <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">

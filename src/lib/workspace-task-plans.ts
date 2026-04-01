@@ -6,6 +6,7 @@ import {
   CHANNELS,
   type ChannelContract,
 } from "@/lib/execution-contract";
+import { isAutoExecutableChannel } from "@/lib/distribution-safety";
 import { runtimeConfig } from "@/lib/runtime-config";
 import type { OperationalInsights } from "@/lib/saas-operational-insights";
 import type {
@@ -186,7 +187,8 @@ function channelSortForPlan(plan: string, submissions: { channel: string }[]) {
   return CHANNELS.filter(
     (channel) =>
       channel.support_status === "live" &&
-      channel.plans.includes(effectivePlan)
+      channel.plans.includes(effectivePlan) &&
+      isAutoExecutableChannel(channel.id)
   ).sort((left, right) => {
     const leftUsed = submittedIds.has(left.id) ? 1 : 0;
     const rightUsed = submittedIds.has(right.id) ? 1 : 0;
@@ -199,11 +201,7 @@ function channelSortForPlan(plan: string, submissions: { channel: string }[]) {
   });
 }
 
-function economicsForChannels(channels: ChannelContract[]) {
-  if (channels.some((channel) => channel.id === "stealth")) {
-    return { successCost: 4, failureCost: 1 };
-  }
-
+function economicsForChannels(_channels: ChannelContract[]) {
   return { successCost: 3, failureCost: 1 };
 }
 
@@ -219,7 +217,9 @@ function liveExecutionChannelsForPlan(plan: string) {
 
   return CHANNELS.filter(
     (channel) =>
-      channel.support_status === "live" && channel.plans.includes(plan)
+      channel.support_status === "live" &&
+      channel.plans.includes(plan) &&
+      isAutoExecutableChannel(channel.id)
   );
 }
 
@@ -228,7 +228,9 @@ function recommendedCoverageChannels(args: {
   submissions: Array<{ channel: string }>;
   operationalInsights: OperationalInsights;
 }) {
-  const eligibleChannels = channelsForCurrentPlan(args.plan);
+  const eligibleChannels = channelsForCurrentPlan(args.plan).filter((channel) =>
+    isAutoExecutableChannel(channel.id)
+  );
   const prioritizedIds = args.operationalInsights.playbook.recommended_lane_ids || [];
   const prioritizedChannels = prioritizedIds
     .map((id) => eligibleChannels.find((channel) => channel.id === id))
@@ -258,17 +260,14 @@ function competitorCoverageBreakdown(args: {
   recommendedChannels: ChannelContract[];
   operationalInsights: OperationalInsights;
 }) {
-  const directoryIds = new Set(["directory", "stealth"]);
-  const outreachIds = new Set(["resource_page", "editorial", "community"]);
+  const directoryIds = new Set(["directory"]);
+  const outreachIds = new Set(["resource_page", "editorial", "social"]);
 
   const directories = args.recommendedChannels
     .filter((channel) => directoryIds.has(channel.id))
     .map((channel) => ({
       label: channel.name,
-      detail:
-        channel.id === "stealth"
-          ? "Use this after core directory coverage to push harder-to-reach sites."
-          : "Use this to match the broad directory footprint competitors usually rely on first.",
+      detail: "Use this to match the broad directory footprint competitors usually rely on first.",
     }));
 
   const outreachLaneIds = args.operationalInsights.playbook.recommended_lane_ids

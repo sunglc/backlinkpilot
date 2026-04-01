@@ -42,7 +42,7 @@ function getLoginCopy(locale: Locale, authIntent: AuthIntent) {
                 eyebrow: "继续推进你的外链分发",
                 heading: "让产品页更快进入真实外链执行。",
                 intro:
-                  "登录后，你可以继续配置产品、自动识别站点文案，并在准备好时启动真实的目录与 stealth 渠道。",
+                  "登录后，你可以继续配置产品、自动识别站点文案，并在准备好时启动真实目录提交流程。",
               };
 
     return {
@@ -95,7 +95,7 @@ function getLoginCopy(locale: Locale, authIntent: AuthIntent) {
               eyebrow: "Resume your backlink launch",
               heading: "Bring your product back into live submission flow.",
               intro:
-                "Sign in to continue product setup, auto-detect site copy, and unlock real directory and stealth execution when you are ready.",
+                "Sign in to continue product setup, auto-detect site copy, and unlock real directory submission when you are ready.",
             };
 
   return {

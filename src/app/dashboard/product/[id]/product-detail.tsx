@@ -7,10 +7,16 @@ import { useEffect, useState } from "react";
 import LocaleToggle from "@/components/locale-toggle";
 import {
   CHANNELS,
-  LIVE_CHANNEL_COUNT,
+  DEFAULT_EXECUTION_CHANNEL_COUNT,
+  DEFAULT_EXECUTION_CHANNELS,
   TOTAL_CHANNEL_COUNT,
   type ChannelContract,
 } from "@/lib/execution-contract";
+import {
+  getChannelLaunchGuardMessage,
+  getChannelSafetyPolicy,
+  isAutoExecutableChannel,
+} from "@/lib/distribution-safety";
 import type {
   ManagedInboxLiveActivity,
   ManagedInboxEventState,
@@ -18,7 +24,6 @@ import type {
   ManagedInboxRecord,
 } from "@/lib/managed-inbox-types";
 import type { Locale } from "@/lib/locale-config";
-import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
 interface SiteResult {
@@ -334,7 +339,7 @@ function getProductDetailCopy(locale: Locale) {
         eyebrow: "产品执行页",
         freeTitle: "产品已经配置好了，下一步是解锁真实提交。",
         freeBody:
-          "你已经完成了产品档案。升级后，目录和 stealth 两条已上线渠道可以直接从这份档案开始执行。",
+          "你已经完成了产品档案。升级后会先解锁目录提交这条默认执行渠道，其他路线继续保持人工审核或推进中。",
         readyTitle: "这个产品已经准备好进入真实执行。",
         readyBody:
           "产品信息、计划权限和已上线渠道都已经就绪。你现在可以直接启动首轮提交，而不是再去填更多后台字段。",
@@ -430,7 +435,7 @@ function getProductDetailCopy(locale: Locale) {
       },
       channels: {
         title: "执行渠道",
-        body: `当前共有 ${LIVE_CHANNEL_COUNT} 个已上线渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个推进中渠道。这里最重要的是先把可跑的路线真正跑起来。`,
+        body: `当前默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道，另有 ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道保持人工审核或推进中。这里最重要的是先把可跑的路线真正跑起来。`,
         liveEyebrow: "今天可执行",
         liveTitle: "先把已经能跑的路线真正跑起来。",
         roadmapEyebrow: "后续路线",
@@ -445,7 +450,7 @@ function getProductDetailCopy(locale: Locale) {
         starting: "启动中...",
         queued: "已进入队列",
         runningPrefix: "执行中",
-        ready: "已上线",
+        ready: "默认开放",
         planned: "推进中",
       },
       history: {
@@ -482,7 +487,7 @@ function getProductDetailCopy(locale: Locale) {
         nextMoveTitle: "下一步建议",
         nextMoveUnlockTitle: "先解锁真实渠道",
         nextMoveUnlockBody:
-          "你已经完成了配置。升级后，目录和 stealth 两条 live 渠道会直接用这份产品档案开始执行。",
+          "你已经完成了配置。升级后会先从目录提交流程开始，其他路线继续保持人工审核或推进中。",
         nextMoveWatchTitle: "先盯住当前这轮进度",
         nextMoveWatchBody:
           "现在最有价值的不是再点更多按钮，而是等这轮跑完，再基于结果做下一步判断。",
@@ -734,7 +739,7 @@ function getProductDetailCopy(locale: Locale) {
       eyebrow: "Product execution",
       freeTitle: "Your product is configured. The next step is unlocking live submissions.",
       freeBody:
-        "The product profile is already in place. Upgrade and the live directory and stealth lanes can execute directly from this saved profile.",
+        "The product profile is already in place. Upgrade and Directory Submission becomes the first default execution lane from this saved profile.",
       readyTitle: "This product is ready for live execution.",
       readyBody:
         "The profile, plan access, and live channels are all ready. You can start a real submission run now instead of filling more backend forms.",
@@ -830,7 +835,7 @@ function getProductDetailCopy(locale: Locale) {
     },
     channels: {
       title: "Execution lanes",
-      body: `There are ${LIVE_CHANNEL_COUNT} live lanes today and ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} lanes still rolling out. The main job here is to get the runnable lanes moving.`,
+      body: `There are ${DEFAULT_EXECUTION_CHANNEL_COUNT} default execution lanes today, and ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} lanes that stay in manual review or rollout. The main job here is to get the runnable lanes moving.`,
       liveEyebrow: "Live now",
       liveTitle: "Launch the lanes that already work.",
       roadmapEyebrow: "Roadmap",
@@ -847,7 +852,7 @@ function getProductDetailCopy(locale: Locale) {
       starting: "Starting...",
       queued: "Queued",
       runningPrefix: "Running",
-      ready: "Live",
+      ready: "Ready now",
       planned: "Planned",
     },
     history: {
@@ -885,7 +890,7 @@ function getProductDetailCopy(locale: Locale) {
       nextMoveTitle: "Recommended next move",
       nextMoveUnlockTitle: "Unlock live lanes first",
       nextMoveUnlockBody:
-        "You already did the setup work. Upgrade and Directory Submission plus Stealth can execute directly from this profile.",
+        "You already did the setup work. Upgrade and Directory Submission becomes the first default execution lane from this profile.",
       nextMoveWatchTitle: "Watch this run finish first",
       nextMoveWatchBody:
         "The valuable move right now is not clicking more buttons. Let this run finish, then act on the result.",
@@ -1137,24 +1142,24 @@ function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
         desc: "提交到经过筛选的 AI 工具目录，自动完成表单填写。",
       },
       stealth: {
-        name: "Stealth 浏览器提交",
-        desc: "使用同一套目录网络，但带上 stealth 防护去通过更难的站点。",
+        name: "高风险浏览器路线",
+        desc: "高风险路线，已从默认客户执行里移除，不再作为标准自动渠道。",
       },
       community: {
-        name: "社区提交",
-        desc: "GitHub、Product Hunt 和开发者社区处于受控 rollout 中。",
+        name: "社区/平台路线",
+        desc: "开发者社区和平台型站点不作为默认自动推广渠道。",
       },
       resource_page: {
         name: "资源页外联",
-        desc: "编辑类资源页外联仍在受控 rollout 中。",
+        desc: "资源页外联需要先人工审核相关性，再决定是否推进。",
       },
       social: {
         name: "社交分发",
-        desc: "X 和 Pinterest 分发目前仍在客户 worker 之外执行。",
+        desc: "社交分发需要先人工判断场景和平台适配。",
       },
       editorial: {
         name: "编辑外联",
-        desc: "编辑外联渠道仍在受控 rollout 中。",
+        desc: "编辑外联保持人工审核，避免把普通分发做成打扰式推广。",
       },
     };
 
@@ -1234,20 +1239,62 @@ function statusBadge(status: string) {
   return styles[status] || "bg-stone-800 text-stone-300";
 }
 
-function supportBadge(status: ChannelContract["support_status"], locale: Locale) {
-  if (status === "live") {
+function supportBadge(channel: ChannelContract, locale: Locale) {
+  const policy = getChannelSafetyPolicy(channel.id);
+
+  if (policy.executionMode === "auto") {
     return (
       <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-emerald-200">
-        {locale === "zh" ? "已上线" : "Live"}
+        {locale === "zh" ? "默认开放" : "Ready now"}
+      </span>
+    );
+  }
+
+  if (policy.executionMode === "manual_review") {
+    return (
+      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-amber-100">
+        {locale === "zh" ? "人工审核" : "Manual review"}
       </span>
     );
   }
 
   return (
-    <span className="rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-stone-400">
-      {locale === "zh" ? "推进中" : "Planned"}
+    <span className="rounded-full border border-red-300/15 bg-red-300/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-red-200">
+      {locale === "zh" ? "默认关闭" : "Not default"}
     </span>
   );
+}
+
+function roadmapLaneMessage(
+  channel: ChannelContract,
+  available: boolean,
+  locale: Locale
+) {
+  const policy = getChannelSafetyPolicy(channel.id);
+
+  if (policy.executionMode === "disabled") {
+    return locale === "zh"
+      ? "这条路线已从默认客户执行里移除，不再作为标准自动渠道对外提供。"
+      : "This lane is removed from default customer execution and is no longer offered as a standard automatic route.";
+  }
+
+  if (policy.executionMode === "manual_review") {
+    return available
+      ? locale === "zh"
+        ? "这条路线不会默认自动执行。即使计划已包含，也要先人工审核相关性。"
+        : "This lane does not run automatically by default. Even when the plan includes it, it still goes through manual relevance review first."
+      : locale === "zh"
+        ? "升级后也不会直接自动执行，仍要先人工审核相关性。"
+        : "Upgrading does not make this lane run automatically. It still needs manual relevance review first.";
+  }
+
+  return available
+    ? locale === "zh"
+      ? "这条路线已在你的计划内，可以作为默认执行路径使用。"
+      : "This lane is already included in your plan and can run as a default execution path."
+    : locale === "zh"
+      ? "升级后可用。"
+      : "Upgrade to unlock this lane.";
 }
 
 function minimumPlanForChannel(channel: ChannelContract) {
@@ -1735,16 +1782,29 @@ export default function ProductDetail({
     setSubmitting(channelId);
     setActionError("");
 
-    const supabase = createClient();
-    const { error } = await supabase.from("submissions").insert({
-      user_id: user.id,
-      product_id: product.id,
-      channel: channelId,
-      status: "queued",
+    const channel = CHANNELS.find((item) => item.id === channelId);
+    const launchGuardMessage = getChannelLaunchGuardMessage({
+      locale,
+      channelId,
+      channelName: channel?.name || channelId,
     });
 
-    if (error) {
-      setActionError(error.message || copy.errors.startFailed);
+    if (launchGuardMessage) {
+      setActionError(launchGuardMessage);
+      return;
+    }
+
+    const response = await fetch(`/api/products/${product.id}/submissions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channelId }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      setActionError(payload?.error || copy.errors.startFailed);
       setSubmitting(null);
       return;
     }
@@ -1841,8 +1901,10 @@ export default function ProductDetail({
     });
   }
 
-  const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
-  const plannedChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
+  const liveChannels = DEFAULT_EXECUTION_CHANNELS;
+  const plannedChannels = CHANNELS.filter(
+    (channel) => !DEFAULT_EXECUTION_CHANNELS.some((item) => item.id === channel.id)
+  );
   const managedInboxEligible = plan === "growth" || plan === "scale";
   const availableLiveChannels = liveChannels.filter((channel) => channel.plans.includes(plan));
   const currentPlanIndex = PLAN_ORDER.indexOf(
@@ -1896,8 +1958,8 @@ export default function ProductDetail({
             channel.plans.includes(laterPlan) && !channel.plans.includes(nextPlan)
         )
       : [];
-  const nextPlanLiveUnlocks = nextPlanUnlocks.filter(
-    (channel) => channel.support_status === "live"
+  const nextPlanLiveUnlocks = nextPlanUnlocks.filter((channel) =>
+    isAutoExecutableChannel(channel.id)
   );
   const nextPlanPlannedUnlocks = nextPlanUnlocks.filter(
     (channel) => channel.support_status !== "live"
@@ -2088,7 +2150,7 @@ export default function ProductDetail({
   const nextPlanItems = nextPlanUnlocks.map((channel) => {
     const channelName = getLocalizedChannel(channel, locale).name;
     const availabilityLabel =
-      channel.support_status === "live"
+      isAutoExecutableChannel(channel.id)
         ? copy.expansion.runnableNow
         : copy.expansion.rolloutQueue;
 
@@ -2097,7 +2159,7 @@ export default function ProductDetail({
   const laterPlanItems = laterPlanUnlocks.map((channel) => {
     const channelName = getLocalizedChannel(channel, locale).name;
     const availabilityLabel =
-      channel.support_status === "live"
+      isAutoExecutableChannel(channel.id)
         ? copy.expansion.runnableNow
         : copy.expansion.rolloutQueue;
 
@@ -2600,7 +2662,7 @@ export default function ProductDetail({
                 },
                 {
                   label: copy.hero.stats.liveChannels,
-                  value: `${availableLiveChannels.length}/${LIVE_CHANNEL_COUNT}`,
+                  value: `${availableLiveChannels.length}/${DEFAULT_EXECUTION_CHANNEL_COUNT}`,
                   tone: "text-emerald-200",
                 },
                 {
@@ -4291,7 +4353,7 @@ export default function ProductDetail({
                         {localizedChannel.name}
                       </h3>
                     </div>
-                    {supportBadge(channel.support_status, locale)}
+                    {supportBadge(channel, locale)}
                   </div>
 
                   <p className="mt-4 text-sm leading-7 text-stone-400">
@@ -4386,7 +4448,7 @@ export default function ProductDetail({
                           {localizedChannel.name}
                         </h3>
                       </div>
-                      {supportBadge(channel.support_status, locale)}
+                      {supportBadge(channel, locale)}
                     </div>
 
                     <p className="mt-4 text-sm leading-7 text-stone-400">
@@ -4405,7 +4467,7 @@ export default function ProductDetail({
                     </div>
 
                     <div className="mt-6 rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-stone-400">
-                      {available ? copy.channels.includedWhenLive : copy.channels.rolloutOnly}
+                      {roadmapLaneMessage(channel, available, locale)}
                     </div>
                   </div>
                 );

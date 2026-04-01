@@ -18,7 +18,7 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "BacklinkPilot",
   description:
-    "Automatically submit your product to vetted directories with AI-powered form filling and stealth browser technology. Additional outreach channels roll out in phases. From $29/month.",
+    "Submit your product to vetted directories with AI-assisted form filling, then expand into reviewed distribution paths as the product earns trust. From $29/month.",
   keywords: [
     "backlink automation",
     "directory submission",

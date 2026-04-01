@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import LocaleToggle from "@/components/locale-toggle";
 import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
-import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
+import { DEFAULT_EXECUTION_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
 import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
@@ -15,7 +15,7 @@ function getPricingCopy(locale: Locale) {
       metadata: {
         title: "价格 - BacklinkPilot",
         description:
-          "BacklinkPilot 的消费级外链自动化定价。先免费配置首个产品，再按真实目录与 stealth 提交执行量升级。",
+          "BacklinkPilot 的消费级分发定价。先免费配置首个产品，再按真实目录提交与审核后的后续渠道升级。",
       },
       nav: {
         product: "产品",
@@ -32,7 +32,7 @@ function getPricingCopy(locale: Locale) {
           "定价应该像一个清晰的解锁点，而不是一道墙。现在你可以先免费添加首个产品，再根据自己想跑的真实提交量选择合适计划。",
         summary: [
           { label: "免费配置", value: "1 个产品" },
-          { label: "今天已上线", value: `${LIVE_CHANNEL_COUNT} 个渠道` },
+          { label: "今天默认开放", value: `${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道` },
           { label: "起步价", value: "$29 / 月" },
         ],
       },
@@ -56,7 +56,7 @@ function getPricingCopy(locale: Locale) {
             name: "入门版",
             price: "$29",
             body:
-              "当你准备让第一个产品进入真实分发，就解锁目录和 stealth 两条 live 渠道。",
+              "当你准备让第一个产品进入真实分发，就先解锁目录提交流程这条默认执行路径。",
             cta: "解锁入门版",
             href: "/api/stripe/checkout?plan=starter",
           },
@@ -92,7 +92,7 @@ function getPricingCopy(locale: Locale) {
           {
             title: "我已经有一个明确要推的产品",
             body:
-              "直接上入门版，把目录和 stealth 跑起来。这个阶段最重要的是先获得第一轮真实提交和结果信号。",
+              "直接上入门版，把目录提交流程跑起来。这个阶段最重要的是先获得第一轮真实提交和结果信号。",
           },
           {
             title: "我已经把外链分发当成活跃增长动作",
@@ -177,7 +177,7 @@ function getPricingCopy(locale: Locale) {
           "1 个产品",
           "100 次提交 / 月",
           "目录提交",
-          "Stealth 浏览器提交",
+          "审核后扩展渠道",
           "使用你自己的外联邮箱",
           "基础报告",
         ],
@@ -195,8 +195,8 @@ function getPricingCopy(locale: Locale) {
         features: [
           "3 个产品",
           "500 次提交 / 月",
-          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
-          `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个渠道推进中`,
+          `今天默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道`,
+          `${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道推进中`,
           "可加购托管外联邮箱（pilot）",
           "优先支持",
         ],
@@ -213,7 +213,7 @@ function getPricingCopy(locale: Locale) {
         features: [
           "10 个产品",
           "不限提交量",
-          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
+          `今天默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道`,
           "自定义目录处理",
           "托管外联邮箱优先 pilot",
           "API 访问",
@@ -229,7 +229,7 @@ function getPricingCopy(locale: Locale) {
         columns: ["变化点", "入门版", "增长版", "规模版"],
         rows: [
           ["付费前可先免费配置", "是", "是", "是"],
-          ["已上线提交渠道", "2", "2", "2"],
+          ["默认开放渠道", `${DEFAULT_EXECUTION_CHANNEL_COUNT}`, `${DEFAULT_EXECUTION_CHANNEL_COUNT}`, `${DEFAULT_EXECUTION_CHANNEL_COUNT}`],
           ["包含产品数", "1", "3", "10"],
           ["月度提交容量", "100", "500", "不限"],
           ["核心软件层", "包含", "包含", "包含"],
@@ -249,7 +249,7 @@ function getPricingCopy(locale: Locale) {
           },
           {
             q: "升级之后到底会发生什么？",
-            a: "升级会把你保存的产品档案变成真实提交的执行源，目录和 stealth 渠道都可以从它直接开始跑。",
+            a: "升级会把你保存的产品档案变成真实提交的执行源。目录提交流程会先从它开始跑，其他渠道仍要经过人工审核或 rollout。",
           },
           {
             q: "为什么“平台代发”会是一个价值点？",
@@ -280,7 +280,7 @@ function getPricingCopy(locale: Locale) {
     metadata: {
       title: "Pricing — BacklinkPilot",
       description:
-        "Consumer-friendly pricing for backlink automation. Set up your first product for free, then unlock live directory and stealth submission plans from $29/month.",
+        "Consumer-friendly pricing for compliant distribution. Set up your first product for free, then unlock live directory submission and reviewed expansion paths from $29/month.",
     },
     nav: {
       product: "Product",
@@ -297,7 +297,7 @@ function getPricingCopy(locale: Locale) {
         "Pricing should feel like a clear unlock, not a wall. The product now lets you add your first product for free, then choose the plan that matches the amount of real submission work you want to run.",
       summary: [
         { label: "Free setup", value: "1 product" },
-        { label: "Live today", value: `${LIVE_CHANNEL_COUNT} channels` },
+        { label: "Default-open today", value: `${DEFAULT_EXECUTION_CHANNEL_COUNT} channels` },
         { label: "Starts at", value: "$29 / month" },
       ],
     },
@@ -321,7 +321,7 @@ function getPricingCopy(locale: Locale) {
           name: "Starter",
           price: "$29",
           body:
-            "When you are ready to move the first product into real distribution, unlock Directory Submission and Stealth.",
+            "When you are ready to move the first product into real distribution, unlock Directory Submission first.",
           cta: "Unlock Starter",
           href: "/api/stripe/checkout?plan=starter",
         },
@@ -357,7 +357,7 @@ function getPricingCopy(locale: Locale) {
         {
           title: "I already have one product I want to push",
           body:
-            "Go straight to Starter and get Directory plus Stealth moving. The real job at this stage is getting the first live result signal.",
+            "Go straight to Starter and get Directory Submission moving. The real job at this stage is getting the first live result signal.",
         },
         {
           title: "Backlink distribution is already an active growth lane for me",
@@ -442,7 +442,7 @@ function getPricingCopy(locale: Locale) {
           "1 product",
           "100 submissions / month",
           "Directory Submission",
-          "Stealth Browser Submission",
+          "Reviewed expansion paths",
           "Use your own outreach inbox",
           "Basic reporting",
         ],
@@ -460,8 +460,8 @@ function getPricingCopy(locale: Locale) {
         features: [
           "3 products",
           "500 submissions / month",
-          `${LIVE_CHANNEL_COUNT} live channels today`,
-          `${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} channels in rollout`,
+          `${DEFAULT_EXECUTION_CHANNEL_COUNT} default-open channels today`,
+          `${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} channels in manual review or rollout`,
           "Optional managed outreach inbox (pilot)",
           "Priority support",
         ],
@@ -478,7 +478,7 @@ function getPricingCopy(locale: Locale) {
         features: [
           "10 products",
           "Unlimited submissions",
-          `${LIVE_CHANNEL_COUNT} live channels today`,
+          `${DEFAULT_EXECUTION_CHANNEL_COUNT} default-open channels today`,
           "Custom directory handling",
           "Managed outreach inbox priority pilot",
           "API access",
@@ -514,7 +514,7 @@ function getPricingCopy(locale: Locale) {
         },
         {
           q: "What actually changes when I upgrade?",
-          a: "Upgrade turns your saved product profile into a live submission source. Directory and stealth routes can then run from the product you already configured.",
+          a: "Upgrade turns your saved product profile into a live submission source. Directory Submission runs first, while the rest stay behind manual review or rollout.",
         },
         {
           q: "Why is platform-managed sending a value point?",
