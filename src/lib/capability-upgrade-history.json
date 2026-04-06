@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-04-06 10:11:36",
+  "history": [
+    {
+      "generated_at": "2026-04-06 10:11:36",
+      "capability_fingerprint": "e353d60233c392721f76d396f160eeb694a47326772af41a95f13cabd5208eda",
+      "product_version": "0.6.0-dev",
+      "release_channel": "dev",
+      "latest_state_snapshot_id": "backlinks-20260401-190909",
+      "latest_state_snapshot_at": "2026-04-01 19:09:09",
+      "capabilities_changed": false,
+      "added_capability_ids": [],
+      "removed_capability_ids": [],
+      "requires_saas_review": false,
+      "current_focus": "English is the only proven multilingual discovery lane today; Japanese is an anchor buildout lane, and target-language adaptive copy is now a real capability.",
+      "proven_languages": [
+        "en"
+      ],
+      "buildout_languages": [
+        "ja",
+        "es",
+        "ar",
+        "ko",
+        "pt",
+        "de",
+        "fr",
+        "ru",
+        "tr",
+        "id",
+        "hi"
+      ],
+      "watchlist_languages": [
+        "he",
+        "fa",
+        "th",
+        "vi",
+        "it",
+        "pl",
+        "nl"
+      ],
+      "product_surface_ids": [
+        "dashboard_home",
+        "product_detail",
+        "ops_status",
+        "sales_claims",
+        "localized_copy_claims",
+        "market_strategy_explainer"
+      ],
+      "copy_impact_summary": "Describe multilingual discovery honestly: only proven lanes should be pitched as live supply, and buildout/watchlist lanes should be framed as active expansion work."
+    }
+  ]
+}

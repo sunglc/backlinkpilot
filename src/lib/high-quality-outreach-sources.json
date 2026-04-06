@@ -1,0 +1,1320 @@
+{
+  "generated_at": "2026-04-06 01:37:07",
+  "library_version": "2026-03-27",
+  "source_count": 54,
+  "root_domain_count": 53,
+  "segments": {
+    "ecommerce_visuals": 17,
+    "general_ai_roundup": 5,
+    "image_generation": 10,
+    "marketing_social": 11,
+    "video_generation": 11
+  },
+  "sources": [
+    {
+      "source_id": "rpo-20260325-054",
+      "root_domain": "pcmag.com",
+      "article_url": "https://uk.pcmag.com/ai/162243/the-best-ai-image-generators-for-2026",
+      "article_title": "The Best AI Image Generators for 2026 - PCMag UK",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 10,
+      "contact_method": "email_direct",
+      "primary_contact": "stephen_li@ziffdavis.com",
+      "contact_target": "stephen_li@ziffdavis.com",
+      "known_recipients": [
+        "stephen_li@ziffdavis.com"
+      ],
+      "historical_email_recipients": [
+        "stephen_li@ziffdavis.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:28:05",
+      "last_sent_at": "2026-03-28 21:07:36",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "High-authority image-generation roundup; strong editorial value if inclusion lands.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-054.md"
+    },
+    {
+      "source_id": "rpo-20260325-055",
+      "root_domain": "ilounge.com",
+      "article_url": "https://www.ilounge.com/articles/best-ai-image-generators-2026-the-7-top-tools-for-every-creator",
+      "article_title": "Best AI Image Generators 2026: The 7 Top Tools for Every Creator",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 10,
+      "contact_method": "email_direct",
+      "primary_contact": "support@ilounge.com",
+      "contact_target": "support@ilounge.com",
+      "known_recipients": [
+        "support@ilounge.com"
+      ],
+      "historical_email_recipients": [
+        "support@ilounge.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:28:17",
+      "last_sent_at": "2026-03-28 21:07:40",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "Creator-focused roundup aligned with PopcornAI creator workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-055.md"
+    },
+    {
+      "source_id": "rpo-20260325-056",
+      "root_domain": "flonnect.com",
+      "article_url": "https://flonnect.com/blog/best-ai-image-generators/",
+      "article_title": "Best AI Image Generators | Free & Premium Tools Compared 2026",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 10,
+      "contact_method": "email_direct",
+      "primary_contact": "support@flonnect.com",
+      "contact_target": "support@flonnect.com",
+      "known_recipients": [
+        "support@flonnect.com"
+      ],
+      "historical_email_recipients": [
+        "support@flonnect.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:28:17",
+      "last_sent_at": "2026-03-28 21:07:45",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "Detailed image-generator comparison; PopcornAI fits multimodal creative workflow angle.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-056.md"
+    },
+    {
+      "source_id": "rpo-20260322-019",
+      "root_domain": "whytryai.com",
+      "article_url": "https://www.whytryai.com/p/free-ai-image-to-video-tools-tested",
+      "article_title": "20 Free AI Image-To-Video Tools: Tested & Ranked",
+      "source_type": "comparison",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "whytryai@substack.com",
+      "contact_target": "whytryai@substack.com",
+      "known_recipients": [
+        "whytryai@substack.com"
+      ],
+      "historical_email_recipients": [
+        "whytryai@substack.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 01:58:59",
+      "last_sent_at": "2026-03-28 21:07:53",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "This is an excellent fit - the article specifically tests and ranks free AI image-to-video tools, which directly matches PopcornAI's core functionality. The author has done hands-on testing and compar",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-019.md"
+    },
+    {
+      "source_id": "rpo-20260322-020",
+      "root_domain": "beebom.com",
+      "article_url": "https://beebom.com/best-image-to-video-ai/",
+      "article_title": "We Tested the Best AI Image to Video Generators in 2026 - Beebom",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "contact@beebom.com",
+      "contact_target": "contact@beebom.com",
+      "known_recipients": [
+        "contact@beebom.com"
+      ],
+      "historical_email_recipients": [
+        "contact@beebom.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 01:59:01",
+      "last_sent_at": "2026-03-28 21:07:58",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "This is an excellent fit - it's specifically about AI image-to-video generators (PopcornAI's core feature), appears to be recently updated (2026 date suggests regular updates), and is from a reputable",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-020.md"
+    },
+    {
+      "source_id": "rpo-20260322-023",
+      "root_domain": "anangsha.me",
+      "article_url": "https://www.anangsha.me/best-ai-product-photography-tools-for-shopify-and-amazon-sellers-2026/",
+      "article_title": "Best AI Product Photography Tools for Shopify and Amazon Sellers ...",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "anangsha@pm.me",
+      "contact_target": "anangsha@pm.me",
+      "known_recipients": [
+        "anangsha@anangsha.me",
+        "anangsha@pm.me"
+      ],
+      "historical_email_recipients": [
+        "anangsha@anangsha.me",
+        "anangsha@pm.me"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 02:03:15",
+      "last_sent_at": "2026-03-28 21:08:06",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "This is an excellent fit - the article specifically covers AI product photography tools for ecommerce sellers, which directly aligns with PopcornAI's ecommerce creative capabilities. PopcornAI's text-",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-023.md"
+    },
+    {
+      "source_id": "rpo-20260325-057",
+      "root_domain": "pixelstoplans.com",
+      "article_url": "https://pixelstoplans.com/the-best-ai-image-generators-for-architecture-2026/",
+      "article_title": "The Best AI Image Generators for Architecture in 2026 - Pixels to Plans",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "acanthus@pixelstoplans.com",
+      "contact_target": "acanthus@pixelstoplans.com",
+      "known_recipients": [
+        "acanthus@pixelstoplans.com"
+      ],
+      "historical_email_recipients": [
+        "acanthus@pixelstoplans.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:28:17",
+      "last_sent_at": "2026-03-28 21:08:14",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "Niche but credible image-generation roundup with strong creative-use overlap.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-057.md"
+    },
+    {
+      "source_id": "rpo-20260325-058",
+      "root_domain": "extuitive.com",
+      "article_url": "https://extuitive.com/articles/top-ai-video-editing-tools-for-facebook-ads",
+      "article_title": "Top AI Video Tools for Facebook Ads in 2026 - Extuitive",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "support@extuitive.com",
+      "contact_target": "support@extuitive.com",
+      "known_recipients": [
+        "support@extuitive.com"
+      ],
+      "historical_email_recipients": [
+        "support@extuitive.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:30:23",
+      "last_sent_at": "2026-03-28 21:08:18",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Paid-social video tooling roundup with strong ad-creative overlap to PopcornAI.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-058.md"
+    },
+    {
+      "source_id": "rpo-20260322-031",
+      "root_domain": "com.cn",
+      "article_url": "https://k.sina.com.cn/article_7879848900_1d5acf3c401902tgou.html?from=tech",
+      "article_title": "2025年十大最佳AI 视频生成器(测试与排名) - 新浪",
+      "source_type": "roundup",
+      "language": "zh",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "kf@sina.net",
+      "contact_target": "kf@sina.net",
+      "known_recipients": [
+        "kf@sina.net"
+      ],
+      "historical_email_recipients": [
+        "kf@sina.net"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 09:25:48",
+      "last_sent_at": "2026-03-28 21:10:08",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "This is a 2025 roundup of the top 10 AI video generators with testing and rankings - exactly PopcornAI's category. The article appears current (2025), is on a major Chinese platform (Sina), and specif",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-031.md"
+    },
+    {
+      "source_id": "rpo-20260322-005",
+      "root_domain": "zoho.com",
+      "article_url": "https://www.zoho.com/commerce/academy/ai-tools-for-ecommerce-business.html",
+      "article_title": "10 must-have AI tools for ecommerce businesses in 2026 - Zoho",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "tetsuhiro.iwami@zohocorp.com",
+      "contact_target": "tetsuhiro.iwami@zohocorp.com",
+      "known_recipients": [
+        "tetsuhiro.iwami@zohocorp.com"
+      ],
+      "historical_email_recipients": [
+        "tetsuhiro.iwami@zohocorp.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 09:26:09",
+      "last_sent_at": "2026-03-28 21:13:43",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "This is an ideal fit - it's a curated list of AI tools specifically for ecommerce businesses, which directly matches PopcornAI's target market. The article appears to categorize tools by use case, and",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-005.md"
+    },
+    {
+      "source_id": "rpo-20260322-046",
+      "root_domain": "zhihu.com",
+      "article_url": "https://zhuanlan.zhihu.com/p/624392392",
+      "article_title": "值得珍藏| 2025 AI视频生成工具汇总，包括国内外10多种免费的Ai ...",
+      "source_type": "roundup",
+      "language": "zh",
+      "fit_score": 9,
+      "contact_method": "platform_native_comment_or_dm",
+      "primary_contact": "",
+      "contact_target": "https://zhuanlan.zhihu.com/p/624392392",
+      "known_recipients": [],
+      "historical_email_recipients": [
+        "2d8d764432cc4f6fb3bc78ab9528299d@crash2.zhihu.com",
+        "org@zhihu.com"
+      ],
+      "outreach_status": "needs_platform_native_outreach",
+      "first_sent_at": "2026-03-26 02:00:59",
+      "last_sent_at": "2026-03-28 21:13:53",
+      "reuse_segment": "general_ai_roundup",
+      "reuse_notes": "This is a comprehensive 2025 AI video generation tools roundup that directly matches PopcornAI's core functionality. The article appears to cover 10+ free AI video tools and mentions Synthesia as #1,",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-046.md"
+    },
+    {
+      "source_id": "rpo-20260326-084",
+      "root_domain": "atlascloud.ai",
+      "article_url": "https://www.atlascloud.ai/blog/guides/free-image-to-video-ai-tools-2026-create-stunning-motion-graphics-without-a-subscription",
+      "article_title": "Free Image to Video AI Tools 2026: Create Stunning ...",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "sales@atlascloud.ai",
+      "contact_target": "sales@atlascloud.ai",
+      "known_recipients": [
+        "sales@atlascloud.ai"
+      ],
+      "historical_email_recipients": [
+        "sales@atlascloud.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:27:08",
+      "last_sent_at": "2026-03-28 21:13:58",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Heuristic fallback after LLM failure; strong_hits=3, positive_hits=6.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260326-084.md"
+    },
+    {
+      "source_id": "rpo-20260327-025",
+      "root_domain": "cnet.com",
+      "article_url": "https://www.cnet.com/tech/services-and-software/best-ai-video-generators/",
+      "article_title": "We Tested All the AI Video Generators So You Don't Have To",
+      "source_type": "review",
+      "language": "en",
+      "fit_score": 9,
+      "contact_method": "email_direct",
+      "primary_contact": "aal-heeti@cnet.com",
+      "contact_target": "aal-heeti@cnet.com",
+      "known_recipients": [
+        "aal-heeti@cnet.com"
+      ],
+      "historical_email_recipients": [
+        "aal-heeti@cnet.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:23:11",
+      "last_sent_at": "2026-03-28 21:46:19",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Strong editorial review of AI video generators with direct fit to PopcornAI video workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-025.md"
+    },
+    {
+      "source_id": "rpo-20260327-016",
+      "root_domain": "wearview.co",
+      "article_url": "https://www.wearview.co/blog/best-ai-tools-for-ecommerce",
+      "article_title": "The Best AI Tools for Ecommerce Driving Growth in 2026 - WearView",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "contact@wearview.ai",
+      "contact_target": "contact@wearview.ai",
+      "known_recipients": [
+        "contact@wearview.ai"
+      ],
+      "historical_email_recipients": [
+        "contact@wearview.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:39",
+      "last_sent_at": "2026-03-27 13:18:39",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Ecommerce AI roundup focused on growth tooling; strong match for image and motion creative workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-016.md"
+    },
+    {
+      "source_id": "rpo-20260327-027",
+      "root_domain": "anangsha.substack.com",
+      "article_url": "https://anangsha.substack.com/p/i-tested-every-ai-video-generator",
+      "article_title": "I Tested Every AI Video Generator in 2026 — Here's What Stood Out",
+      "source_type": "review",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "anangsha@baos.pub",
+      "contact_target": "anangsha@baos.pub",
+      "known_recipients": [
+        "anangsha@baos.pub"
+      ],
+      "historical_email_recipients": [
+        "anangsha@baos.pub"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:23:11",
+      "last_sent_at": "2026-03-27 13:23:11",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "First-hand editorial testing piece about AI video generators.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-027.md"
+    },
+    {
+      "source_id": "rpo-20260326-085",
+      "root_domain": "bigvu.tv",
+      "article_url": "https://bigvu.tv/blog/best-free-ai-image-video-generators-2026-tested-ranked/",
+      "article_title": "Best Free AI Image to Video Generators in 2026",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "support@bigvu.tv",
+      "contact_target": "support@bigvu.tv",
+      "known_recipients": [
+        "support@bigvu.tv"
+      ],
+      "historical_email_recipients": [
+        "support@bigvu.tv"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-28 20:20:24",
+      "last_sent_at": "2026-03-28 20:20:54",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Heuristic fallback after LLM failure; strong_hits=2, positive_hits=9.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260326-085.md"
+    },
+    {
+      "source_id": "rpo-20260322-032",
+      "root_domain": "icloudnews.net",
+      "article_url": "https://www.icloudnews.net/a/108350.html",
+      "article_title": "2025 AI视频大模型排行：可灵登顶，创作革命来袭 - 人工智能",
+      "source_type": "roundup",
+      "language": "zh",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "adv@icloudnews.net",
+      "contact_target": "adv@icloudnews.net",
+      "known_recipients": [
+        "adv@icloudnews.net",
+        "news@icloudnews.net"
+      ],
+      "historical_email_recipients": [
+        "adv@icloudnews.net",
+        "news@icloudnews.net"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 02:00:52",
+      "last_sent_at": "2026-03-28 21:08:26",
+      "reuse_segment": "general_ai_roundup",
+      "reuse_notes": "This is a 2025 AI video model ranking article that appears to list top AI video generation tools based on technical maturity, commercialization, and user reviews. PopcornAI fits perfectly as an AI vid",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-032.md"
+    },
+    {
+      "source_id": "rpo-20260322-038",
+      "root_domain": "sohu.com",
+      "article_url": "https://www.sohu.com/a/910706148_114774",
+      "article_title": "2025最新国外AI工具排名｜全球热门AI工具前十榜单 - 搜狐",
+      "source_type": "listicle",
+      "language": "zh",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "sohuzmtdqgoec@sohu.com",
+      "contact_target": "sohuzmtdqgoec@sohu.com",
+      "known_recipients": [
+        "1019107426@qq.com",
+        "sohuzmtdqgoec@sohu.com"
+      ],
+      "historical_email_recipients": [
+        "1019107426@qq.com",
+        "sohuzmtdqgoec@sohu.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 02:03:54",
+      "last_sent_at": "2026-03-28 21:08:31",
+      "reuse_segment": "general_ai_roundup",
+      "reuse_notes": "This is a 2025 ranking of top global AI tools, which is PopcornAI's exact category. The article appears to be recently published/updated for 2025, suggesting it's actively maintained. PopcornAI's spec",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-038.md"
+    },
+    {
+      "source_id": "rpo-20260325-059",
+      "root_domain": "knowaiuse.com",
+      "article_url": "https://knowaiuse.com/best-ai-for-video-creation-2026/",
+      "article_title": "The Best AI for Video Creation in 2026: Pro Tools for Every Budget",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "info@knowaiuse.com",
+      "contact_target": "info@knowaiuse.com",
+      "known_recipients": [
+        "info@knowaiuse.com"
+      ],
+      "historical_email_recipients": [
+        "info@knowaiuse.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:30:24",
+      "last_sent_at": "2026-03-28 21:08:36",
+      "reuse_segment": "general_ai_roundup",
+      "reuse_notes": "Video-creation roundup aligned with PopcornAI image/video creation workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-059.md"
+    },
+    {
+      "source_id": "rpo-20260327-023",
+      "root_domain": "piccopilot.com",
+      "article_url": "https://www.piccopilot.com/blog/ai-product-photography-ultimate-guide-2026",
+      "article_title": "2026 Guide to AI Product Photography for Amazon & Shopify",
+      "source_type": "guide",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "support@piccopilot.com",
+      "contact_target": "support@piccopilot.com",
+      "known_recipients": [
+        "support@piccopilot.com"
+      ],
+      "historical_email_recipients": [
+        "support@piccopilot.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:40",
+      "last_sent_at": "2026-03-28 21:46:18",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Strong commerce creative guide with clear fit for product image and image-to-video workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-023.md"
+    },
+    {
+      "source_id": "rpo-20260327-015",
+      "root_domain": "minami.ai",
+      "article_url": "https://minami.ai/blog/top-ai-tools-ecommerce-operations",
+      "article_title": "6 Best AI tools for Ecommerce Operations in 2026 - Minami AI",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "hello@minami.ai",
+      "contact_target": "hello@minami.ai",
+      "known_recipients": [
+        "hello@minami.ai"
+      ],
+      "historical_email_recipients": [
+        "hello@minami.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:40",
+      "last_sent_at": "2026-03-28 21:46:19",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "High-fit ecommerce AI roundup with direct relevance to PopcornAI visual generation for ecommerce teams.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-015.md"
+    },
+    {
+      "source_id": "rpo-20260327-021",
+      "root_domain": "overchat.ai",
+      "article_url": "https://overchat.ai/ai-hub/best-ai-image-to-video-tools",
+      "article_title": "Top 5 Best Free AI Image-to-Video Tools in 2026 | AI Hub",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "hello@overchat.ai",
+      "contact_target": "hello@overchat.ai",
+      "known_recipients": [
+        "hello@overchat.ai"
+      ],
+      "historical_email_recipients": [
+        "hello@overchat.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:40",
+      "last_sent_at": "2026-03-28 21:46:20",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Strong direct match for PopcornAI image-to-video capabilities.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-021.md"
+    },
+    {
+      "source_id": "rpo-20260327-026",
+      "root_domain": "manus.im",
+      "article_url": "https://manus.im/blog/best-ai-video-generator",
+      "article_title": "Top 10 Best AI Video Generators of 2026 (Tested & Compared)",
+      "source_type": "comparison",
+      "language": "en",
+      "fit_score": 8,
+      "contact_method": "email_direct",
+      "primary_contact": "contact@manus.im",
+      "contact_target": "contact@manus.im",
+      "known_recipients": [
+        "contact@manus.im"
+      ],
+      "historical_email_recipients": [
+        "contact@manus.im"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:23:11",
+      "last_sent_at": "2026-04-06 00:37:42",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Strong direct comparison page for AI video generators.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-026.md"
+    },
+    {
+      "source_id": "rpo-20260327-024",
+      "root_domain": "pixelpanda.ai",
+      "article_url": "https://pixelpanda.ai/blog/2026/01/18/best-ai-tools-ecommerce-product-photography/",
+      "article_title": "7 Best AI Tools for Product Photography in 2026 (E-Commerce)",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "support@pixelpanda.ai",
+      "contact_target": "support@pixelpanda.ai",
+      "known_recipients": [
+        "support@pixelpanda.ai"
+      ],
+      "historical_email_recipients": [
+        "support@pixelpanda.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:41",
+      "last_sent_at": "2026-03-27 13:18:41",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Ecommerce product photography roundup with good relevance to visual generation.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-024.md"
+    },
+    {
+      "source_id": "rpo-20260325-052",
+      "root_domain": "tapcart.com",
+      "article_url": "https://www.tapcart.com/blog/best-ai-tools-ecommerce-businesses",
+      "article_title": "The 13 AI Tools Driving Success for Ecommerce Businesses - Tapcart",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "help@tapcart.co",
+      "contact_target": "help@tapcart.co",
+      "known_recipients": [
+        "help@tapcart.co"
+      ],
+      "historical_email_recipients": [
+        "help@tapcart.co"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:28:05",
+      "last_sent_at": "2026-03-28 21:08:42",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Targeted ecommerce AI roundup with direct relevance to PopcornAI image/video workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-052.md"
+    },
+    {
+      "source_id": "rpo-20260325-053",
+      "root_domain": "cospark.com",
+      "article_url": "https://cospark.com/blog/the-best-ai-tools-for-ecommerce-in-2025/",
+      "article_title": "The Best AI Tools for eCommerce in 2025 - CoSpark",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "hello@cospark.com",
+      "contact_target": "hello@cospark.com",
+      "known_recipients": [
+        "hello@cospark.com"
+      ],
+      "historical_email_recipients": [
+        "hello@cospark.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:28:05",
+      "last_sent_at": "2026-03-28 21:09:58",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Ecommerce AI roundup with explicit tooling comparisons relevant to PopcornAI.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-053.md"
+    },
+    {
+      "source_id": "rpo-20260325-060",
+      "root_domain": "businessage.com",
+      "article_url": "https://www.businessage.com/post/best-image-to-video-ai-tools-of-2026-top-5-platforms-leading-visual-innovation",
+      "article_title": "Best Image to Video AI Tools of 2026: Top 5 Platforms Leading Visual Innovation",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "editor@businessage.com",
+      "contact_target": "editor@businessage.com",
+      "known_recipients": [
+        "editor@businessage.com"
+      ],
+      "historical_email_recipients": [
+        "editor@businessage.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 09:30:23",
+      "last_sent_at": "2026-03-28 21:10:03",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "Direct image-to-video roundup; high topical overlap to PopcornAI core product.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260325-060.md"
+    },
+    {
+      "source_id": "rpo-20260327-003",
+      "root_domain": "aimlapi.com",
+      "article_url": "https://aimlapi.com/blog/the-best-ai-image-generators",
+      "article_title": "The Best AI Image Generators in 2026: The ultimate expert guide",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_via_site",
+      "primary_contact": "help@aimlapi.com",
+      "contact_target": "help@aimlapi.com",
+      "known_recipients": [
+        "help@aimlapi.com"
+      ],
+      "historical_email_recipients": [
+        "help@aimlapi.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 00:45:39",
+      "last_sent_at": "2026-03-28 21:46:20",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "High-fit image generator roundup; PopcornAI fits image generation plus image-to-video workflow.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-003.md"
+    },
+    {
+      "source_id": "rpo-20260327-004",
+      "root_domain": "alloypress.com",
+      "article_url": "https://alloypress.com/blogs/best-ai-image-generator",
+      "article_title": "Best AI Image Generators In 2026 (Tested With Same Prompts)",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_via_site",
+      "primary_contact": "contact@alloypress.com",
+      "contact_target": "contact@alloypress.com",
+      "known_recipients": [
+        "contact@alloypress.com"
+      ],
+      "historical_email_recipients": [
+        "contact@alloypress.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 00:45:39",
+      "last_sent_at": "2026-03-28 21:46:20",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "High-fit tested roundup; PopcornAI fits image generation and still-to-motion use cases.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-004.md"
+    },
+    {
+      "source_id": "rpo-20260327-002",
+      "root_domain": "crescendo.ai",
+      "article_url": "https://www.crescendo.ai/blog/ai-tools-for-ecommerce-to-boost-revenue",
+      "article_title": "8 AI Tools for Ecommerce to Boost Revenue | Hidden Treasures",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_via_site",
+      "primary_contact": "info@crescendo.ai",
+      "contact_target": "info@crescendo.ai",
+      "known_recipients": [
+        "info@crescendo.ai"
+      ],
+      "historical_email_recipients": [
+        "info@crescendo.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 00:45:39",
+      "last_sent_at": "2026-03-28 21:47:12",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "High-fit ecommerce AI roundup; PopcornAI fits visual generation for product marketing.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-002.md"
+    },
+    {
+      "source_id": "rpo-20260327-009",
+      "root_domain": "startuptalky.com",
+      "article_url": "https://startuptalky.com/best-ai-tools-for-product-photos/",
+      "article_title": "Best AI Tools for Product Photos | Create Stunning Images Fast",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_via_site",
+      "primary_contact": "story@startuptalky.com",
+      "contact_target": "story@startuptalky.com",
+      "known_recipients": [
+        "story@startuptalky.com"
+      ],
+      "historical_email_recipients": [
+        "story@startuptalky.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:11:54",
+      "last_sent_at": "2026-03-28 21:47:12",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "High-fit product photo roundup; PopcornAI fits image and image-to-video product marketing use cases.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-009.md"
+    },
+    {
+      "source_id": "rpo-20260327-019",
+      "root_domain": "thehovi.com",
+      "article_url": "https://thehovi.com/blog/agency-insights/best-ai-marketing-tools-2026",
+      "article_title": "Best AI Marketing Tools in 2026 — Complete Guide | Hovi Digital Lab",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "rayan@thehovi.com",
+      "contact_target": "rayan@thehovi.com",
+      "known_recipients": [
+        "rayan@thehovi.com"
+      ],
+      "historical_email_recipients": [
+        "rayan@thehovi.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:42",
+      "last_sent_at": "2026-03-28 21:47:13",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Agency-focused AI marketing roundup with clear fit for creative generation workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-019.md"
+    },
+    {
+      "source_id": "rpo-20260327-017",
+      "root_domain": "tractionkeys.com",
+      "article_url": "https://www.tractionkeys.com/post/top-10-ai-tools-for-marketing-automation-in-2026",
+      "article_title": "Top 10 AI Tools for Marketing Automation in 2026 - Traction Keys",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "office@tractionkeys.com",
+      "contact_target": "office@tractionkeys.com",
+      "known_recipients": [
+        "office@tractionkeys.com"
+      ],
+      "historical_email_recipients": [
+        "office@tractionkeys.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:40",
+      "last_sent_at": "2026-03-28 21:47:13",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Marketing automation roundup where PopcornAI fits campaign creative and visual asset production.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-017.md"
+    },
+    {
+      "source_id": "rpo-20260327-022",
+      "root_domain": "prophotostudio.net",
+      "article_url": "https://www.prophotostudio.net/ai/aiproductphototool/",
+      "article_title": "7 Best AI Product Photography Tools 2026 - Pro Photo Studio",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "info@prophotostudio.net",
+      "contact_target": "info@prophotostudio.net",
+      "known_recipients": [
+        "info@prophotostudio.net"
+      ],
+      "historical_email_recipients": [
+        "info@prophotostudio.net"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:42",
+      "last_sent_at": "2026-03-28 21:47:14",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Product photography roundup with strong ecommerce visual relevance.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-022.md"
+    },
+    {
+      "source_id": "rpo-20260327-011",
+      "root_domain": "sendfame.com",
+      "article_url": "https://sendfame.com/blog/ai-image-to-video-tools",
+      "article_title": "The 12 Best AI Image to Video Tools to Try in 2026",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_via_site",
+      "primary_contact": "info@sendfame.com",
+      "contact_target": "info@sendfame.com",
+      "known_recipients": [
+        "info@sendfame.com"
+      ],
+      "historical_email_recipients": [
+        "info@sendfame.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:11:54",
+      "last_sent_at": "2026-03-28 21:47:14",
+      "reuse_segment": "video_generation",
+      "reuse_notes": "High-fit image-to-video roundup; PopcornAI fits directly.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-011.md"
+    },
+    {
+      "source_id": "rpo-20260327-018",
+      "root_domain": "imcprofessional.medill.northwestern.edu",
+      "article_url": "https://imcprofessional.medill.northwestern.edu/blog/best-ai-tools-for-marketing-success",
+      "article_title": "10 Best AI Tools for Marketing Success",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 7,
+      "contact_method": "email_direct",
+      "primary_contact": "IMCprofessional@northwestern.edu",
+      "contact_target": "IMCprofessional@northwestern.edu",
+      "known_recipients": [
+        "imcprofessional@northwestern.edu"
+      ],
+      "historical_email_recipients": [
+        "imcprofessional@northwestern.edu"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:42",
+      "last_sent_at": "2026-03-28 21:47:15",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Institutional marketing roundup with strong editorial quality and good fit for AI creative tooling.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-018.md"
+    },
+    {
+      "source_id": "rpo-20260327-020",
+      "root_domain": "dialzara.com",
+      "article_url": "https://dialzara.com/blog/best-free-ai-tools-social-media-posts",
+      "article_title": "Best Free AI Tools for Social Media Posts - Dialzara",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "contact@dialzara.com",
+      "contact_target": "contact@dialzara.com",
+      "known_recipients": [
+        "contact@dialzara.com"
+      ],
+      "historical_email_recipients": [
+        "contact@dialzara.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 13:18:41",
+      "last_sent_at": "2026-03-27 13:18:41",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Social media AI tool roundup with direct fit for short-form visual content generation.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-020.md"
+    },
+    {
+      "source_id": "rpo-20260326-082",
+      "root_domain": "squareshot.com",
+      "article_url": "https://www.squareshot.com/post/best-ai-tools-for-product-photos",
+      "article_title": "Best AI Tools for Product Photos: What Actually Works in ...",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "hello@squareshot.com",
+      "contact_target": "hello@squareshot.com",
+      "known_recipients": [
+        "hello@squareshot.com"
+      ],
+      "historical_email_recipients": [
+        "hello@squareshot.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-28 20:27:34",
+      "last_sent_at": "2026-03-28 20:27:34",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Heuristic fallback after LLM failure; strong_hits=2, positive_hits=5.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260326-082.md"
+    },
+    {
+      "source_id": "rpo-20260322-002",
+      "root_domain": "starryai.com",
+      "article_url": "https://starryai.com/en/blog/best-ai-image-generators-2025",
+      "article_title": "Best AI Image Generators 2025: Which Tools Still Matter in 2026?",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "support@starryai.com",
+      "contact_target": "support@starryai.com",
+      "known_recipients": [
+        "support@starryai.com"
+      ],
+      "historical_email_recipients": [
+        "support@starryai.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 15:23:17",
+      "last_sent_at": "2026-03-28 21:10:13",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "This is a resource page about AI image generators, which aligns with PopcornAI's image generation capabilities. However, PopcornAI's main differentiator is video generation, which may not be the prima",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-002.md"
+    },
+    {
+      "source_id": "rpo-20260322-009",
+      "root_domain": "style3d.ai",
+      "article_url": "https://www.style3d.ai/blog/how-to-use-ai-for-product-photos/",
+      "article_title": "How to Use AI for Product Photos: Complete Guide 2026 - Style3D AI",
+      "source_type": "tutorial",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "pr@style3d.com",
+      "contact_target": "pr@style3d.com",
+      "known_recipients": [
+        "pr@style3d.com"
+      ],
+      "historical_email_recipients": [
+        "pr@style3d.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 09:26:10",
+      "last_sent_at": "2026-03-28 21:10:17",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "The article focuses on AI for product photos, which aligns well with PopcornAI's image generation and ecommerce creative capabilities. However, PopcornAI's main strength is video generation, while thi",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-009.md"
+    },
+    {
+      "source_id": "rpo-20260322-021",
+      "root_domain": "fibbl.com",
+      "article_url": "https://fibbl.com/best-ai-tools-for-product-photography/",
+      "article_title": "12 Best AI Tools for Ecommerce Product Photography in 2026 - Fibbl",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "hello@fibbl.com",
+      "contact_target": "hello@fibbl.com",
+      "known_recipients": [
+        "hello@fibbl.com"
+      ],
+      "historical_email_recipients": [
+        "hello@fibbl.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 01:59:02",
+      "last_sent_at": "2026-03-28 21:10:22",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "While the article focuses on AI tools for ecommerce product photography, PopcornAI's video generation capabilities could complement static product photography tools for creating dynamic product showca",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-021.md"
+    },
+    {
+      "source_id": "rpo-20260322-024",
+      "root_domain": "wearview.co",
+      "article_url": "https://www.wearview.co/blog/ai-product-photography-tools",
+      "article_title": "9 best AI product photography tools for ecommerce in 2026",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "contact@wearview.ai",
+      "contact_target": "contact@wearview.ai",
+      "known_recipients": [
+        "contact@wearview.ai",
+        "content@wearview.co"
+      ],
+      "historical_email_recipients": [
+        "contact@wearview.ai",
+        "content@wearview.co"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-25 02:03:17",
+      "last_sent_at": "2026-03-28 21:14:03",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "While this is specifically about AI product photography tools and PopcornAI is broader (video + image generation), there's overlap in ecommerce use cases. PopcornAI's text-to-image and image-to-image",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-024.md"
+    },
+    {
+      "source_id": "rpo-20260322-039",
+      "root_domain": "js.design",
+      "article_url": "https://js.design/special/article/ai-product-image-generation-tool.html",
+      "article_title": "2025年UI设计师必看：6款AI商品图生成工具推荐",
+      "source_type": "roundup",
+      "language": "zh",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "contact@xiaopiu.com",
+      "contact_target": "contact@xiaopiu.com",
+      "known_recipients": [
+        "contact@xiaopiu.com"
+      ],
+      "historical_email_recipients": [
+        "contact@xiaopiu.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 09:25:49",
+      "last_sent_at": "2026-03-28 21:14:07",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "This is a 2025 roundup of AI image generation tools for UI designers, which overlaps with PopcornAI's text-to-image and image-to-image capabilities. However, the article focuses specifically on produc",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-039.md"
+    },
+    {
+      "source_id": "rpo-20260322-043",
+      "root_domain": "zdnet.com",
+      "article_url": "https://www.zdnet.com/article/best-ai-image-generator/",
+      "article_title": "The best AI image generators of 2026: There's only one clear winner ...",
+      "source_type": "listicle",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "kwan@cnet.com",
+      "contact_target": "kwan@cnet.com",
+      "known_recipients": [
+        "brand_licensing@ziffdavis.com",
+        "kwan@cnet.com"
+      ],
+      "historical_email_recipients": [
+        "brand_licensing@ziffdavis.com",
+        "kwan@cnet.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 09:25:51",
+      "last_sent_at": "2026-03-28 21:14:10",
+      "reuse_segment": "image_generation",
+      "reuse_notes": "This is primarily an AI image generator roundup, but PopcornAI's text-to-image and image-to-image capabilities could justify inclusion. However, PopcornAI's main differentiator is video generation, wh",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-043.md"
+    },
+    {
+      "source_id": "rpo-20260322-048",
+      "root_domain": "pipllc-marketing.com",
+      "article_url": "https://www.pipllc-marketing.com/post/2025%E5%B9%B4%E5%9C%96%E7%89%87%E7%94%9F%E6%88%90ai%E7%B6%B2%E7%AB%99%E6%8E%92%E8%A1%8C%E6%A6%9C-%E6%9C%80%E6%96%B0%E8%B6%A8%E5%8B%A2%E8%88%87%E7%86%B1%E9%96%80%E6%A8%A1%E5%9E%8B%E7%B8%BD%E6%95%B4%E7%90%86",
+      "article_title": "2025年圖片生成AI網站排行榜｜最新趨勢與熱門模型總整理",
+      "source_type": "roundup",
+      "language": "zh",
+      "fit_score": 6,
+      "contact_method": "email_direct",
+      "primary_contact": "contactpipllc@gmail.com",
+      "contact_target": "contactpipllc@gmail.com",
+      "known_recipients": [
+        "contactpipllc@gmail.com"
+      ],
+      "historical_email_recipients": [
+        "contactpipllc@gmail.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-26 09:25:52",
+      "last_sent_at": "2026-03-28 21:14:15",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "This is a 2025 ranking of image generation AI tools, which is adjacent to PopcornAI's offerings. While PopcornAI does text-to-image generation, its main differentiator is video generation capabilities",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260322-048.md"
+    },
+    {
+      "source_id": "rpo-20260327-001",
+      "root_domain": "kedeng.com",
+      "article_url": "https://www.kedeng.com/6106.html",
+      "article_title": "25个跨境电商AI工具分享 - 科灯跨境",
+      "source_type": "roundup",
+      "language": "zh",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "service@spiderltd.com",
+      "contact_target": "service@spiderltd.com",
+      "known_recipients": [
+        "service@spiderltd.com"
+      ],
+      "historical_email_recipients": [
+        "service@spiderltd.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 00:42:55",
+      "last_sent_at": "2026-03-28 21:47:13",
+      "reuse_segment": "general_ai_roundup",
+      "reuse_notes": "Cross-border ecommerce AI tools roundup; PopcornAI fits product marketing and image/video generation use cases.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-001.md"
+    },
+    {
+      "source_id": "rpo-20260327-006",
+      "root_domain": "eesel.ai",
+      "article_url": "https://www.eesel.ai/blog/ai-tools-marketing",
+      "article_title": "I tried 7 of the best AI tools for marketing in 2026 (here’s what worked)",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "hi@eesel.app",
+      "contact_target": "hi@eesel.app",
+      "known_recipients": [
+        "hi@eesel.app"
+      ],
+      "historical_email_recipients": [
+        "hi@eesel.app"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:11:53",
+      "last_sent_at": "2026-03-28 21:47:38",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Marketing AI roundup; PopcornAI fits campaign creative generation.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-006.md"
+    },
+    {
+      "source_id": "rpo-20260327-013",
+      "root_domain": "social-lady.com",
+      "article_url": "https://social-lady.com/skyrocket-your-engagement-top-ai-tools-for-social-media-in-2026/",
+      "article_title": "Skyrocket Your Engagement: Top AI Tools for Social Media in 2026 - Social Lady",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "support@social-lady.com",
+      "contact_target": "support@social-lady.com",
+      "known_recipients": [
+        "support@social-lady.com"
+      ],
+      "historical_email_recipients": [
+        "support@social-lady.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:17:33",
+      "last_sent_at": "2026-03-28 21:47:38",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Social media AI roundup; PopcornAI fits social image/video generation use case.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-013.md"
+    },
+    {
+      "source_id": "rpo-20260327-005",
+      "root_domain": "triplewhale.com",
+      "article_url": "https://www.triplewhale.com/blog/ai-agents-for-ecommerce",
+      "article_title": "8 Best AI Agents for Ecommerce 2025: Top Tools Ranked | Triple Whale",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "moe@triplewhale.com",
+      "contact_target": "moe@triplewhale.com",
+      "known_recipients": [
+        "moe@triplewhale.com"
+      ],
+      "historical_email_recipients": [
+        "moe@triplewhale.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 00:57:13",
+      "last_sent_at": "2026-03-28 21:47:38",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "High-fit ecommerce AI roundup; PopcornAI fits creative generation for product marketing.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-005.md"
+    },
+    {
+      "source_id": "rpo-20260327-010",
+      "root_domain": "imagine.art",
+      "article_url": "https://www.imagine.art/blogs/how-ai-generated-product-photos-can-increase-your-sales",
+      "article_title": "How AI-Generated Product Photos Can Increase Your Sales and Improve Customer Engagement",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "support@imagine.art",
+      "contact_target": "support@imagine.art",
+      "known_recipients": [
+        "support@imagine.art"
+      ],
+      "historical_email_recipients": [
+        "support@imagine.art"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:11:56",
+      "last_sent_at": "2026-03-28 21:47:39",
+      "reuse_segment": "ecommerce_visuals",
+      "reuse_notes": "Product photo article with clear fit to visual generation and still-to-motion assets.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-010.md"
+    },
+    {
+      "source_id": "rpo-20260327-008",
+      "root_domain": "prezent.ai",
+      "article_url": "https://www.prezent.ai/blog/ai-marketing-tools",
+      "article_title": "9 Best AI Marketing Tools to Use in 2026",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "ask@prezent.ai",
+      "contact_target": "ask@prezent.ai",
+      "known_recipients": [
+        "ask@prezent.ai"
+      ],
+      "historical_email_recipients": [
+        "ask@prezent.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:11:55",
+      "last_sent_at": "2026-03-28 21:47:39",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Marketing tools roundup; PopcornAI fits launch and campaign creative use cases.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-008.md"
+    },
+    {
+      "source_id": "rpo-20260327-012",
+      "root_domain": "sproutsocial.com",
+      "article_url": "https://www.sproutsocial.com/insights/social-media-ai-tools/",
+      "article_title": "19 Best Social Media AI Tools For Your Brand in 2026 | Sprout Social",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "info@sproutsocial.com",
+      "contact_target": "info@sproutsocial.com",
+      "known_recipients": [
+        "info@sproutsocial.com"
+      ],
+      "historical_email_recipients": [
+        "info@sproutsocial.com"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:17:33",
+      "last_sent_at": "2026-03-28 21:47:39",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Social media AI roundup; PopcornAI fits social creative generation use case.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-012.md"
+    },
+    {
+      "source_id": "rpo-20260327-007",
+      "root_domain": "gend.co",
+      "article_url": "https://www.gend.co/blog/best-ai-tools-for-marketing-agencies-(2026-stack)",
+      "article_title": "Best AI Tools for Marketing Agencies (2026 Stack)",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "hello@gend.co",
+      "contact_target": "hello@gend.co",
+      "known_recipients": [
+        "hello@gend.co"
+      ],
+      "historical_email_recipients": [
+        "hello@gend.co"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:11:54",
+      "last_sent_at": "2026-03-28 21:47:40",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Marketing agency AI roundup; PopcornAI fits creative generation workflows.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-007.md"
+    },
+    {
+      "source_id": "rpo-20260327-014",
+      "root_domain": "supergrow.ai",
+      "article_url": "https://www.supergrow.ai/blog/ai-tools-social-media",
+      "article_title": "Best AI Tools for Social Media in 2026 Built for Real Workflows",
+      "source_type": "roundup",
+      "language": "en",
+      "fit_score": 6,
+      "contact_method": "email_via_site",
+      "primary_contact": "hey@supergrow.ai",
+      "contact_target": "hey@supergrow.ai",
+      "known_recipients": [
+        "hey@supergrow.ai"
+      ],
+      "historical_email_recipients": [
+        "hey@supergrow.ai"
+      ],
+      "outreach_status": "sent_pending_review",
+      "first_sent_at": "2026-03-27 01:29:57",
+      "last_sent_at": "2026-03-28 21:47:40",
+      "reuse_segment": "marketing_social",
+      "reuse_notes": "Social media AI roundup; PopcornAI fits social creative generation use cases.",
+      "draft_path": "/root/backlink_sender/outbox/resource-outreach-drafts/rpo-20260327-014.md"
+    }
+  ]
+}

@@ -7,16 +7,10 @@ import { useEffect, useState } from "react";
 import LocaleToggle from "@/components/locale-toggle";
 import {
   CHANNELS,
-  DEFAULT_EXECUTION_CHANNEL_COUNT,
-  DEFAULT_EXECUTION_CHANNELS,
+  LIVE_CHANNEL_COUNT,
   TOTAL_CHANNEL_COUNT,
   type ChannelContract,
 } from "@/lib/execution-contract";
-import {
-  getChannelLaunchGuardMessage,
-  getChannelSafetyPolicy,
-  isAutoExecutableChannel,
-} from "@/lib/distribution-safety";
 import type {
   ManagedInboxLiveActivity,
   ManagedInboxEventState,
@@ -24,7 +18,7 @@ import type {
   ManagedInboxRecord,
 } from "@/lib/managed-inbox-types";
 import type { Locale } from "@/lib/locale-config";
-import type { ChannelReviewRequest } from "@/lib/channel-review-requests-types";
+import { createClient } from "@/lib/supabase-browser";
 import type { User } from "@supabase/supabase-js";
 
 interface SiteResult {
@@ -68,6 +62,18 @@ interface HighQualityOutreachLibrary {
   sources: HighQualityOutreachSource[];
 }
 
+interface PaidTargetInventoryItem {
+  opportunity_id: string;
+  platform_name: string;
+  platform_url: string;
+  submit_url: string;
+  root_domain: string;
+  platform_language: string;
+  recommended_action: string;
+  why_now: string;
+  discovery_source: string;
+}
+
 interface OperationalInsights {
   reply_action_count: number;
   host_public_verified_count: number;
@@ -76,6 +82,15 @@ interface OperationalInsights {
   today_quality_result_count: number;
   today_quality_root_domain_count: number;
   source_library_root_domain_count: number;
+  discovery_target_new_worthy_root_domains: number;
+  discovery_counted_new_worthy_root_domain_count: number;
+  discovery_remaining_to_target: number;
+  discovery_target_reached: boolean;
+  paid_target_backlog_count: number;
+  paid_target_root_domain_count: number;
+  paid_target_new_today_count: number;
+  paid_target_new_today_root_domain_count: number;
+  top_paid_targets: PaidTargetInventoryItem[];
   source_segments: Record<string, number>;
   playbook: {
     updated_at: string;
@@ -101,6 +116,58 @@ interface OperationalInsights {
       lane_labels: Record<string, string>;
       anti_pattern_labels: Record<string, string>;
     };
+  };
+}
+
+interface CapabilityUpgradeFeed {
+  generated_at: string;
+  capability_fingerprint: string;
+  capabilities_changed: boolean;
+  change_summary: {
+    requires_saas_review: boolean;
+    added_capability_ids: string[];
+    removed_capability_ids: string[];
+  };
+  reusable_capability_ids: string[];
+  market_tiers: {
+    proven_languages: string[];
+    buildout_languages: string[];
+    watchlist_languages: string[];
+    detected_language_counts: Array<{
+      language: string;
+      total_opportunity_count: number;
+      today_opportunity_count: number;
+    }>;
+  };
+  product_claim_policy: {
+    rule: string;
+    distribution_model: string;
+    anchor_markets: string[];
+  };
+  product_surfaces_to_sync: Array<{
+    id: string;
+    label: string;
+    audience: string;
+    summary: string;
+  }>;
+  copy_update_guidance: {
+    customer_summary: string;
+    public_claim_guardrail: string;
+    sales_enablement_note: string;
+    localized_copy_note: string;
+    operator_note: string;
+  };
+  required_saas_actions: Array<{
+    id: string;
+    area: string;
+    priority: string;
+    required: boolean;
+    action: string;
+    why: string;
+  }>;
+  team_handoff_summary: {
+    one_line: string;
+    current_focus: string;
   };
 }
 
@@ -329,6 +396,152 @@ function localizePlaybookItem(
   return locale === "zh" ? entry.zh : entry.en;
 }
 
+function getCapabilityContractCopy(locale: Locale) {
+  if (locale === "zh") {
+    return {
+      title: "能力升级合同",
+      body:
+        "这里不是模糊的“我们持续在优化”。它把外链系统已经沉淀出来的能力、当前可对外说的市场层级，以及 SaaS 还需要跟进的动作，变成产品可读的合同层。",
+      synced: "已同步",
+      updateAvailable: "有能力更新待吸收",
+      fingerprint: "能力指纹",
+      focus: "当前焦点",
+      actionsTitle: "SaaS 待跟进动作",
+      marketTitle: "多语言市场层级",
+      marketBody:
+        "市场能力必须按证据展示。只有真实供给已经形成的市场才算 proven，其余只能是 buildout 或 watchlist。",
+      proven: "已证明",
+      buildout: "建设中",
+      watchlist: "观察池",
+      anchorMarkets: "锚点市场",
+      claimRule: "对外表述规则",
+      adaptiveCopy: "已具备目标语言自适应文案能力",
+      surfacesTitle: "需要同步的产品面",
+      surfacesBody:
+        "这些是能力合同已经明确点名的产品面。每次 fingerprint 变化，都应该优先核对这些位置是否已经吸收新能力。",
+      copyImpactTitle: "文案与销售影响",
+      customerSummary: "对用户的核心说法",
+      claimGuardrail: "对外口径护栏",
+      salesNote: "销售/演示说明",
+      operatorNote: "内部执行说明",
+      detectedTitle: "当前已检测到的供给语言",
+      noActions: "当前没有新的 SaaS 升级动作待处理。",
+      noSurfaces: "当前没有登记具体的产品同步面。",
+      noCopyImpact: "当前没有登记额外的文案影响摘要。",
+      noMarkets: "当前还没有足够的市场层级数据。",
+      totalDetected: "累计机会",
+      todayDetected: "今日机会",
+      internalAudience: "内部",
+      customerAudience: "用户侧",
+    };
+  }
+
+  return {
+    title: "Capability upgrade contract",
+    body:
+      "This is not a vague note that the system keeps improving. It turns live backlink learnings, honest market tiers, and required SaaS follow-through into a product-readable contract.",
+    synced: "Synced",
+    updateAvailable: "Capability update available",
+    fingerprint: "Capability fingerprint",
+    focus: "Current focus",
+    actionsTitle: "SaaS follow-through",
+    marketTitle: "Multilingual market tiers",
+    marketBody:
+      "Market claims have to follow evidence. Only markets with real downstream supply should be presented as proven; the rest stay in buildout or watchlist.",
+    proven: "Proven",
+    buildout: "Buildout",
+    watchlist: "Watchlist",
+    anchorMarkets: "Anchor markets",
+    claimRule: "Claim rule",
+    adaptiveCopy: "Target-language adaptive copy is live",
+    surfacesTitle: "Product surfaces to sync",
+    surfacesBody:
+      "These are the product surfaces explicitly named by the capability contract. When the fingerprint changes, these are the first places that should absorb the update.",
+    copyImpactTitle: "Copy and sales impact",
+    customerSummary: "Customer-facing summary",
+    claimGuardrail: "Public-claim guardrail",
+    salesNote: "Sales/demo note",
+    operatorNote: "Operator note",
+    detectedTitle: "Currently detected supply languages",
+    noActions: "There are no new SaaS adoption actions pending right now.",
+    noSurfaces: "There are no explicit product surfaces registered yet.",
+    noCopyImpact: "There is no extra copy-impact guidance yet.",
+    noMarkets: "There is not enough market-tier data yet.",
+    totalDetected: "Total opportunities",
+    todayDetected: "Today",
+    internalAudience: "Internal",
+    customerAudience: "Customer-facing",
+  };
+}
+
+function formatCapabilityTimestamp(date: string, locale: Locale) {
+  if (!date) return "—";
+  const parsed = new Date(date.replace(" ", "T"));
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function shortFingerprint(value: string) {
+  if (!value) return "—";
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
+
+function formatLanguageLabel(language: string, locale: Locale) {
+  const mapping =
+    locale === "zh"
+      ? {
+          en: "英语",
+          ja: "日语",
+          es: "西语",
+          ar: "阿拉伯语",
+          ko: "韩语",
+          pt: "葡语",
+          de: "德语",
+          fr: "法语",
+          ru: "俄语",
+          tr: "土耳其语",
+          id: "印尼语",
+          hi: "印地语",
+          he: "希伯来语",
+          fa: "波斯语",
+          th: "泰语",
+          vi: "越南语",
+          it: "意大利语",
+          pl: "波兰语",
+          nl: "荷兰语",
+          zh: "中文",
+        }
+      : {
+          en: "English",
+          ja: "Japanese",
+          es: "Spanish",
+          ar: "Arabic",
+          ko: "Korean",
+          pt: "Portuguese",
+          de: "German",
+          fr: "French",
+          ru: "Russian",
+          tr: "Turkish",
+          id: "Indonesian",
+          hi: "Hindi",
+          he: "Hebrew",
+          fa: "Persian",
+          th: "Thai",
+          vi: "Vietnamese",
+          it: "Italian",
+          pl: "Polish",
+          nl: "Dutch",
+          zh: "Chinese",
+        };
+
+  return mapping[language as keyof typeof mapping] || language.toUpperCase();
+}
+
 function getProductDetailCopy(locale: Locale) {
   if (locale === "zh") {
     return {
@@ -340,7 +553,7 @@ function getProductDetailCopy(locale: Locale) {
         eyebrow: "产品执行页",
         freeTitle: "产品已经配置好了，下一步是解锁真实提交。",
         freeBody:
-          "你已经完成了产品档案。升级后会先解锁目录提交这条默认执行渠道，其他路线继续保持人工审核或推进中。",
+          "你已经完成了产品档案。升级后，目录和 stealth 两条已上线渠道可以直接从这份档案开始执行。",
         readyTitle: "这个产品已经准备好进入真实执行。",
         readyBody:
           "产品信息、计划权限和已上线渠道都已经就绪。你现在可以直接启动首轮提交，而不是再去填更多后台字段。",
@@ -359,68 +572,6 @@ function getProductDetailCopy(locale: Locale) {
           successful: "成功动作数",
         },
       },
-      offerBoundary: {
-        eyebrow: "当前交付层",
-        title: "先看这个产品现在走的是哪一层。",
-        body:
-          "这块不解释系统架构，只回答四件事：哪些已经在套餐内、托管邮箱现在是什么状态、哪些机会会单独处理、哪些地方已经进入人工服务层。",
-        labels: {
-          included: "套餐内",
-          addOn: "可选加购",
-          separate: "单独处理",
-          service: "按服务售卖",
-          active: "当前已开启",
-          byo: "当前用你的邮箱",
-          locked: "升级后可用",
-          openManaged: "打开托管邮箱",
-          openResults: "打开结果动作",
-          seePricing: "查看方案",
-        },
-        cards: {
-          core: {
-            eyebrow: "核心软件层",
-            freeTitle: "当前还停在软件层，真实提交还没解锁。",
-            freeBody:
-              "产品登记、结果中心和动作清单已经可用，但真实提交还没开始。升级后，这层会继续承接真正的执行。",
-            liveTitle: "这个产品正在跑套餐内的核心软件层。",
-            liveBody:
-              "真实提交、结果中心和动作清单都属于这一层。它卖的是可重复运行的软件体验，不是一次性的人工代办。",
-          },
-          managed: {
-            eyebrow: "托管外联邮箱",
-            activeTitle: "这个产品已经切到托管外联邮箱。",
-            activeBody:
-              "平台现在负责专属邮箱、代发、代回和线程回流。这是一条独立交付层，不应该和自带邮箱混在一起。",
-            byoTitle: "这个产品当前走的是你自己的邮箱。",
-            byoBody:
-              "托管邮箱没有自动生效。你现在明确走的是自带邮箱路径，后面如果要切换，再单独开启托管层。",
-            readyTitle: "当前计划已经允许切到托管邮箱。",
-            readyBody:
-              "这层是可选加购，不是默认一起送。你可以继续用自己的邮箱，也可以在需要时切过去。",
-            lockedTitle: "托管邮箱还没解锁。",
-            lockedBody:
-              "当前计划还停在核心软件层。托管邮箱应该作为更高一层的可买能力，而不是提前伪装成默认包含。",
-          },
-          paid: {
-            eyebrow: "付费机会层",
-            activeTitle: "已经出现需要单独判断的付费机会。",
-            activeBody:
-              "这类机会不该混进普通提交或 credits 里。它们应该被当成独立机会层，单独判断值不值得继续推进。",
-            idleTitle: "付费机会不会混进基础提交里。",
-            idleBody:
-              "收费型、商务型外链机会会单独沉淀和处理，不会伪装成基础套餐已经包含的结果。",
-          },
-          manual: {
-            eyebrow: "人工服务层",
-            activeTitle: "这个产品已经进入人工推进层。",
-            activeBody:
-              "现在的价值来自人工 review、补资料或定制推进，而不是再假装一切都已经自动化完成。",
-            idleTitle: "人工服务只在自动化不够时介入。",
-            idleBody:
-              "复杂 review、人工处理和定制推进应该诚实按服务说明，而不是继续包装成纯软件动作。",
-          },
-        },
-      },
       status: {
         free: "免费版",
         starter: "入门版",
@@ -436,7 +587,7 @@ function getProductDetailCopy(locale: Locale) {
       },
       channels: {
         title: "执行渠道",
-        body: `当前默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道，另有 ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道保持人工审核或推进中。这里最重要的是先把可跑的路线真正跑起来。`,
+        body: `当前共有 ${LIVE_CHANNEL_COUNT} 个已上线渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个推进中渠道。这里最重要的是先把可跑的路线真正跑起来。`,
         liveEyebrow: "今天可执行",
         liveTitle: "先把已经能跑的路线真正跑起来。",
         roadmapEyebrow: "后续路线",
@@ -451,19 +602,8 @@ function getProductDetailCopy(locale: Locale) {
         starting: "启动中...",
         queued: "已进入队列",
         runningPrefix: "执行中",
-        ready: "默认开放",
+        ready: "已上线",
         planned: "推进中",
-        reviewNeeded: "需要人工审核",
-        reviewAction: "请求人工审核",
-        reviewActioning: "请求中...",
-        reviewQueued: "人工审核已排队",
-        reviewApproved: "审核已通过",
-        reviewRejected: "审核未通过",
-        reviewRequestedAt: "请求时间",
-        reviewHelp: "这条路线不会默认自动执行。先走人工相关性审核，再决定值不值得继续推进。",
-        reviewQueuedBody: "系统已经记下这条路线的人工审核请求。现在先保留主线执行，等人工判断是否值得推进。",
-        reviewApprovedBody: "这条路线已经通过人工审核。它会按人工承接节奏推进，而不是直接进入默认自动执行。",
-        reviewRejectedBody: "这条路线当前不建议推进。除非产品定位或场景明显变化，否则先把注意力留在默认开放路径。",
       },
       history: {
         title: "执行历史",
@@ -499,7 +639,7 @@ function getProductDetailCopy(locale: Locale) {
         nextMoveTitle: "下一步建议",
         nextMoveUnlockTitle: "先解锁真实渠道",
         nextMoveUnlockBody:
-          "你已经完成了配置。升级后会先从目录提交流程开始，其他路线继续保持人工审核或推进中。",
+          "你已经完成了配置。升级后，目录和 stealth 两条 live 渠道会直接用这份产品档案开始执行。",
         nextMoveWatchTitle: "先盯住当前这轮进度",
         nextMoveWatchBody:
           "现在最有价值的不是再点更多按钮，而是等这轮跑完，再基于结果做下一步判断。",
@@ -531,64 +671,6 @@ function getProductDetailCopy(locale: Locale) {
         openDashboard: "回到工作台",
         launchNext: "启动推荐渠道",
         retryLane: "重跑这一条渠道",
-      },
-      resultsProof: {
-        title: "结果证明页",
-        body:
-          "这里不再把回执、回复和接近发布的线索混在一起。它只回答四件事：已经拿到哪些公开结果、哪些马上就要公开、哪些只是内部信号，以及现在能不能对外讲。",
-        stats: {
-          public: "公开结果",
-          nearPublic: "接近公开",
-          threads: "真实回复",
-          internal: "内部信号",
-        },
-        statusLabel: "当前证明状态",
-        statuses: {
-          public: {
-            badge: "可对外展示",
-            title: "已经出现可展示的公开结果。",
-            body: "这些线程已经明显指向上线、收录或公开页面。现在最值钱的是抓页面证据、补验证，并把它们沉淀成真正的成果层。",
-          },
-          nearPublic: {
-            badge: "接近公开，暂勿外宣",
-            title: "已经接近公开结果，但还不能对外说。",
-            body: "这些线索只差最后确认。现在该守住最后一轮推进，而不是提前包装成成果。",
-          },
-          threads: {
-            badge: "内部推进中",
-            title: "已经有真实回复，但还只是内部推进。",
-            body: "回复和审核信号说明方向对了，但还不是公开结果。先继续跟进，不要过早对外承诺。",
-          },
-          receipts: {
-            badge: "只有内部信号",
-            title: "已经有真实动作，但还没有公开证明。",
-            body: "提交回执说明执行在推进，但还不能拿来当最终成果。下一步是把它推到公开可见。",
-          },
-          empty: {
-            badge: "尚未进入证明层",
-            title: "还没有进入结果证明层。",
-            body: "先把 live 渠道和托管外联跑起来，等第一批回执和回复累积起来，这里才会开始变得有价值。",
-          },
-        },
-        publicTitle: "现在可以展示的结果",
-        publicBody:
-          "只有已经指向公开页面、上线或收录完成的线索，才应该进入这一区。",
-        publicEmpty:
-          "当前还没有足够稳的公开结果。先继续把最接近发布的线索推过去。",
-        nearTitle: "最接近公开的线索",
-        nearBody:
-          "这些不是最终成果，但已经足够接近，值得优先保护和跟进。",
-        nearEmpty:
-          "当前还没有明显接近公开的线索。继续累积回复和高质量动作。",
-        internalTitle: "内部信号，不要拿去外宣",
-        internalBody:
-          "这些回执和早期回复能说明方向对了，但还不能直接当作公开成果展示。",
-        internalEmpty:
-          "当前还没有足够的内部信号。先跑出第一批真实动作和回复。",
-        publicBadge: "公开结果",
-        internalBadge: "内部信号",
-        latestSignal: "最近信号",
-        openProofPipeline: "打开结果动作",
       },
       proofPipeline: {
         title: "结果推进管线",
@@ -725,6 +807,20 @@ function getProductDetailCopy(locale: Locale) {
         todayRootDomains: "今日根域名",
         qualityResultsToday: "今日高质量结果",
         reusableToday: "可复用来源",
+        discoveryToday: "今日发现",
+        discoveryGap: "发现缺口",
+        paidBacklog: "收费储备",
+        paidRootDomains: "收费根域",
+        discoveryTitle: "发现供给引擎",
+        discoveryBody:
+          "系统每天自动补货值得发的新目标站，并把发现进度直接暴露给产品侧，避免执行层跑到没弹药才被发现。",
+        discoveryReached: "今日目标已达成",
+        discoveryInProgress: "今日仍在补货",
+        paidCollectedToday: "今日收费新增",
+        paidTargetsTitle: "收费目标资产",
+        paidTargetsBody:
+          "这些是系统持续搜集到的收费或商务型提交机会。默认不自动发送，但会作为后续人工决策和 SaaS 能力展示的正式资产。",
+        paidExamplesTitle: "代表性收费目标",
         playbookTitle: "当前最佳实践",
         playbookBody:
           "这套规则会随着真实执行持续更新，并直接影响系统该优先投入哪些通道、该过滤哪些低价值动作。",
@@ -735,7 +831,6 @@ function getProductDetailCopy(locale: Locale) {
       },
       errors: {
         startFailed: "暂时无法创建这个提交任务。",
-        reviewRequestFailed: "暂时无法提交人工审核请求。",
       },
       formatting: {
         successfulActions: "成功动作",
@@ -752,7 +847,7 @@ function getProductDetailCopy(locale: Locale) {
       eyebrow: "Product execution",
       freeTitle: "Your product is configured. The next step is unlocking live submissions.",
       freeBody:
-        "The product profile is already in place. Upgrade and Directory Submission becomes the first default execution lane from this saved profile.",
+        "The product profile is already in place. Upgrade and the live directory and stealth lanes can execute directly from this saved profile.",
       readyTitle: "This product is ready for live execution.",
       readyBody:
         "The profile, plan access, and live channels are all ready. You can start a real submission run now instead of filling more backend forms.",
@@ -771,68 +866,6 @@ function getProductDetailCopy(locale: Locale) {
         successful: "Successful actions",
       },
     },
-    offerBoundary: {
-      eyebrow: "Current delivery layer",
-      title: "Start by seeing what layer this product is actually using.",
-      body:
-        "This does not explain the system architecture. It answers four simple questions: what is already included in the plan, what state the managed inbox is in, what gets handled as paid opportunity work, and where manual service has started to take over.",
-      labels: {
-        included: "Included in plan",
-        addOn: "Optional add-on",
-        separate: "Handled separately",
-        service: "Sold as service",
-        active: "Active now",
-        byo: "Using your inbox",
-        locked: "Upgrade to use",
-        openManaged: "Open managed inbox",
-        openResults: "Open result actions",
-        seePricing: "See plans",
-      },
-      cards: {
-        core: {
-          eyebrow: "Core software layer",
-          freeTitle: "This product is still on the software layer only.",
-          freeBody:
-            "Setup, the results center, and the action list are already available, but live submissions are not unlocked yet. Upgrade and this same layer starts driving real execution.",
-          liveTitle: "This product is already using the core software layer.",
-          liveBody:
-            "Live submissions, the results center, and the action list all belong here. This is repeatable software value, not one-off manual fulfillment hiding inside the plan.",
-        },
-        managed: {
-          eyebrow: "Managed Outreach Inbox",
-          activeTitle: "This product is already on the managed inbox path.",
-          activeBody:
-            "The platform now owns the dedicated inbox, send, reply, and thread flow. This is a separate delivery layer and should not be blurred with bring-your-own-inbox mode.",
-          byoTitle: "This product is currently using your own inbox.",
-          byoBody:
-            "Managed mode has not silently taken over. You are clearly on the bring-your-own-inbox path unless you explicitly switch later.",
-          readyTitle: "The current plan can already add managed inbox.",
-          readyBody:
-            "This layer is optional, not silently bundled. You can stay on your own inbox or switch when you need platform-run sending.",
-          lockedTitle: "Managed inbox is not unlocked yet.",
-          lockedBody:
-            "The current plan is still on the core software layer. Managed inbox should stay an honest higher-layer purchase, not a fake default inclusion.",
-        },
-        paid: {
-          eyebrow: "Paid opportunity layer",
-          activeTitle: "This product already has paid opportunities that need separate judgment.",
-          activeBody:
-            "Commercial opportunities should not be mixed into normal submissions or credits. They belong in a separate lane where you decide whether they are worth it.",
-          idleTitle: "Paid opportunities do not belong inside base submissions.",
-          idleBody:
-            "Commercial or sponsorship-style opportunities are tracked separately instead of pretending they are already part of the base plan outcome.",
-        },
-        manual: {
-          eyebrow: "Manual service layer",
-          activeTitle: "This product has already entered a manual follow-through layer.",
-          activeBody:
-            "The value now comes from review, asset prep, or custom human follow-through. The product should say that plainly instead of pretending automation already did the whole job.",
-          idleTitle: "Manual service only shows up when automation stops being enough.",
-          idleBody:
-            "Complex review, custom handling, and human follow-through should be sold and explained as service work instead of being disguised as pure software.",
-        },
-      },
-    },
     status: {
       free: "Free",
       starter: "Starter",
@@ -848,7 +881,7 @@ function getProductDetailCopy(locale: Locale) {
     },
     channels: {
       title: "Execution lanes",
-      body: `There are ${DEFAULT_EXECUTION_CHANNEL_COUNT} default execution lanes today, and ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} lanes that stay in manual review or rollout. The main job here is to get the runnable lanes moving.`,
+      body: `There are ${LIVE_CHANNEL_COUNT} live lanes today and ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} lanes still rolling out. The main job here is to get the runnable lanes moving.`,
       liveEyebrow: "Live now",
       liveTitle: "Launch the lanes that already work.",
       roadmapEyebrow: "Roadmap",
@@ -865,19 +898,8 @@ function getProductDetailCopy(locale: Locale) {
       starting: "Starting...",
       queued: "Queued",
       runningPrefix: "Running",
-      ready: "Ready now",
+      ready: "Live",
       planned: "Planned",
-      reviewNeeded: "Manual review required",
-      reviewAction: "Request manual review",
-      reviewActioning: "Requesting...",
-      reviewQueued: "Manual review queued",
-      reviewApproved: "Review approved",
-      reviewRejected: "Review not approved",
-      reviewRequestedAt: "Requested",
-      reviewHelp: "This route does not run automatically by default. It goes through a manual relevance review before we decide whether it should move forward.",
-      reviewQueuedBody: "The app already logged this route for manual review. Keep the main path moving while a human decides whether it is worth opening.",
-      reviewApprovedBody: "This route already passed manual review. It still moves as a human-handled path instead of default automatic execution.",
-      reviewRejectedBody: "This route is not worth opening right now. Keep attention on the default-open path unless the product story changes materially.",
     },
     history: {
       title: "Submission history",
@@ -891,10 +913,10 @@ function getProductDetailCopy(locale: Locale) {
       pending: "Pending...",
       waitingWorker: "Waiting for worker to pick up this job...",
     },
-      recap: {
-        title: "Launch recap",
-        body:
-          "This section translates the latest run into normal product language first, then tells the user what the next sensible move is.",
+    recap: {
+      title: "Launch recap",
+      body:
+        "This section translates the latest run into normal product language first, then tells the user what the next sensible move is.",
       prelaunchEyebrow: "Before first launch",
       prelaunchTitle: "No live run yet. Start the first live lane.",
       prelaunchBody:
@@ -914,7 +936,7 @@ function getProductDetailCopy(locale: Locale) {
       nextMoveTitle: "Recommended next move",
       nextMoveUnlockTitle: "Unlock live lanes first",
       nextMoveUnlockBody:
-        "You already did the setup work. Upgrade and Directory Submission becomes the first default execution lane from this profile.",
+        "You already did the setup work. Upgrade and Directory Submission plus Stealth can execute directly from this profile.",
       nextMoveWatchTitle: "Watch this run finish first",
       nextMoveWatchBody:
         "The valuable move right now is not clicking more buttons. Let this run finish, then act on the result.",
@@ -943,72 +965,14 @@ function getProductDetailCopy(locale: Locale) {
         "This run has not left behind clear success receipts yet. As execution continues, more concrete proof should appear here.",
       noBlockers: "There are no obvious blockers from the latest run that need review.",
       openHistory: "View Submission History",
-        openDashboard: "Back to Dashboard",
-        launchNext: "Launch Recommended Lane",
-        retryLane: "Retry This Lane",
-      },
-      resultsProof: {
-        title: "Results proof",
-        body:
-          "This is where receipts, replies, near-publication threads, and public outcomes stop blending together. It answers four questions: what is public now, what is close to public, what is still internal signal, and what is safe to say externally.",
-        stats: {
-          public: "Public results",
-          nearPublic: "Near public",
-          threads: "Live replies",
-          internal: "Internal signal",
-        },
-        statusLabel: "Current proof status",
-        statuses: {
-          public: {
-            badge: "Safe to show",
-            title: "This product already has public result candidates.",
-            body: "At least one thread already points toward a public page, live placement, or completed listing. Capture proof and turn it into a visible outcome layer now.",
-          },
-          nearPublic: {
-            badge: "Close, not public yet",
-            title: "This product is close to public proof, but not there yet.",
-            body: "These signals are one step away from public proof. Protect the final move instead of marketing them too early.",
-          },
-          threads: {
-            badge: "Internal progress",
-            title: "This product already has live replies, but not public proof yet.",
-            body: "Replies and review signals show traction, but they are still internal progress. Keep pushing instead of claiming too much too early.",
-          },
-          receipts: {
-            badge: "Internal signal only",
-            title: "Real actions landed, but there is no public proof yet.",
-            body: "Submission receipts show execution is working, but they are not final outcomes. The next move is pushing them toward something publicly visible.",
-          },
-          empty: {
-            badge: "No proof layer yet",
-            title: "This product has not entered the proof layer yet.",
-            body: "Run the live lanes and managed outreach first. This section becomes valuable only after real actions and replies start landing.",
-          },
-        },
-        publicTitle: "Safe to show now",
-        publicBody:
-          "Only threads that already point toward public pages, live placements, or completed listings belong here.",
-        publicEmpty:
-          "There is no stable public proof yet. Push the strongest near-public signals further first.",
-        nearTitle: "Closest to public proof",
-        nearBody:
-          "These are not final outcomes yet, but they are close enough to deserve most of the attention.",
-        nearEmpty:
-          "There are no strong near-public signals yet. Keep building replies and stronger action quality.",
-        internalTitle: "Internal signal, not external proof",
-        internalBody:
-          "These receipts and early thread signals show traction, but they should stay internal until they turn public.",
-        internalEmpty:
-          "There is not enough internal signal yet. Land the first real actions and replies first.",
-        publicBadge: "Public proof",
-        internalBadge: "Internal signal",
-        latestSignal: "Latest signal",
-        openProofPipeline: "Open proof actions",
-      },
-      proofPipeline: {
-        title: "Proof pipeline",
-        body:
-          "This moves the view away from local actions and toward a bigger question: how close is this product to a result you can actually prove?",
+      openDashboard: "Back to Dashboard",
+      launchNext: "Launch Recommended Lane",
+      retryLane: "Retry This Lane",
+    },
+    proofPipeline: {
+      title: "Proof pipeline",
+      body:
+        "This moves the view away from local actions and toward a bigger question: how close is this product to a result you can actually prove?",
       stats: {
         receipts: "Submission receipts",
         threads: "Live reply threads",
@@ -1141,6 +1105,20 @@ function getProductDetailCopy(locale: Locale) {
       todayRootDomains: "Today root domains",
       qualityResultsToday: "Quality results today",
       reusableToday: "Reusable sources",
+      discoveryToday: "Found today",
+      discoveryGap: "Discovery gap",
+      paidBacklog: "Paid backlog",
+      paidRootDomains: "Paid root domains",
+      discoveryTitle: "Discovery supply engine",
+      discoveryBody:
+        "The system auto-replenishes worthwhile target sites every day and exposes the progress directly in the product so execution never outruns supply.",
+      discoveryReached: "Today's target reached",
+      discoveryInProgress: "Still replenishing today",
+      paidCollectedToday: "Paid found today",
+      paidTargetsTitle: "Paid target inventory",
+      paidTargetsBody:
+        "These are paid or commercial submission opportunities the system keeps collecting. They are not auto-sent by default, but they remain part of the product's reusable intelligence layer.",
+      paidExamplesTitle: "Representative paid targets",
       playbookTitle: "Current best-practice playbook",
       playbookBody:
         "These rules update as live execution changes, and they directly shape which lanes the system should push or avoid next.",
@@ -1151,7 +1129,6 @@ function getProductDetailCopy(locale: Locale) {
     },
     errors: {
       startFailed: "Could not create that submission.",
-      reviewRequestFailed: "Could not queue the manual review request.",
     },
     formatting: {
       successfulActions: "successful actions",
@@ -1167,24 +1144,24 @@ function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
         desc: "提交到经过筛选的 AI 工具目录，自动完成表单填写。",
       },
       stealth: {
-        name: "高风险浏览器路线",
-        desc: "高风险路线，已从默认客户执行里移除，不再作为标准自动渠道。",
+        name: "Stealth 浏览器提交",
+        desc: "使用同一套目录网络，但带上 stealth 防护去通过更难的站点。",
       },
       community: {
-        name: "社区/平台路线",
-        desc: "开发者社区和平台型站点不作为默认自动推广渠道。",
+        name: "社区提交",
+        desc: "GitHub、Product Hunt 和开发者社区处于受控 rollout 中。",
       },
       resource_page: {
         name: "资源页外联",
-        desc: "资源页外联需要先人工审核相关性，再决定是否推进。",
+        desc: "编辑类资源页外联仍在受控 rollout 中。",
       },
       social: {
         name: "社交分发",
-        desc: "社交分发需要先人工判断场景和平台适配。",
+        desc: "X 和 Pinterest 分发目前仍在客户 worker 之外执行。",
       },
       editorial: {
         name: "编辑外联",
-        desc: "编辑外联保持人工审核，避免把普通分发做成打扰式推广。",
+        desc: "编辑外联渠道仍在受控 rollout 中。",
       },
     };
 
@@ -1264,95 +1241,20 @@ function statusBadge(status: string) {
   return styles[status] || "bg-stone-800 text-stone-300";
 }
 
-function supportBadge(channel: ChannelContract, locale: Locale) {
-  const policy = getChannelSafetyPolicy(channel.id);
-
-  if (policy.executionMode === "auto") {
+function supportBadge(status: ChannelContract["support_status"], locale: Locale) {
+  if (status === "live") {
     return (
       <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-emerald-200">
-        {locale === "zh" ? "默认开放" : "Ready now"}
-      </span>
-    );
-  }
-
-  if (policy.executionMode === "manual_review") {
-    return (
-      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-amber-100">
-        {locale === "zh" ? "人工审核" : "Manual review"}
+        {locale === "zh" ? "已上线" : "Live"}
       </span>
     );
   }
 
   return (
-    <span className="rounded-full border border-red-300/15 bg-red-300/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-red-200">
-      {locale === "zh" ? "默认关闭" : "Not default"}
+    <span className="rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-stone-400">
+      {locale === "zh" ? "推进中" : "Planned"}
     </span>
   );
-}
-
-function roadmapLaneMessage(
-  channel: ChannelContract,
-  available: boolean,
-  locale: Locale
-) {
-  const policy = getChannelSafetyPolicy(channel.id);
-
-  if (policy.executionMode === "disabled") {
-    return locale === "zh"
-      ? "这条路线已从默认客户执行里移除，不再作为标准自动渠道对外提供。"
-      : "This lane is removed from default customer execution and is no longer offered as a standard automatic route.";
-  }
-
-  if (policy.executionMode === "manual_review") {
-    return available
-      ? locale === "zh"
-        ? "这条路线不会默认自动执行。即使计划已包含，也要先人工审核相关性。"
-        : "This lane does not run automatically by default. Even when the plan includes it, it still goes through manual relevance review first."
-      : locale === "zh"
-        ? "升级后也不会直接自动执行，仍要先人工审核相关性。"
-        : "Upgrading does not make this lane run automatically. It still needs manual relevance review first.";
-  }
-
-  return available
-    ? locale === "zh"
-      ? "这条路线已在你的计划内，可以作为默认执行路径使用。"
-      : "This lane is already included in your plan and can run as a default execution path."
-    : locale === "zh"
-      ? "升级后可用。"
-      : "Upgrade to unlock this lane.";
-}
-
-function localizedChannelReviewRequestStatus(
-  status: ChannelReviewRequest["status"],
-  locale: Locale
-) {
-  if (locale === "zh") {
-    return status === "approved"
-      ? "审核已通过"
-      : status === "rejected"
-        ? "审核未通过"
-        : "人工审核已排队";
-  }
-
-  return status === "approved"
-    ? "Review approved"
-    : status === "rejected"
-      ? "Review not approved"
-      : "Manual review queued";
-}
-
-function channelReviewRequestStatusClasses(
-  status: ChannelReviewRequest["status"]
-) {
-  if (status === "approved") {
-    return "border-emerald-300/15 bg-emerald-300/10 text-emerald-100";
-  }
-
-  if (status === "rejected") {
-    return "border-red-300/15 bg-red-300/10 text-red-200";
-  }
-
-  return "border-amber-300/15 bg-amber-300/10 text-amber-100";
 }
 
 function minimumPlanForChannel(channel: ChannelContract) {
@@ -1777,7 +1679,8 @@ export default function ProductDetail({
   managedInboxLiveActivity,
   outreachLibrary,
   operationalInsights,
-  priorityContext = false,
+  capabilityUpgradeFeed,
+  priorityContext,
 }: {
   locale: Locale;
   user: User;
@@ -1788,16 +1691,15 @@ export default function ProductDetail({
   managedInboxLiveActivity: ManagedInboxLiveActivity;
   outreachLibrary: HighQualityOutreachLibrary;
   operationalInsights: OperationalInsights;
+  capabilityUpgradeFeed: CapabilityUpgradeFeed;
   priorityContext?: boolean;
 }) {
   const copy = getProductDetailCopy(locale);
+  const capabilityCopy = getCapabilityContractCopy(locale);
   const managedInboxCopy = getManagedInboxCopy(locale);
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
-  const [channelReviewRequests, setChannelReviewRequests] = useState<ChannelReviewRequest[]>([]);
-  const [reviewingChannelId, setReviewingChannelId] = useState<string | null>(null);
-  const [reviewRequestError, setReviewRequestError] = useState("");
   const [managedInbox, setManagedInbox] = useState(managedInboxRecord);
   const [managedInboxLive, setManagedInboxLive] = useState(managedInboxLiveActivity);
   const [senderEmail, setSenderEmail] = useState(
@@ -1813,12 +1715,50 @@ export default function ProductDetail({
   const recommendedLaneIds = (playbook.recommended_lane_ids || []).slice(0, 4);
   const qualityBarIds = (playbook.quality_bar_ids || []).slice(0, 3);
   const antiPatternIds = (playbook.anti_pattern_ids || []).slice(0, 4);
+  const capabilityActions = (capabilityUpgradeFeed.required_saas_actions || []).slice(0, 4);
+  const capabilitySurfaces = (capabilityUpgradeFeed.product_surfaces_to_sync || []).slice(0, 6);
+  const capabilityCopyGuidance = capabilityUpgradeFeed.copy_update_guidance || {
+    customer_summary: "",
+    public_claim_guardrail: "",
+    sales_enablement_note: "",
+    localized_copy_note: "",
+    operator_note: "",
+  };
+  const capabilityUpdatePending =
+    capabilityUpgradeFeed.capabilities_changed ||
+    capabilityUpgradeFeed.change_summary?.requires_saas_review;
   const priorityContextLabel =
     locale === "zh" ? "当前优先产品" : "Current priority product";
   const priorityContextBody =
     locale === "zh"
       ? "你是从工作台当前主推产品的路径进入这里的。先把这个产品推进完，再决定是否切换注意力。"
       : "You opened the product the workspace is currently prioritizing. Push this one through before spreading attention elsewhere.";
+  const hasLanguageAdaptiveCopy = capabilityUpgradeFeed.reusable_capability_ids.includes(
+    "language_adaptive_submission_copy"
+  );
+  const marketTierCards = [
+    {
+      key: "proven",
+      label: capabilityCopy.proven,
+      languages: capabilityUpgradeFeed.market_tiers?.proven_languages || [],
+      tone: "border-emerald-300/15 bg-emerald-300/[0.06] text-emerald-100",
+    },
+    {
+      key: "buildout",
+      label: capabilityCopy.buildout,
+      languages: capabilityUpgradeFeed.market_tiers?.buildout_languages || [],
+      tone: "border-amber-300/15 bg-amber-300/[0.06] text-amber-100",
+    },
+    {
+      key: "watchlist",
+      label: capabilityCopy.watchlist,
+      languages: capabilityUpgradeFeed.market_tiers?.watchlist_languages || [],
+      tone: "border-white/10 bg-white/[0.04] text-stone-200",
+    },
+  ];
+  const detectedLanguageCounts = (
+    capabilityUpgradeFeed.market_tiers?.detected_language_counts || []
+  ).slice(0, 4);
 
   const hasActive = submissions.some(
     (submission) => submission.status === "queued" || submission.status === "running"
@@ -1839,101 +1779,26 @@ export default function ProductDetail({
     setSenderEmail(managedInboxRecord.bringYourOwn?.senderEmail || user.email || "");
   }, [managedInboxRecord, managedInboxLiveActivity, user.email]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadChannelReviewRequests() {
-      const response = await fetch(`/api/products/${product.id}/review-requests`).catch(
-        () => null
-      );
-
-      if (!response?.ok) {
-        if (!cancelled) {
-          setChannelReviewRequests([]);
-        }
-        return;
-      }
-
-      const payload = (await response.json().catch(() => null)) as
-        | { requests?: ChannelReviewRequest[] }
-        | null;
-
-      if (!cancelled) {
-        setChannelReviewRequests(payload?.requests || []);
-      }
-    }
-
-    loadChannelReviewRequests();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [product.id]);
-
   async function startSubmission(channelId: string) {
     setSubmitting(channelId);
     setActionError("");
 
-    const channel = CHANNELS.find((item) => item.id === channelId);
-    const launchGuardMessage = getChannelLaunchGuardMessage({
-      locale,
-      channelId,
-      channelName: channel?.name || channelId,
+    const supabase = createClient();
+    const { error } = await supabase.from("submissions").insert({
+      user_id: user.id,
+      product_id: product.id,
+      channel: channelId,
+      status: "queued",
     });
 
-    if (launchGuardMessage) {
-      setActionError(launchGuardMessage);
-      return;
-    }
-
-    const response = await fetch(`/api/products/${product.id}/submissions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channelId }),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
-      setActionError(payload?.error || copy.errors.startFailed);
+    if (error) {
+      setActionError(error.message || copy.errors.startFailed);
       setSubmitting(null);
       return;
     }
 
     setSubmitting(null);
     router.refresh();
-  }
-
-  async function requestChannelReview(channel: ChannelContract) {
-    setReviewingChannelId(channel.id);
-    setReviewRequestError("");
-
-    try {
-      const response = await fetch(`/api/products/${product.id}/review-requests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channelId: channel.id }),
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | { reviewRequest?: ChannelReviewRequest; error?: string }
-        | null;
-
-      if (!response.ok || !payload?.reviewRequest) {
-        throw new Error(payload?.error || copy.errors.reviewRequestFailed);
-      }
-
-      setChannelReviewRequests((current) => [
-        payload.reviewRequest!,
-        ...current.filter((request) => request.id !== payload.reviewRequest!.id),
-      ]);
-    } catch (error) {
-      setReviewRequestError(
-        error instanceof Error ? error.message : copy.errors.reviewRequestFailed
-      );
-    } finally {
-      setReviewingChannelId(null);
-    }
   }
 
   async function updateManagedInbox(
@@ -2024,13 +1889,9 @@ export default function ProductDetail({
     });
   }
 
-  const liveChannels = DEFAULT_EXECUTION_CHANNELS;
-  const plannedChannels = CHANNELS.filter(
-    (channel) => !DEFAULT_EXECUTION_CHANNELS.some((item) => item.id === channel.id)
-  );
+  const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
+  const plannedChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
   const managedInboxEligible = plan === "growth" || plan === "scale";
-  const latestReviewRequestForChannel = (channelId: string) =>
-    channelReviewRequests.find((request) => request.channelId === channelId) || null;
   const availableLiveChannels = liveChannels.filter((channel) => channel.plans.includes(plan));
   const currentPlanIndex = PLAN_ORDER.indexOf(
     (PLAN_ORDER.includes(plan as (typeof PLAN_ORDER)[number])
@@ -2083,8 +1944,8 @@ export default function ProductDetail({
             channel.plans.includes(laterPlan) && !channel.plans.includes(nextPlan)
         )
       : [];
-  const nextPlanLiveUnlocks = nextPlanUnlocks.filter((channel) =>
-    isAutoExecutableChannel(channel.id)
+  const nextPlanLiveUnlocks = nextPlanUnlocks.filter(
+    (channel) => channel.support_status === "live"
   );
   const nextPlanPlannedUnlocks = nextPlanUnlocks.filter(
     (channel) => channel.support_status !== "live"
@@ -2185,42 +2046,6 @@ export default function ProductDetail({
     close: publicationReadyPackets.length,
     verify: publishedPackets.length,
   };
-  const publicProofPackets = publishedPackets.slice(0, 3);
-  const nearPublicPackets = [
-    ...publicationReadyPackets,
-    ...needsMaterialsPackets,
-    ...underReviewPackets,
-    ...commercialReviewPackets,
-    ...threadOpenPackets,
-  ].slice(0, 3);
-  const internalSignalReceipts = latestSuccessReceipts.slice(0, 3);
-  const resultsProofStatus =
-    publicProofPackets.length > 0
-      ? "public"
-      : nearPublicPackets.length > 0
-        ? "nearPublic"
-        : repliedPackets.length > 0
-          ? "threads"
-          : totalSuccessfulActions > 0
-            ? "receipts"
-            : "empty";
-  const resultsProofStatusTone =
-    resultsProofStatus === "public"
-      ? "border-lime-300/15 bg-lime-300/[0.06]"
-      : resultsProofStatus === "nearPublic"
-        ? "border-emerald-300/15 bg-emerald-300/[0.06]"
-        : resultsProofStatus === "threads"
-          ? "border-sky-300/15 bg-sky-300/[0.06]"
-          : resultsProofStatus === "receipts"
-            ? "border-amber-300/15 bg-amber-300/[0.06]"
-            : "border-white/10 bg-white/[0.04]";
-  const resultsProofLastSignal =
-    publicProofPackets[0]?.lastReplyAt ||
-    nearPublicPackets[0]?.lastReplyAt ||
-    nearPublicPackets[0]?.sentAt ||
-    repliedPackets[0]?.lastReplyAt ||
-    latestResolvedSubmission?.created_at ||
-    null;
   const latestProofTask = managedInbox.proofTasks[0] || null;
   const latestProofTaskStatusLabel = latestProofTask
     ? copy.proofPipeline.taskStatus[latestProofTask.status]
@@ -2275,7 +2100,7 @@ export default function ProductDetail({
   const nextPlanItems = nextPlanUnlocks.map((channel) => {
     const channelName = getLocalizedChannel(channel, locale).name;
     const availabilityLabel =
-      isAutoExecutableChannel(channel.id)
+      channel.support_status === "live"
         ? copy.expansion.runnableNow
         : copy.expansion.rolloutQueue;
 
@@ -2284,7 +2109,7 @@ export default function ProductDetail({
   const laterPlanItems = laterPlanUnlocks.map((channel) => {
     const channelName = getLocalizedChannel(channel, locale).name;
     const availabilityLabel =
-      isAutoExecutableChannel(channel.id)
+      channel.support_status === "live"
         ? copy.expansion.runnableNow
         : copy.expansion.rolloutQueue;
 
@@ -2476,164 +2301,6 @@ export default function ProductDetail({
       tone: "border-white/8 bg-black/15",
     },
   ];
-  const managedInboxBadge = managedInboxActive
-    ? copy.offerBoundary.labels.active
-    : managedInbox.senderMode === "bring_your_own"
-      ? copy.offerBoundary.labels.byo
-      : managedInboxEligible
-        ? copy.offerBoundary.labels.addOn
-        : copy.offerBoundary.labels.locked;
-  const managedInboxTitle = managedInboxActive
-    ? copy.offerBoundary.cards.managed.activeTitle
-    : managedInbox.senderMode === "bring_your_own"
-      ? copy.offerBoundary.cards.managed.byoTitle
-      : managedInboxEligible
-        ? copy.offerBoundary.cards.managed.readyTitle
-        : copy.offerBoundary.cards.managed.lockedTitle;
-  const managedInboxBody = managedInboxActive
-    ? `${copy.offerBoundary.cards.managed.activeBody}${
-        managedInbox.mailboxIdentity?.email
-          ? locale === "zh"
-            ? ` 当前分配邮箱：${managedInbox.mailboxIdentity.email}。`
-            : ` Current inbox: ${managedInbox.mailboxIdentity.email}.`
-          : ""
-      }`
-    : managedInbox.senderMode === "bring_your_own"
-      ? `${copy.offerBoundary.cards.managed.byoBody}${
-          managedInbox.bringYourOwn?.senderEmail
-            ? locale === "zh"
-              ? ` 当前发件邮箱：${managedInbox.bringYourOwn.senderEmail}。`
-              : ` Current sender: ${managedInbox.bringYourOwn.senderEmail}.`
-            : ""
-        }`
-      : managedInboxEligible
-        ? copy.offerBoundary.cards.managed.readyBody
-        : copy.offerBoundary.cards.managed.lockedBody;
-  const paidOpportunityActive = commercialReviewPackets.length > 0;
-  const paidOpportunityTitle = paidOpportunityActive
-    ? copy.offerBoundary.cards.paid.activeTitle
-    : copy.offerBoundary.cards.paid.idleTitle;
-  const paidOpportunityBody = paidOpportunityActive
-    ? `${copy.offerBoundary.cards.paid.activeBody} ${
-        locale === "zh"
-          ? `当前待筛机会：${commercialReviewPackets.length} 个。`
-          : `Open opportunities to screen: ${commercialReviewPackets.length}.`
-      }`
-    : copy.offerBoundary.cards.paid.idleBody;
-  const manualServiceActive =
-    needsMaterialsPackets.length > 0 ||
-    underReviewPackets.length > 0 ||
-    latestProofTask?.status === "in_progress";
-  const manualServiceTitle = manualServiceActive
-    ? copy.offerBoundary.cards.manual.activeTitle
-    : copy.offerBoundary.cards.manual.idleTitle;
-  const manualServiceBody = manualServiceActive
-    ? copy.offerBoundary.cards.manual.activeBody
-    : copy.offerBoundary.cards.manual.idleBody;
-  const offerBoundaryCards = [
-    {
-      key: "core",
-      eyebrow: copy.offerBoundary.cards.core.eyebrow,
-      badge: copy.offerBoundary.labels.included,
-      title:
-        plan === "free"
-          ? copy.offerBoundary.cards.core.freeTitle
-          : copy.offerBoundary.cards.core.liveTitle,
-      body:
-        plan === "free"
-          ? copy.offerBoundary.cards.core.freeBody
-          : `${copy.offerBoundary.cards.core.liveBody} ${
-              locale === "zh"
-                ? `当前已解锁 ${availableLiveChannels.length} 条真实渠道。`
-                : `${availableLiveChannels.length} live lanes are currently unlocked.`
-            }`,
-      href: plan === "free" ? checkoutHref("starter") : "#submission-history",
-      actionLabel:
-        plan === "free" ? copy.hero.unlockStarter : copy.hero.viewHistory,
-      tone: "border-emerald-300/15 bg-emerald-300/[0.06]",
-      actionTone: "bg-[var(--accent-500)] text-stone-950 hover:bg-[var(--accent-300)]",
-    },
-    {
-      key: "managed",
-      eyebrow: copy.offerBoundary.cards.managed.eyebrow,
-      badge: managedInboxBadge,
-      title: managedInboxTitle,
-      body: managedInboxBody,
-      href: managedInboxEligible || managedInbox.senderMode === "bring_your_own" || managedInboxActive
-        ? "#managed-inbox"
-        : "/pricing#managed-inbox",
-      actionLabel:
-        managedInboxEligible || managedInbox.senderMode === "bring_your_own" || managedInboxActive
-          ? copy.offerBoundary.labels.openManaged
-          : copy.offerBoundary.labels.seePricing,
-      tone: "border-sky-300/15 bg-sky-300/[0.06]",
-      actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
-    },
-    {
-      key: "paid",
-      eyebrow: copy.offerBoundary.cards.paid.eyebrow,
-      badge: copy.offerBoundary.labels.separate,
-      title: paidOpportunityTitle,
-      body: paidOpportunityBody,
-      href: "#results-proof",
-      actionLabel: copy.offerBoundary.labels.openResults,
-      tone: "border-fuchsia-300/15 bg-fuchsia-300/[0.06]",
-      actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
-    },
-    {
-      key: "manual",
-      eyebrow: copy.offerBoundary.cards.manual.eyebrow,
-      badge: copy.offerBoundary.labels.service,
-      title: manualServiceTitle,
-      body: manualServiceBody,
-      href: "#proof-pipeline",
-      actionLabel: copy.offerBoundary.labels.openResults,
-      tone: "border-amber-300/15 bg-amber-300/[0.06]",
-      actionTone: "border border-[var(--line-strong)] text-stone-100 hover:bg-white/6",
-    },
-  ] as const;
-  const actionLayerCopy =
-    locale === "zh"
-      ? {
-          coreIncluded: "套餐内 · 核心软件层",
-          coreUpgrade: "升级后进入 · 核心软件层",
-          managedActive: "当前已开启 · 托管邮箱",
-          managedAddOn: "可选加购 · 托管邮箱",
-          managedLocked: "升级后可用 · 托管邮箱",
-          byo: "当前路径 · 你自己的邮箱",
-          resultService: "当前结果动作 · 人工服务层",
-        }
-      : {
-          coreIncluded: "Included · Core software",
-          coreUpgrade: "Unlocks · Core software",
-          managedActive: "Active now · Managed inbox",
-          managedAddOn: "Optional add-on · Managed inbox",
-          managedLocked: "Upgrade to use · Managed inbox",
-          byo: "Current path · Your inbox",
-          resultService: "Current result action · Manual service",
-        };
-  const actionLayerToneClasses = {
-    core: "border-emerald-300/15 bg-emerald-300/10 text-emerald-100",
-    managed: "border-sky-300/15 bg-sky-300/10 text-sky-100",
-    service: "border-amber-300/15 bg-amber-300/10 text-amber-100",
-    neutral: "border-white/10 bg-white/[0.05] text-stone-200",
-  } as const;
-  const renderActionLayerTag = (
-    label: string,
-    tone: keyof typeof actionLayerToneClasses
-  ) => (
-    <span
-      className={`inline-flex rounded-full border px-3 py-1.5 text-[11px] font-medium ${actionLayerToneClasses[tone]}`}
-    >
-      {label}
-    </span>
-  );
-  const coreActionTag = plan === "free" ? actionLayerCopy.coreUpgrade : actionLayerCopy.coreIncluded;
-  const managedActionTag = managedInboxActive
-    ? actionLayerCopy.managedActive
-    : managedInboxEligible
-      ? actionLayerCopy.managedAddOn
-      : actionLayerCopy.managedLocked;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-stone-950 text-stone-100">
@@ -2787,7 +2454,7 @@ export default function ProductDetail({
                 },
                 {
                   label: copy.hero.stats.liveChannels,
-                  value: `${availableLiveChannels.length}/${DEFAULT_EXECUTION_CHANNEL_COUNT}`,
+                  value: `${availableLiveChannels.length}/${LIVE_CHANNEL_COUNT}`,
                   tone: "text-emerald-200",
                 },
                 {
@@ -2862,48 +2529,6 @@ export default function ProductDetail({
                 </div>
               ) : null}
             </div>
-          </div>
-        </section>
-
-        <section className="mt-12 rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
-          <div className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              {copy.offerBoundary.eyebrow}
-            </p>
-            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
-              {copy.offerBoundary.title}
-            </h2>
-            <p className="mt-4 text-sm leading-7 text-stone-400 md:text-base">
-              {copy.offerBoundary.body}
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {offerBoundaryCards.map((card) => (
-              <article
-                key={card.key}
-                className={`rounded-[1.35rem] border p-5 ${card.tone}`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-current/75">
-                    {card.eyebrow}
-                  </p>
-                  <span className="rounded-full border border-white/10 bg-black/15 px-3 py-1 text-xs font-medium text-white">
-                    {card.badge}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-xl font-semibold text-white">{card.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-stone-200">{card.body}</p>
-                <div className="mt-5">
-                  <a
-                    href={card.href}
-                    className={`inline-flex rounded-full px-4 py-2 text-sm font-semibold transition ${card.actionTone}`}
-                  >
-                    {card.actionLabel}
-                  </a>
-                </div>
-              </article>
-            ))}
           </div>
         </section>
 
@@ -3037,94 +2662,91 @@ export default function ProductDetail({
               </p>
             </div>
 
-            <div className="mt-6">
-              {renderActionLayerTag(coreActionTag, "core")}
-              <div className="mt-3 flex flex-wrap gap-3">
-                {plan === "free" ? (
-                  <>
-                    <a
-                      href={checkoutHref("starter")}
-                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                    >
-                      {copy.hero.unlockStarter}
-                    </a>
-                    <a
-                      href={checkoutHref("growth")}
-                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.hero.unlockGrowth}
-                    </a>
-                  </>
-                ) : activeSubmission ? (
-                  <>
-                    <a
-                      href="#submission-history"
-                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                    >
-                      {copy.recap.openHistory}
-                    </a>
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.recap.openDashboard}
-                    </Link>
-                  </>
-                ) : latestResolvedSubmission?.status === "failed" ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => startSubmission(latestResolvedSubmission.channel)}
-                      disabled={submitting === latestResolvedSubmission.channel}
-                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                    >
-                      {submitting === latestResolvedSubmission.channel
-                        ? copy.channels.starting
-                        : copy.recap.retryLane}
-                    </button>
-                    <a
-                      href="#submission-history"
-                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.recap.openHistory}
-                    </a>
-                  </>
-                ) : recommendedNextLiveChannel ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => startSubmission(recommendedNextLiveChannel.id)}
-                      disabled={submitting === recommendedNextLiveChannel.id}
-                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                    >
-                      {submitting === recommendedNextLiveChannel.id
-                        ? copy.channels.starting
-                        : copy.recap.launchNext}
-                    </button>
-                    <a
-                      href="#submission-history"
-                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.recap.openHistory}
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <a
-                      href="#submission-history"
-                      className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                    >
-                      {copy.recap.openHistory}
-                    </a>
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.recap.openDashboard}
-                    </Link>
-                  </>
-                )}
-              </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {plan === "free" ? (
+                <>
+                  <a
+                    href={checkoutHref("starter")}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.unlockStarter}
+                  </a>
+                  <a
+                    href={checkoutHref("growth")}
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.unlockGrowth}
+                  </a>
+                </>
+              ) : activeSubmission ? (
+                <>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openDashboard}
+                  </Link>
+                </>
+              ) : latestResolvedSubmission?.status === "failed" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startSubmission(latestResolvedSubmission.channel)}
+                    disabled={submitting === latestResolvedSubmission.channel}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {submitting === latestResolvedSubmission.channel
+                      ? copy.channels.starting
+                      : copy.recap.retryLane}
+                  </button>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                </>
+              ) : recommendedNextLiveChannel ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startSubmission(recommendedNextLiveChannel.id)}
+                    disabled={submitting === recommendedNextLiveChannel.id}
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                  >
+                    {submitting === recommendedNextLiveChannel.id
+                      ? copy.channels.starting
+                      : copy.recap.launchNext}
+                  </button>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a
+                    href="#submission-history"
+                    className="inline-flex rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.recap.openHistory}
+                  </a>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.recap.openDashboard}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -3567,47 +3189,44 @@ export default function ProductDetail({
                   )}
                 </div>
 
-                <div className="mt-6">
-                  {renderActionLayerTag(managedActionTag, "managed")}
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    {managedInboxActive ? (
-                      <>
-                        <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
-                          {managedInboxCopy.managed.active}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={queueManagedBatch}
-                          disabled={managedInboxAction === "launch_batch"}
-                          className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
-                        >
-                          {managedInboxAction === "launch_batch"
-                            ? copy.channels.starting
-                            : managedLaunchRequest
-                              ? managedInboxCopy.managed.launchRefresh
-                              : managedInboxCopy.managed.launchCta}
-                        </button>
-                      </>
-                    ) : managedInboxEligible ? (
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {managedInboxActive ? (
+                    <>
+                      <div className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-medium text-stone-100">
+                        {managedInboxCopy.managed.active}
+                      </div>
                       <button
                         type="button"
-                        onClick={activateManagedSender}
-                        disabled={managedInboxAction === "activate_managed"}
+                        onClick={queueManagedBatch}
+                        disabled={managedInboxAction === "launch_batch"}
                         className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
                       >
-                        {managedInboxAction === "activate_managed"
+                        {managedInboxAction === "launch_batch"
                           ? copy.channels.starting
-                          : managedInboxCopy.managed.activate}
+                          : managedLaunchRequest
+                            ? managedInboxCopy.managed.launchRefresh
+                            : managedInboxCopy.managed.launchCta}
                       </button>
-                    ) : (
-                      <a
-                        href={checkoutHref("growth")}
-                        className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
-                      >
-                        {managedInboxCopy.managed.upgrade}
-                      </a>
-                    )}
-                  </div>
+                    </>
+                  ) : managedInboxEligible ? (
+                    <button
+                      type="button"
+                      onClick={activateManagedSender}
+                      disabled={managedInboxAction === "activate_managed"}
+                      className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:opacity-60"
+                    >
+                      {managedInboxAction === "activate_managed"
+                        ? copy.channels.starting
+                        : managedInboxCopy.managed.activate}
+                    </button>
+                  ) : (
+                    <a
+                      href={checkoutHref("growth")}
+                      className="inline-flex rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white"
+                    >
+                      {managedInboxCopy.managed.upgrade}
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -3644,15 +3263,11 @@ export default function ProductDetail({
                     onClick={saveBringYourOwnSender}
                     disabled={managedInboxAction === "save_byo"}
                     className="inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6 disabled:opacity-60"
-                    >
-                      {managedInboxAction === "save_byo"
+                  >
+                    {managedInboxAction === "save_byo"
                       ? copy.channels.starting
                       : managedInboxCopy.byo.save}
                   </button>
-                </div>
-
-                <div className="mt-4">
-                  {renderActionLayerTag(actionLayerCopy.byo, "neutral")}
                 </div>
 
                 <p className="mt-4 text-sm leading-7 text-stone-500">
@@ -3866,217 +3481,6 @@ export default function ProductDetail({
         </section>
 
         {latestResolvedSubmission || managedLaunchPackets.length > 0 ? (
-          <section id="results-proof" className="mt-12 scroll-mt-24">
-            <div className="max-w-3xl">
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                {copy.resultsProof.title}
-              </p>
-              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
-                {copy.resultsProof.title}
-              </h2>
-              <p className="mt-4 text-base leading-7 text-stone-400">
-                {copy.resultsProof.body}
-              </p>
-            </div>
-
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {(
-                [
-                  ["public", publicProofPackets.length],
-                  ["nearPublic", nearPublicPackets.length],
-                  ["threads", repliedPackets.length],
-                  ["internal", totalSuccessfulActions],
-                ] as const
-              ).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/[0.04] p-5"
-                >
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.resultsProof.stats[key]}
-                  </div>
-                  <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-              <div className={`rounded-[1.75rem] border p-6 ${resultsProofStatusTone}`}>
-                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                  {copy.resultsProof.statusLabel}
-                </div>
-                <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs font-medium text-white">
-                  {copy.resultsProof.statuses[resultsProofStatus].badge}
-                </div>
-                <h3 className="mt-4 text-2xl font-semibold text-white">
-                  {copy.resultsProof.statuses[resultsProofStatus].title}
-                </h3>
-                <p className="mt-4 text-sm leading-7 text-stone-300">
-                  {copy.resultsProof.statuses[resultsProofStatus].body}
-                </p>
-                {resultsProofLastSignal ? (
-                  <div className="mt-5 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
-                    {copy.resultsProof.latestSignal}:{" "}
-                    {formatSubmissionDate(resultsProofLastSignal, locale)}
-                  </div>
-                ) : null}
-                <div className="mt-5">
-                  {renderActionLayerTag(actionLayerCopy.resultService, "service")}
-                  <div className="mt-3">
-                    <a
-                      href="#proof-pipeline"
-                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
-                    >
-                      {copy.resultsProof.openProofPipeline}
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-3">
-                <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.resultsProof.publicBadge}
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">
-                    {copy.resultsProof.publicTitle}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-stone-400">
-                    {copy.resultsProof.publicBody}
-                  </p>
-
-                  {publicProofPackets.length > 0 ? (
-                    <div className="mt-5 space-y-3">
-                      {publicProofPackets.map((packet) => (
-                        <div
-                          key={packet.id}
-                          className="rounded-[1.15rem] border border-lime-300/15 bg-lime-300/[0.04] p-4"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-lime-300/15 bg-lime-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-lime-100">
-                              {managedInboxCopy.managed.threadStage.published}
-                            </span>
-                            <div className="text-sm font-semibold text-white">{packet.title}</div>
-                          </div>
-                          <div className="mt-2 text-xs text-stone-500">{packet.targetDomain}</div>
-                          <p className="mt-3 text-sm leading-7 text-stone-300">
-                            {packet.lastReplySnippet || packet.nextStep}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-5 text-sm leading-7 text-stone-400">
-                      {copy.resultsProof.publicEmpty}
-                    </p>
-                  )}
-                </div>
-
-                <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.proofPipeline.priorityTitle}
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">
-                    {copy.resultsProof.nearTitle}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-stone-400">
-                    {copy.resultsProof.nearBody}
-                  </p>
-
-                  {nearPublicPackets.length > 0 ? (
-                    <div className="mt-5 space-y-3">
-                      {nearPublicPackets.map((packet) => (
-                        <div
-                          key={packet.id}
-                          className="rounded-[1.15rem] border border-white/10 bg-black/15 p-4"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            {packet.threadStage ? (
-                              <span
-                                className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${managedPacketThreadStageClasses(
-                                  packet.threadStage
-                                )}`}
-                              >
-                                {managedInboxCopy.managed.threadStage[packet.threadStage]}
-                              </span>
-                            ) : null}
-                            <div className="text-sm font-semibold text-white">{packet.title}</div>
-                          </div>
-                          <div className="mt-2 text-xs text-stone-500">{packet.targetDomain}</div>
-                          <p className="mt-3 text-sm leading-7 text-stone-300">
-                            {packet.threadStageReason ||
-                              (packet.threadStage
-                                ? managedInboxCopy.managed.threadStageReason[packet.threadStage]
-                                : packet.nextStep)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-5 text-sm leading-7 text-stone-400">
-                      {copy.resultsProof.nearEmpty}
-                    </p>
-                  )}
-                </div>
-
-                <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/[0.04] p-6">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.resultsProof.internalBadge}
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">
-                    {copy.resultsProof.internalTitle}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-stone-400">
-                    {copy.resultsProof.internalBody}
-                  </p>
-
-                  {internalSignalReceipts.length > 0 || latestBlockers.length > 0 ? (
-                    <div className="mt-5 space-y-3">
-                      {internalSignalReceipts.map((result, index) => (
-                        <div
-                          key={`${result.site}-${index}`}
-                          className="rounded-[1.15rem] border border-emerald-300/12 bg-emerald-300/[0.04] p-4"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald-200">
-                              {copy.recap.successBadge}
-                            </span>
-                            <div className="text-sm font-semibold text-white">{result.site}</div>
-                          </div>
-                          <p className="mt-3 text-sm leading-7 text-stone-300">
-                            {summarizeResultOutput(result.output, locale)}
-                          </p>
-                        </div>
-                      ))}
-                      {latestBlockers.slice(0, 2).map((result, index) => (
-                        <div
-                          key={`${result.site}-blocked-${index}`}
-                          className="rounded-[1.15rem] border border-red-300/12 bg-red-300/[0.04] p-4"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-red-300/15 bg-red-300/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-red-200">
-                              {copy.recap.blockedBadge}
-                            </span>
-                            <div className="text-sm font-semibold text-white">{result.site}</div>
-                          </div>
-                          <p className="mt-3 text-sm leading-7 text-stone-300">
-                            {summarizeResultOutput(result.output, locale)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-5 text-sm leading-7 text-stone-400">
-                      {copy.resultsProof.internalEmpty}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {latestResolvedSubmission || managedLaunchPackets.length > 0 ? (
           <section id="proof-pipeline" className="mt-12 scroll-mt-24">
             <div className="max-w-3xl">
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -4159,47 +3563,44 @@ export default function ProductDetail({
                         {latestProofTask.note}
                       </p>
                     ) : null}
-                    <div className="mt-4">
-                      {renderActionLayerTag(actionLayerCopy.resultService, "service")}
-                      <div className="mt-3 flex flex-wrap gap-3">
-                        {latestProofTask.status === "queued" ? (
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {latestProofTask.status === "queued" ? (
+                        <button
+                          type="button"
+                          onClick={() => updateProofTask(latestProofTask.id, "start")}
+                          disabled={proofTaskActionKey === `${latestProofTask.id}:start`}
+                          className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                        >
+                          {proofTaskActionKey === `${latestProofTask.id}:start`
+                            ? copy.proofPipeline.updatingTask
+                            : copy.proofPipeline.startingTask}
+                        </button>
+                      ) : null}
+                      {(latestProofTask.status === "queued" ||
+                        latestProofTask.status === "in_progress") ? (
+                        <>
                           <button
                             type="button"
-                            onClick={() => updateProofTask(latestProofTask.id, "start")}
-                            disabled={proofTaskActionKey === `${latestProofTask.id}:start`}
-                            className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                            onClick={() => updateProofTask(latestProofTask.id, "prove")}
+                            disabled={proofTaskActionKey === `${latestProofTask.id}:prove`}
+                            className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
                           >
-                            {proofTaskActionKey === `${latestProofTask.id}:start`
+                            {proofTaskActionKey === `${latestProofTask.id}:prove`
                               ? copy.proofPipeline.updatingTask
-                              : copy.proofPipeline.startingTask}
+                              : copy.proofPipeline.markProved}
                           </button>
-                        ) : null}
-                        {(latestProofTask.status === "queued" ||
-                          latestProofTask.status === "in_progress") ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => updateProofTask(latestProofTask.id, "prove")}
-                              disabled={proofTaskActionKey === `${latestProofTask.id}:prove`}
-                              className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
-                            >
-                              {proofTaskActionKey === `${latestProofTask.id}:prove`
-                                ? copy.proofPipeline.updatingTask
-                                : copy.proofPipeline.markProved}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updateProofTask(latestProofTask.id, "drop")}
-                              disabled={proofTaskActionKey === `${latestProofTask.id}:drop`}
-                              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
-                            >
-                              {proofTaskActionKey === `${latestProofTask.id}:drop`
-                                ? copy.proofPipeline.updatingTask
-                                : copy.proofPipeline.markDropped}
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => updateProofTask(latestProofTask.id, "drop")}
+                            disabled={proofTaskActionKey === `${latestProofTask.id}:drop`}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
+                          >
+                            {proofTaskActionKey === `${latestProofTask.id}:drop`
+                              ? copy.proofPipeline.updatingTask
+                              : copy.proofPipeline.markDropped}
+                          </button>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -4478,7 +3879,7 @@ export default function ProductDetail({
                         {localizedChannel.name}
                       </h3>
                     </div>
-                    {supportBadge(channel, locale)}
+                    {supportBadge(channel.support_status, locale)}
                   </div>
 
                   <p className="mt-4 text-sm leading-7 text-stone-400">
@@ -4555,28 +3956,11 @@ export default function ProductDetail({
               </h2>
             </div>
 
-            {reviewRequestError ? (
-              <div className="mt-6 rounded-[1.25rem] border border-red-300/15 bg-red-300/10 p-4 text-sm text-red-100">
-                {reviewRequestError}
-              </div>
-            ) : null}
-
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {plannedChannels.map((channel) => {
                 const localizedChannel = getLocalizedChannel(channel, locale);
                 const available = channel.plans.includes(plan);
                 const minimumPlan = minimumPlanForChannel(channel);
-                const policy = getChannelSafetyPolicy(channel.id);
-                const reviewRequest = latestReviewRequestForChannel(channel.id);
-                const canRequestManualReview =
-                  available && policy.executionMode === "manual_review";
-                const reviewBody = reviewRequest
-                  ? reviewRequest.status === "approved"
-                    ? copy.channels.reviewApprovedBody
-                    : reviewRequest.status === "rejected"
-                      ? copy.channels.reviewRejectedBody
-                      : copy.channels.reviewQueuedBody
-                  : copy.channels.reviewHelp;
 
                 return (
                   <div
@@ -4590,7 +3974,7 @@ export default function ProductDetail({
                           {localizedChannel.name}
                         </h3>
                       </div>
-                      {supportBadge(channel, locale)}
+                      {supportBadge(channel.support_status, locale)}
                     </div>
 
                     <p className="mt-4 text-sm leading-7 text-stone-400">
@@ -4609,46 +3993,8 @@ export default function ProductDetail({
                     </div>
 
                     <div className="mt-6 rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-stone-400">
-                      {roadmapLaneMessage(channel, available, locale)}
+                      {available ? copy.channels.includedWhenLive : copy.channels.rolloutOnly}
                     </div>
-
-                    {canRequestManualReview ? (
-                      <div className="mt-4 rounded-[1.25rem] border border-amber-300/15 bg-amber-300/[0.06] p-4">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span
-                            className={`rounded-full border px-3 py-1 text-[11px] font-medium ${
-                              reviewRequest
-                                ? channelReviewRequestStatusClasses(reviewRequest.status)
-                                : "border-white/10 bg-white/[0.04] text-stone-100"
-                            }`}
-                          >
-                            {reviewRequest
-                              ? localizedChannelReviewRequestStatus(reviewRequest.status, locale)
-                              : copy.channels.reviewNeeded}
-                          </span>
-                          {reviewRequest ? (
-                            <span className="text-xs text-stone-400">
-                              {copy.channels.reviewRequestedAt}: {formatSubmissionDate(reviewRequest.updatedAt, locale)}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        <p className="mt-3 text-sm leading-7 text-stone-300">{reviewBody}</p>
-
-                        {!reviewRequest || reviewRequest.status === "rejected" ? (
-                          <button
-                            type="button"
-                            onClick={() => requestChannelReview(channel)}
-                            disabled={reviewingChannelId === channel.id}
-                            className="mt-4 inline-flex rounded-full border border-amber-300/25 bg-amber-300/10 px-5 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-300/15 disabled:opacity-60"
-                          >
-                            {reviewingChannelId === channel.id
-                              ? copy.channels.reviewActioning
-                              : copy.channels.reviewAction}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </div>
                 );
               })}
@@ -4924,7 +4270,415 @@ export default function ProductDetail({
                     {operationalInsights.source_library_root_domain_count}
                   </div>
                 </div>
+                <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                  <div className="text-stone-500">{copy.intelligence.discoveryToday}</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {operationalInsights.discovery_counted_new_worthy_root_domain_count}/
+                    {operationalInsights.discovery_target_new_worthy_root_domains}
+                  </div>
+                </div>
+                <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                  <div className="text-stone-500">{copy.intelligence.discoveryGap}</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {operationalInsights.discovery_remaining_to_target}
+                  </div>
+                </div>
+                <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                  <div className="text-stone-500">{copy.intelligence.paidBacklog}</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {operationalInsights.paid_target_backlog_count}
+                  </div>
+                </div>
+                <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
+                  <div className="text-stone-500">{copy.intelligence.paidRootDomains}</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {operationalInsights.paid_target_root_domain_count}
+                  </div>
+                </div>
               </div>
+
+              <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                      {copy.intelligence.discoveryTitle}
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-stone-400">
+                      {copy.intelligence.discoveryBody}
+                    </p>
+                  </div>
+                  <div className="text-right text-[10px] text-stone-500">
+                    <div>
+                      {operationalInsights.discovery_target_reached
+                        ? copy.intelligence.discoveryReached
+                        : copy.intelligence.discoveryInProgress}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {capabilityUpgradeFeed.capability_fingerprint ? (
+                <div
+                  className={`mt-6 rounded-[1.25rem] border p-5 ${
+                    capabilityUpdatePending
+                      ? "border-amber-300/15 bg-amber-300/[0.06]"
+                      : "border-emerald-300/15 bg-emerald-300/[0.05]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.title}
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-stone-300">
+                        {capabilityCopy.body}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${
+                          capabilityUpdatePending
+                            ? "border border-amber-300/15 bg-amber-300/10 text-amber-100"
+                            : "border border-emerald-300/15 bg-emerald-300/10 text-emerald-200"
+                        }`}
+                      >
+                        {capabilityUpdatePending
+                          ? capabilityCopy.updateAvailable
+                          : capabilityCopy.synced}
+                      </span>
+                      <div className="mt-2 text-[10px] text-stone-500">
+                        {formatCapabilityTimestamp(
+                          capabilityUpgradeFeed.generated_at,
+                          locale
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                    <div className="rounded-[1rem] border border-black/15 bg-black/10 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.focus}
+                      </div>
+                      <div className="mt-2 text-sm leading-7 text-white">
+                        {capabilityUpgradeFeed.team_handoff_summary?.current_focus ||
+                          capabilityUpgradeFeed.team_handoff_summary?.one_line}
+                      </div>
+                      <div className="mt-4 text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.fingerprint}
+                      </div>
+                      <div className="mt-2 font-mono text-xs text-stone-300">
+                        {shortFingerprint(capabilityUpgradeFeed.capability_fingerprint)}
+                      </div>
+                      <div className="mt-4 text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.anchorMarkets}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(capabilityUpgradeFeed.product_claim_policy?.anchor_markets || []).map(
+                          (language) => (
+                            <span
+                              key={language}
+                              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-stone-200"
+                            >
+                              {formatLanguageLabel(language, locale)}
+                            </span>
+                          )
+                        )}
+                      </div>
+                      {hasLanguageAdaptiveCopy ? (
+                        <div className="mt-4 inline-flex rounded-full border border-sky-300/15 bg-sky-300/10 px-3 py-1.5 text-xs text-sky-200">
+                          {capabilityCopy.adaptiveCopy}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="rounded-[1rem] border border-black/15 bg-black/10 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.actionsTitle}
+                      </div>
+                      {capabilityActions.length > 0 ? (
+                        <div className="mt-3 grid gap-2">
+                          {capabilityActions.map((action) => (
+                            <div
+                              key={action.id}
+                              className="rounded-[0.9rem] border border-white/10 bg-white/[0.04] p-3"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="text-sm font-medium text-white">
+                                  {action.action}
+                                </div>
+                                <span
+                                  className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.2em] ${
+                                    action.priority === "P0"
+                                      ? "border border-red-300/15 bg-red-300/10 text-red-200"
+                                      : "border border-amber-300/15 bg-amber-300/10 text-amber-100"
+                                  }`}
+                                >
+                                  {action.priority}
+                                </span>
+                              </div>
+                              <div className="mt-2 text-xs leading-6 text-stone-400">
+                                {action.why}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-sm leading-7 text-stone-400">
+                          {capabilityCopy.noActions}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+                    <div className="rounded-[1rem] border border-black/15 bg-black/10 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.surfacesTitle}
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-stone-300">
+                        {capabilityCopy.surfacesBody}
+                      </p>
+                      {capabilitySurfaces.length > 0 ? (
+                        <div className="mt-4 grid gap-2">
+                          {capabilitySurfaces.map((surface) => (
+                            <div
+                              key={surface.id}
+                              className="rounded-[0.9rem] border border-white/10 bg-white/[0.04] p-3"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="text-sm font-medium text-white">
+                                  {surface.label}
+                                </div>
+                                <span className="rounded-full border border-white/10 bg-black/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-300">
+                                  {surface.audience === "customer"
+                                    ? capabilityCopy.customerAudience
+                                    : capabilityCopy.internalAudience}
+                                </span>
+                              </div>
+                              <div className="mt-2 text-xs leading-6 text-stone-400">
+                                {surface.summary}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-sm leading-7 text-stone-400">
+                          {capabilityCopy.noSurfaces}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-[1rem] border border-black/15 bg-black/10 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {capabilityCopy.copyImpactTitle}
+                      </div>
+                      {[
+                        [
+                          capabilityCopy.customerSummary,
+                          capabilityCopyGuidance.customer_summary,
+                        ],
+                        [
+                          capabilityCopy.claimGuardrail,
+                          capabilityCopyGuidance.public_claim_guardrail,
+                        ],
+                        [
+                          capabilityCopy.salesNote,
+                          capabilityCopyGuidance.sales_enablement_note,
+                        ],
+                        [
+                          capabilityCopy.adaptiveCopy,
+                          capabilityCopyGuidance.localized_copy_note,
+                        ],
+                        [
+                          capabilityCopy.operatorNote,
+                          capabilityCopyGuidance.operator_note,
+                        ],
+                      ].some(([, value]) => Boolean(value)) ? (
+                        <div className="mt-3 grid gap-2">
+                          {[
+                            [
+                              capabilityCopy.customerSummary,
+                              capabilityCopyGuidance.customer_summary,
+                            ],
+                            [
+                              capabilityCopy.claimGuardrail,
+                              capabilityCopyGuidance.public_claim_guardrail,
+                            ],
+                            [
+                              capabilityCopy.salesNote,
+                              capabilityCopyGuidance.sales_enablement_note,
+                            ],
+                            [
+                              capabilityCopy.adaptiveCopy,
+                              capabilityCopyGuidance.localized_copy_note,
+                            ],
+                            [
+                              capabilityCopy.operatorNote,
+                              capabilityCopyGuidance.operator_note,
+                            ],
+                          ]
+                            .filter(([, value]) => Boolean(value))
+                            .map(([label, value]) => (
+                              <div
+                                key={label}
+                                className="rounded-[0.9rem] border border-white/10 bg-white/[0.04] p-3"
+                              >
+                                <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                                  {label}
+                                </div>
+                                <div className="mt-2 text-sm leading-7 text-stone-300">
+                                  {value}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-sm leading-7 text-stone-400">
+                          {capabilityCopy.noCopyImpact}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-[1rem] border border-black/15 bg-black/10 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                      {capabilityCopy.marketTitle}
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-stone-300">
+                      {capabilityCopy.marketBody}
+                    </p>
+                    {capabilityUpgradeFeed.product_claim_policy?.rule ? (
+                      <div className="mt-4">
+                        <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                          {capabilityCopy.claimRule}
+                        </div>
+                        <div className="mt-2 text-xs leading-6 text-stone-400">
+                          {capabilityUpgradeFeed.product_claim_policy.rule}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      {marketTierCards.map((tier) => (
+                        <div
+                          key={tier.key}
+                          className={`rounded-[1rem] border p-3 ${tier.tone}`}
+                        >
+                          <div className="text-[10px] uppercase tracking-[0.22em]">
+                            {tier.label}
+                          </div>
+                          {tier.languages.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {tier.languages.map((language) => (
+                                <span
+                                  key={`${tier.key}-${language}`}
+                                  className="rounded-full border border-current/15 bg-black/10 px-3 py-1.5 text-xs"
+                                >
+                                  {formatLanguageLabel(language, locale)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-3 text-xs text-stone-500">
+                              {capabilityCopy.noMarkets}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {detectedLanguageCounts.length > 0 ? (
+                      <div className="mt-4">
+                        <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                          {capabilityCopy.detectedTitle}
+                        </div>
+                        <div className="mt-3 grid gap-2">
+                          {detectedLanguageCounts.map((entry) => (
+                            <div
+                              key={entry.language}
+                              className="rounded-[0.9rem] border border-white/10 bg-white/[0.04] p-3"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="text-sm font-medium text-white">
+                                  {formatLanguageLabel(entry.language, locale)}
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-xs text-stone-400">
+                                  <span>
+                                    {capabilityCopy.totalDetected}:{" "}
+                                    {entry.total_opportunity_count}
+                                  </span>
+                                  <span>
+                                    {capabilityCopy.todayDetected}:{" "}
+                                    {entry.today_opportunity_count}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {operationalInsights.top_paid_targets?.length ? (
+                <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                        {copy.intelligence.paidTargetsTitle}
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-stone-400">
+                        {copy.intelligence.paidTargetsBody}
+                      </p>
+                    </div>
+                    <div className="text-right text-[10px] text-stone-500">
+                      <div>
+                        {operationalInsights.paid_target_new_today_count}{" "}
+                        {copy.intelligence.paidCollectedToday}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                      {copy.intelligence.paidExamplesTitle}
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {operationalInsights.top_paid_targets.slice(0, 4).map((target) => (
+                        <div
+                          key={target.opportunity_id}
+                          className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-medium text-white">
+                                {target.platform_name}
+                              </div>
+                              <div className="mt-1 text-xs text-stone-500">
+                                {target.root_domain}
+                              </div>
+                            </div>
+                            <a
+                              href={target.submit_url || target.platform_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-amber-200 transition hover:text-amber-100"
+                            >
+                              {copy.intelligence.openSource}
+                            </a>
+                          </div>
+                          <div className="mt-2 text-xs leading-6 text-stone-400">
+                            {target.why_now || target.recommended_action}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {recommendedLaneIds.length > 0 ||
               qualityBarIds.length > 0 ||

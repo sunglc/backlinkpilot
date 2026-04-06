@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import LocaleToggle from "@/components/locale-toggle";
+import PublicClaimsPanel from "@/components/public-claims-panel";
+import StructuredDataScript from "@/components/structured-data-script";
+import { buildClaimAwareDescription } from "@/lib/saas-public-claims";
+import { readSaasPublicClaims } from "@/lib/saas-public-claims-server";
+import { buildSoftwareApplicationStructuredData } from "@/lib/saas-structured-data";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
 
@@ -63,6 +68,15 @@ function getDirectoryCopy(locale: Locale) {
         body: "把繁琐重复的工作交给 BacklinkPilot，从免费配置开始。",
         button: "免费开始配置 - $29/月起",
       },
+      claims: {
+        title: "公开宣称边界",
+        body:
+          "目录页也要遵循能力合同。我们只把已经 proven 的市场说成已证明供给，把 buildout/watchlist 继续当成扩张中的真实状态。",
+        summaryLabel: "当前对用户的核心说法",
+        guardrailLabel: "对外口径护栏",
+        surfacesLabel: "当前影响的用户侧产品面",
+        noSurfaces: "当前没有登记用户侧产品面。",
+      },
     };
   }
 
@@ -122,16 +136,30 @@ function getDirectoryCopy(locale: Locale) {
       body: "Let BacklinkPilot handle the repetitive work. Start with the free setup flow.",
       button: "Start Free Setup — From $29/month",
     },
+    claims: {
+      title: "Public claim boundary",
+      body:
+        "The directory page should also follow the capability contract. Only proven markets should be framed as current supply, while buildout/watchlist stays clearly labeled as expansion work.",
+      summaryLabel: "Current customer summary",
+      guardrailLabel: "Public-claim guardrail",
+      surfacesLabel: "Customer-facing surfaces affected now",
+      noSurfaces: "No customer-facing product surfaces are registered right now.",
+    },
   };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const copy = getDirectoryCopy(locale);
+  const publicClaims = await readSaasPublicClaims();
 
   return {
     title: copy.metadata.title,
-    description: copy.metadata.description,
+    description: buildClaimAwareDescription({
+      locale,
+      baseDescription: copy.metadata.description,
+      publicClaims,
+    }),
     keywords: [
       "directory submission tool",
       "automated directory submission",
@@ -145,9 +173,28 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DirectorySubmissionTool() {
   const locale = await getLocale();
   const copy = getDirectoryCopy(locale);
-
+  const publicClaims = await readSaasPublicClaims();
+  const structuredData = buildSoftwareApplicationStructuredData({
+    locale,
+    name: "BacklinkPilot Directory Submission Tool",
+    url: "https://backlinkpilot.com/directory-submission-tool",
+    baseDescription: copy.metadata.description,
+    publicClaims,
+    keywords: [
+      "directory submission tool",
+      "automated directory submission",
+      "submit website to directories",
+    ],
+    priceUsd: 29,
+    featureList: [
+      "500+ curated directories",
+      "AI form analysis",
+      "Submission verification",
+    ],
+  });
   return (
     <main className="min-h-screen bg-stone-950 text-stone-100">
+      <StructuredDataScript data={structuredData} />
       <nav className="fixed top-0 z-50 w-full border-b border-[var(--line-soft)] bg-stone-950/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link href="/" className="text-xl font-bold text-white">
@@ -210,6 +257,18 @@ export default async function DirectorySubmissionTool() {
               <li key={step}>{step}</li>
             ))}
           </ol>
+
+          <div className="mb-8 rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5">
+            <h2 className="text-xl font-semibold text-white">{copy.claims.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-stone-400">
+              {copy.claims.body}
+            </p>
+            <PublicClaimsPanel
+              locale={locale}
+              publicClaims={publicClaims}
+              className="mt-4"
+            />
+          </div>
 
           <div className="rounded-[2rem] border border-amber-200/15 bg-[linear-gradient(135deg,rgba(159,224,207,0.06),rgba(208,166,90,0.08))] p-8 text-center">
             <h2 className="mb-3 text-2xl font-bold text-white">

@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import LocaleToggle from "@/components/locale-toggle";
+import PublicClaimsPanel from "@/components/public-claims-panel";
+import StructuredDataScript from "@/components/structured-data-script";
+import { buildClaimAwareDescription } from "@/lib/saas-public-claims";
+import { readSaasPublicClaims } from "@/lib/saas-public-claims-server";
+import { buildSoftwareApplicationStructuredData } from "@/lib/saas-structured-data";
 import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
@@ -68,6 +73,15 @@ function getAutomationCopy(locale: Locale) {
         ["价格", "$29/月起", "$195/月起", "$500-1500/月"],
         ["启动耗时", "5 分钟", "数小时", "数天"],
       ],
+      claims: {
+        title: "公开宣称边界",
+        body:
+          "这张落地页也不能脱离能力合同自己编故事。我们只展示当前 proven/buildout/watchlist 的真实层级，并明确语言自适应文案是不是已经进入真实能力层。",
+        summaryLabel: "当前对用户的核心说法",
+        guardrailLabel: "对外口径护栏",
+        surfacesLabel: "当前影响的用户侧产品面",
+        noSurfaces: "当前没有登记用户侧产品面。",
+      },
     };
   }
 
@@ -132,16 +146,30 @@ function getAutomationCopy(locale: Locale) {
       ["Price", "From $29/mo", "From $195/mo", "$500-1500/mo"],
       ["Setup time", "5 minutes", "Hours", "Days"],
     ],
+    claims: {
+      title: "Public claim boundary",
+      body:
+        "This landing page should not drift away from the capability contract. It only shows the current proven/buildout/watchlist tiers and whether language-adaptive copy is already in the real capability layer.",
+      summaryLabel: "Current customer summary",
+      guardrailLabel: "Public-claim guardrail",
+      surfacesLabel: "Customer-facing surfaces affected now",
+      noSurfaces: "No customer-facing product surfaces are registered right now.",
+    },
   };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const copy = getAutomationCopy(locale);
+  const publicClaims = await readSaasPublicClaims();
 
   return {
     title: copy.metadata.title,
-    description: copy.metadata.description,
+    description: buildClaimAwareDescription({
+      locale,
+      baseDescription: copy.metadata.description,
+      publicClaims,
+    }),
     keywords: [
       "backlink automation tool",
       "automated backlink builder",
@@ -155,9 +183,28 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function BacklinkAutomationTool() {
   const locale = await getLocale();
   const copy = getAutomationCopy(locale);
-
+  const publicClaims = await readSaasPublicClaims();
+  const structuredData = buildSoftwareApplicationStructuredData({
+    locale,
+    name: "BacklinkPilot Backlink Automation Tool",
+    url: "https://backlinkpilot.com/backlink-automation-tool",
+    baseDescription: copy.metadata.description,
+    publicClaims,
+    keywords: [
+      "backlink automation tool",
+      "automated backlink builder",
+      "seo automation tool",
+    ],
+    priceUsd: 29,
+    featureList: [
+      "AI form filling",
+      "Stealth browser technology",
+      `${LIVE_CHANNEL_COUNT} live channels / ${TOTAL_CHANNEL_COUNT} total planned`,
+    ],
+  });
   return (
     <main className="min-h-screen bg-stone-950 text-stone-100">
+      <StructuredDataScript data={structuredData} />
       <nav className="fixed top-0 z-50 w-full border-b border-[var(--line-soft)] bg-stone-950/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link href="/" className="text-xl font-bold text-white">
@@ -247,6 +294,18 @@ export default async function BacklinkAutomationTool() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="mb-8 rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.04] p-5">
+            <h2 className="text-xl font-semibold text-white">{copy.claims.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-stone-400">
+              {copy.claims.body}
+            </p>
+            <PublicClaimsPanel
+              locale={locale}
+              publicClaims={publicClaims}
+              className="mt-4"
+            />
           </div>
 
           <div className="rounded-[2rem] border border-amber-200/15 bg-[linear-gradient(135deg,rgba(159,224,207,0.06),rgba(208,166,90,0.08))] p-8 text-center">

@@ -3,12 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import LocaleToggle from "@/components/locale-toggle";
-import { readSaasCapabilityContract } from "@/lib/saas-capability-contract";
-import { DEFAULT_EXECUTION_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
+import PublicClaimsPanel from "@/components/public-claims-panel";
+import StructuredDataScript from "@/components/structured-data-script";
+import { LIVE_CHANNEL_COUNT, TOTAL_CHANNEL_COUNT } from "@/lib/execution-contract";
 import { getLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/locale-config";
-import { readSaasOperationalInsights } from "@/lib/saas-operational-insights";
-import { buildSaasPublicClaims } from "@/lib/saas-public-claims";
+import { buildClaimAwareDescription } from "@/lib/saas-public-claims";
+import { readSaasPublicClaims } from "@/lib/saas-public-claims-server";
+import { buildSoftwareApplicationStructuredData } from "@/lib/saas-structured-data";
 
 function getHomeCopy(locale: Locale) {
   if (locale === "zh") {
@@ -16,7 +18,7 @@ function getHomeCopy(locale: Locale) {
       metadata: {
         title: "BacklinkPilot - 自动驾驶你的外链增长",
         description:
-          "把产品网址贴进来，自动识别信息并启动真实目录提交流程。其他渠道按人工审核或 rollout 推进。先免费完成首个产品配置，再按执行量付费。",
+          "把产品网址贴进来，自动识别信息并启动真实目录与 stealth 外链执行。先免费完成首个产品配置，再按执行量付费。",
       },
       nav: {
         product: "产品",
@@ -31,12 +33,12 @@ function getHomeCopy(locale: Locale) {
         titleTop: "贴上你的首页。",
         titleBottom: "带着一套可执行的外链启动方案离开。",
         body:
-          "BacklinkPilot 会把一个普通产品网址变成可直接提交的产品档案，再把它送入真实目录提交流程和经过审核的后续渠道，而不是让你去学习代理商式的复杂流程。",
+          "BacklinkPilot 会把一个普通产品网址变成可直接提交的产品档案，再把它送入真实的目录与 stealth 渠道，而不是让你去学习代理商式的复杂流程。",
         primaryCta: "免费开始配置",
         secondaryCta: "查看价格",
         signals: [
           "500+ 经过筛选的目录",
-          `今天默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道`,
+          `今天已上线 ${LIVE_CHANNEL_COUNT} 个渠道`,
           "首个产品可免费配置",
           "可选托管外联邮箱",
           "AI 辅助识别文案",
@@ -45,16 +47,16 @@ function getHomeCopy(locale: Locale) {
       panel: {
         eyebrow: "首个产品配置",
         title: "一个网址进来，一份可执行档案出来。",
-        live: "默认开放",
+        live: "已上线",
         homepageUrl: "首页网址",
         profile: "自动识别的产品档案",
         productName: "产品名称",
         description: "描述",
         profileBody:
-          "为独立开发者和小团队提供自动化外链配置，让目录分发和审核后的后续渠道更容易落地。",
+          "为独立开发者和小团队提供自动化外链配置，让目录分发、stealth 提交和启动期传播更容易落地。",
         readiness: "提交准备度",
         directoryNetwork: "目录网络",
-        stealthRoute: "审核后渠道",
+        stealthRoute: "Stealth 渠道",
         outreachLanes: "外联渠道",
         ready: "就绪",
         rollout: "推进中",
@@ -74,7 +76,7 @@ function getHomeCopy(locale: Locale) {
           {
             title: "围绕真实提交场景构建",
             detail:
-              "目录提交流程今天就能跑，其他渠道明确标记为人工审核或推进中，而不是假装已经全部上线。",
+              "目录和 stealth 渠道今天就能跑，其他渠道明确标记为推进中，而不是假装已经全部上线。",
           },
           {
             title: "为 maker 而不是 SEO 团队设计",
@@ -85,38 +87,6 @@ function getHomeCopy(locale: Locale) {
             title: "下一层价值是代发，而不只是模板",
             detail:
               "当产品往资源页和编辑外联扩展时，真正有价值的不是再给你一封模板，而是平台提供可用发件层、送达率保护和回复回流。",
-          },
-        ],
-      },
-      offerSection: {
-        eyebrow: "你买到的是什么",
-        title: "先讲清楚商品边界，再讲更多功能。",
-        body:
-          "BacklinkPilot 不该看起来像一个模糊的 SEO 工具箱。它应该让用户一眼知道：哪些是套餐里的软件，哪些是可选代办，哪些属于单独处理的机会层。",
-        items: [
-          {
-            title: "核心软件层",
-            badge: "套餐内",
-            detail:
-              "产品登记、真实提交、结果中心和动作清单，属于订阅内的核心软件体验。",
-          },
-          {
-            title: "托管外联邮箱",
-            badge: "可选加购",
-            detail:
-              "买了才会分配专属邮箱，并由平台代发、代回、代跟进；不买就走你自己的邮箱。",
-          },
-          {
-            title: "付费机会层",
-            badge: "单独处理",
-            detail:
-              "收费型、商务型外链机会会单独沉淀，不会混进普通提交 credits 里一起卖。",
-          },
-          {
-            title: "人工服务层",
-            badge: "按服务售卖",
-            detail:
-              "复杂 review、人工处理和定制推进应该诚实按服务说明，而不是伪装成已经自动化。",
           },
         ],
       },
@@ -161,7 +131,7 @@ function getHomeCopy(locale: Locale) {
             step: "02",
             title: "确认产品定位",
             copy:
-              "修改自动识别出的名称和描述，然后决定什么时候升级，进入真实的目录提交流程。",
+              "修改自动识别出的名称和描述，然后决定什么时候升级，进入真实的目录与 stealth 提交流程。",
             aside: "不用从零写提交文案",
           },
           {
@@ -183,17 +153,17 @@ function getHomeCopy(locale: Locale) {
         lanes: "个渠道",
         ready: "就绪",
         soon: "即将推出",
-        roadmap: `总路线图：${TOTAL_CHANNEL_COUNT} 个渠道，今天默认开放：${DEFAULT_EXECUTION_CHANNEL_COUNT} 个。`,
+        roadmap: `总路线图：${TOTAL_CHANNEL_COUNT} 个渠道，今天已上线：${LIVE_CHANNEL_COUNT} 个。`,
         groups: [
           {
             label: "今天可跑",
             tone: "text-emerald-300",
-            items: ["目录提交"],
+            items: ["目录提交", "Stealth 浏览器提交"],
           },
           {
             label: "下一步推进",
             tone: "text-amber-200",
-            items: ["资源页外联（人工审核）", "社交分发（人工审核）", "编辑外联（人工审核）"],
+            items: ["社区提交", "资源页外联", "社交分发", "编辑外联"],
           },
         ],
       },
@@ -240,11 +210,11 @@ function getHomeCopy(locale: Locale) {
           },
           {
             q: "升级之后会发生什么？",
-            a: "你保存下来的产品档案会先变成真实目录提交流程的执行源，其他渠道只会在人工审核或 rollout 后进入。",
+            a: "你保存下来的产品档案会变成真实渠道的执行源。目录和 stealth 路线可以直接从这个档案开始跑。",
           },
           {
             q: "现在是不是所有渠道都上线了？",
-            a: `不是。今天默认开放了 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道，剩余 ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个会明确标记为人工审核或推进中，不会过度承诺。`,
+            a: `不是。今天上线了 ${LIVE_CHANNEL_COUNT} 个渠道，剩余 ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个会明确标记为推进中，不会过度承诺。`,
           },
         ],
       },
@@ -255,7 +225,7 @@ function getHomeCopy(locale: Locale) {
     metadata: {
       title: "BacklinkPilot — Autopilot for Your Backlinks",
       description:
-        "Paste your product URL, auto-detect site copy, and launch into real directory submission. Other paths stay behind manual review or rollout until the product earns it.",
+        "Paste your product URL, auto-detect site copy, and launch into real directory and stealth backlink workflows. Set up the first product for free, then pay for execution.",
     },
     nav: {
       product: "Product",
@@ -270,12 +240,12 @@ function getHomeCopy(locale: Locale) {
       titleTop: "Paste your homepage.",
       titleBottom: "Leave with a live backlink launch plan.",
       body:
-        "BacklinkPilot turns a plain product URL into a submission-ready profile, then routes it into real directory submission and reviewed follow-on paths without making you learn agency-style workflows.",
+        "BacklinkPilot turns a plain product URL into a submission-ready profile, then routes it into real directory and stealth channels without making you learn agency-style workflows.",
       primaryCta: "Start Free Setup",
       secondaryCta: "See Pricing",
       signals: [
         "500+ vetted directories",
-        `${DEFAULT_EXECUTION_CHANNEL_COUNT} default-open channels today`,
+        `${LIVE_CHANNEL_COUNT} live channels today`,
         "Free first-product setup",
         "Optional managed outreach inbox",
         "AI-assisted copy detection",
@@ -284,16 +254,16 @@ function getHomeCopy(locale: Locale) {
     panel: {
       eyebrow: "First-product setup",
       title: "One URL in, ready-to-run profile out.",
-      live: "Default-open",
+      live: "Live now",
       homepageUrl: "Homepage URL",
       profile: "Auto-detected profile",
       productName: "Product name",
       description: "Description",
       profileBody:
-        "Automated distribution setup for makers who want vetted directory reach, reviewed expansion paths, and a clean launch path.",
+        "Automated backlink setup for makers who want vetted directory reach, stealth unlocks, and a clean launch path.",
       readiness: "Submission readiness",
       directoryNetwork: "Directory network",
-      stealthRoute: "Reviewed routes",
+      stealthRoute: "Stealth route",
       outreachLanes: "Outreach lanes",
       ready: "Ready",
       rollout: "Rollout",
@@ -314,7 +284,7 @@ function getHomeCopy(locale: Locale) {
         {
           title: "Built for real submission work",
           detail:
-            "Directory submission is live now. The rest of the network is shown honestly as manual review or rollout, not fake coverage.",
+            "Directories and stealth routes are live now. The rest of the network is shown honestly as rollout, not fake coverage.",
         },
         {
           title: "Made for makers, not SEO teams",
@@ -325,38 +295,6 @@ function getHomeCopy(locale: Locale) {
           title: "The next layer of value is managed sending, not more templates",
           detail:
             "As the product expands into resource-page and editorial outreach, the real value is not another canned email. It is the platform providing sender infrastructure, deliverability protection, and reply flow.",
-        },
-      ],
-    },
-    offerSection: {
-      eyebrow: "What you are buying",
-      title: "Clarify the product boundary before adding more features.",
-      body:
-        "BacklinkPilot should not feel like one fuzzy SEO toolbox. A customer should immediately understand what is included software, what is an optional platform-run add-on, and what belongs in a separate service lane.",
-      items: [
-        {
-          title: "Core software layer",
-          badge: "Included in plan",
-          detail:
-            "Product setup, live submissions, the results center, and the action list belong to the core subscription product.",
-        },
-        {
-          title: "Managed Outreach Inbox",
-          badge: "Optional add-on",
-          detail:
-            "Buy it to get a dedicated inbox with platform-handled send, reply, and follow-up. Skip it and use your own inbox instead.",
-        },
-        {
-          title: "Paid opportunity layer",
-          badge: "Handled separately",
-          detail:
-            "Commercial backlink opportunities should live in a separate premium lane instead of being mixed into normal submission credits.",
-        },
-        {
-          title: "Manual service layer",
-          badge: "Sold as service",
-          detail:
-            "Complex review, custom handling, and human follow-through should be explained and sold as service work, not disguised as already-automated software.",
         },
       ],
     },
@@ -401,7 +339,7 @@ function getHomeCopy(locale: Locale) {
           step: "02",
           title: "Confirm the positioning",
           copy:
-            "Edit the detected name and description, then choose when to upgrade into live directory submission.",
+            "Edit the detected name and description, then choose when to upgrade into live directory and stealth submission lanes.",
           aside: "No need to write submission copy from scratch",
         },
         {
@@ -423,20 +361,21 @@ function getHomeCopy(locale: Locale) {
       lanes: "lanes",
       ready: "Ready",
       soon: "Soon",
-      roadmap: `Total roadmap: ${TOTAL_CHANNEL_COUNT} channels. Default-open today: ${DEFAULT_EXECUTION_CHANNEL_COUNT}.`,
+      roadmap: `Total roadmap: ${TOTAL_CHANNEL_COUNT} channels. Live today: ${LIVE_CHANNEL_COUNT}.`,
       groups: [
         {
           label: "Live now",
           tone: "text-emerald-300",
-          items: ["Directory Submission"],
+          items: ["Directory Submission", "Stealth Browser Submission"],
         },
         {
           label: "Rolling out next",
           tone: "text-amber-200",
           items: [
-            "Resource Page Outreach (manual review)",
-            "Social Distribution (manual review)",
-            "Editorial Outreach (manual review)",
+            "Community Submission",
+            "Resource Page Outreach",
+            "Social Distribution",
+            "Editorial Outreach",
           ],
         },
       ],
@@ -484,11 +423,11 @@ function getHomeCopy(locale: Locale) {
         },
         {
           q: "What happens after I upgrade?",
-          a: "Your saved product profile becomes the source of truth for default execution. Directory Submission starts from that profile first, while other paths stay behind review or rollout.",
+          a: "Your saved product profile becomes the source of truth for live channels. Directory and stealth routes can start from that profile immediately.",
         },
         {
           q: "Is everything already live?",
-          a: `No. ${DEFAULT_EXECUTION_CHANNEL_COUNT} channels are default-open today, and the remaining ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} stay in manual review or rollout so the product does not over-promise.`,
+          a: `No. ${LIVE_CHANNEL_COUNT} channels are live today, and the remaining ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} are shown as rollout so the product does not over-promise.`,
         },
       ],
     },
@@ -498,10 +437,34 @@ function getHomeCopy(locale: Locale) {
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const copy = getHomeCopy(locale);
+  const publicClaims = await readSaasPublicClaims();
+  const structuredData = buildSoftwareApplicationStructuredData({
+    locale,
+    name: "BacklinkPilot",
+    url: "https://backlinkpilot.com/",
+    baseDescription: copy.metadata.description,
+    publicClaims,
+    keywords: [
+      "backlink automation",
+      "directory submission",
+      "backlink outreach",
+      "seo automation",
+    ],
+    priceUsd: 29,
+    featureList: [
+      `${LIVE_CHANNEL_COUNT} live channels today`,
+      "Free first-product setup",
+      "Evidence-tiered market claims",
+    ],
+  });
 
   return {
     title: copy.metadata.title,
-    description: copy.metadata.description,
+    description: buildClaimAwareDescription({
+      locale,
+      baseDescription: copy.metadata.description,
+      publicClaims,
+    }),
   };
 }
 
@@ -552,13 +515,25 @@ export default async function Home({
 
   const locale = await getLocale();
   const copy = getHomeCopy(locale);
-  const [capabilityContract, operationalInsights] = await Promise.all([
-    readSaasCapabilityContract(),
-    readSaasOperationalInsights(),
-  ]);
-  const publicClaims = buildSaasPublicClaims({
-    capabilityContract,
-    operationalInsights,
+  const publicClaims = await readSaasPublicClaims();
+  const structuredData = buildSoftwareApplicationStructuredData({
+    locale,
+    name: "BacklinkPilot",
+    url: "https://backlinkpilot.com/",
+    baseDescription: copy.metadata.description,
+    publicClaims,
+    keywords: [
+      "backlink automation",
+      "directory submission",
+      "backlink outreach",
+      "seo automation",
+    ],
+    priceUsd: 29,
+    featureList: [
+      `${LIVE_CHANNEL_COUNT} live channels today`,
+      "Free first-product setup",
+      "Evidence-tiered market claims",
+    ],
   });
   const claimCopy =
     locale === "zh"
@@ -568,6 +543,9 @@ export default async function Home({
           watchlistLabel: "Watchlist 市场",
           anchorLabel: "Anchor markets",
           ruleLabel: "对外宣称规则",
+          summaryLabel: "当前对外核心说法",
+          salesLabel: "销售/演示说明",
+          surfacesLabel: "当前会被影响的用户侧产品面",
           readyStatus: "已证明",
           buildoutStatus: "Buildout",
           watchStatus: "观察中",
@@ -575,6 +553,7 @@ export default async function Home({
           adaptivePending: "目标语言自适应文案还没有进入 proven 合同，不该提前包装成既成卖点。",
           adaptiveSignal: "目标语言自适应文案",
           tieredSignal: "市场按证据分层",
+          noSurfaces: "当前没有登记用户侧产品面。",
         }
       : {
           provenLabel: "Proven markets",
@@ -582,6 +561,9 @@ export default async function Home({
           watchlistLabel: "Watchlist markets",
           anchorLabel: "Anchor markets",
           ruleLabel: "Claim rule",
+          summaryLabel: "Current public-facing summary",
+          salesLabel: "Sales/demo note",
+          surfacesLabel: "Customer-facing product surfaces touched now",
           readyStatus: "Proven",
           buildoutStatus: "Buildout",
           watchStatus: "Watchlist",
@@ -591,6 +573,7 @@ export default async function Home({
             "Language-adaptive copy is not in the proven contract yet, so it should not be marketed as already-live value.",
           adaptiveSignal: "Language-adaptive copy",
           tieredSignal: "Evidence-tiered market claims",
+          noSurfaces: "No customer-facing product surfaces are registered right now.",
         };
   const heroSignals = [
     copy.hero.signals[0],
@@ -625,18 +608,9 @@ export default async function Home({
       items: publicClaims.watchlistMarkets,
     },
   ];
-  const publicClaimNote = `${claimCopy.anchorLabel}: ${
-    publicClaims.anchorMarkets.length > 0
-      ? publicClaims.anchorMarkets
-          .map((market) => market.toUpperCase())
-          .join(locale === "zh" ? "、" : ", ")
-      : locale === "zh"
-        ? "无"
-        : "None"
-  }`;
-
   return (
     <main className="overflow-x-hidden">
+      <StructuredDataScript data={structuredData} />
       <nav className="fixed inset-x-0 top-0 z-50">
         <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 md:px-8">
           <Link
@@ -848,36 +822,6 @@ export default async function Home({
       </section>
 
       <section className="border-t border-[var(--line-soft)] bg-white/[0.02] px-5 py-18 md:px-8 md:py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-              {copy.offerSection.eyebrow}
-            </p>
-            <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-6xl">
-              {copy.offerSection.title}
-            </h2>
-            <p className="mt-5 max-w-3xl text-base leading-7 text-stone-400">
-              {copy.offerSection.body}
-            </p>
-          </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {copy.offerSection.items.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-[1.75rem] border border-[var(--line-soft)] bg-black/15 p-6"
-              >
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-stone-200">
-                  {item.badge}
-                </span>
-                <h3 className="mt-4 text-xl font-medium text-stone-100">{item.title}</h3>
-                <p className="mt-4 text-sm leading-7 text-stone-400">{item.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-[var(--line-soft)] bg-white/[0.02] px-5 py-18 md:px-8 md:py-24">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.75fr_1.25fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -997,22 +941,7 @@ export default async function Home({
                 </div>
               </div>
             ))}
-            <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/[0.03] p-5">
-              <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                {claimCopy.ruleLabel}
-              </p>
-              <p className="mt-3 text-sm leading-7 text-stone-300">
-                {publicClaims.claimRule}
-              </p>
-              <p className="mt-3 text-xs leading-6 text-stone-500">
-                {publicClaimNote}
-              </p>
-              <p className="mt-3 text-xs leading-6 text-stone-500">
-                {publicClaims.hasLanguageAdaptiveCopy
-                  ? claimCopy.adaptiveReady
-                  : claimCopy.adaptivePending}
-              </p>
-            </div>
+            <PublicClaimsPanel locale={locale} publicClaims={publicClaims} />
             <p className="text-sm text-stone-500">{copy.channelSection.roadmap}</p>
           </div>
         </div>

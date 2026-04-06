@@ -7,13 +7,10 @@ import { useEffect, useRef, useState } from "react";
 import LocaleToggle from "@/components/locale-toggle";
 import {
   CHANNELS,
-  DEFAULT_EXECUTION_CHANNEL_COUNT,
-  DEFAULT_EXECUTION_CHANNELS,
+  LIVE_CHANNEL_COUNT,
   TOTAL_CHANNEL_COUNT,
   type ChannelContract,
 } from "@/lib/execution-contract";
-import { getChannelLaunchGuardMessage } from "@/lib/distribution-safety";
-import type { ChannelReviewRequest } from "@/lib/channel-review-requests-types";
 import { type Locale } from "@/lib/locale-config";
 import type {
   ProductProofPriority,
@@ -110,7 +107,7 @@ type ProductPrimaryAction =
     };
 type WorkflowStepStatus = "blocked" | "ready" | "active" | "done" | "live";
 type WorkspaceTaskStage = "pending" | "planned" | "awaiting_effect" | "live";
-type WorkspaceTaskKind = "profile" | "coverage" | "submission" | "proof" | "review";
+type WorkspaceTaskKind = "profile" | "coverage" | "submission" | "proof";
 type WorkspaceTaskBillingType =
   | "included"
   | "credit_on_success"
@@ -207,7 +204,6 @@ interface WorkspaceTask {
   focusLabel?: string;
   billingRule?: WorkspaceTaskBillingRule;
   coverageBreakdown?: WorkspaceTaskPlanCoverageBreakdown | null;
-  reviewStatus?: ChannelReviewRequest["status"] | null;
 }
 
 type ProductProofAction = {
@@ -264,25 +260,25 @@ function getDashboardCopy(locale: Locale) {
         logout: "退出登录",
       },
       header: {
-        title: "行动面板",
+        title: "Launch 工作台",
         addFirstProduct: "添加第一个产品",
         addProduct: "+ 添加产品",
         upgradePlan: "升级计划",
       },
       hero: {
-        eyebrow: "消费级外链产品",
+        eyebrow: "消费级外链工作台",
         noProductTitle: "先配置第一个产品，再开始真实分发。",
         noProductBody:
           "贴上你的首页，系统会自动补齐产品文案，并把最适合先跑的渠道排出来。",
         freeTitle: "第一个产品已经就绪，下一步是解锁真实渠道。",
         freeBody:
-          "Starter 会先解锁目录提交这条默认执行渠道，其他渠道继续保持人工审核或推进中。",
+          "Starter 立刻解锁目录提交和 stealth 两条 live 渠道，直接从你现在的产品档案开始执行。",
         activeTitle: "现在有一条外链任务正在跑。",
         activeBody:
           "运行中的产品会持续刷新进度。你只需要盯住结果，不需要自己追每一个站点。",
-        readyTitle: "行动面板已经准备好，下一步是把最合适的渠道跑起来。",
+        readyTitle: "Launch board 已经准备好，下一步是把最合适的渠道跑起来。",
         readyBody:
-          "我们会优先推荐还没跑过的真实渠道，让使用路径更像消费级产品，而不是后台操作台。",
+          "我们会优先推荐还没跑过的 live 渠道，让使用路径更像消费级产品，而不是后台操作台。",
         primaryNoProduct: "添加第一个产品",
         primaryUnlock: "解锁入门版",
         secondaryGrowth: "直接看增长版",
@@ -292,7 +288,7 @@ function getDashboardCopy(locale: Locale) {
         secondaryAdd: "再添加一个产品",
         summaryTitle: "这一屏先回答三件事",
         summaryItems: [
-          "当前是否已经有真实渠道可跑",
+          "当前是否已经有 live 渠道可跑",
           "哪个产品应该先推进",
           "下一步应该升级、启动还是盯进度",
         ],
@@ -303,15 +299,15 @@ function getDashboardCopy(locale: Locale) {
         launches: "启动次数",
         liveRuns: "运行中",
         successfulActions: "成功动作",
-        weeklyBurn: "预计本周积分",
-        weeklyBurnNote: "仅统计普通积分，高级服务另算",
+        weeklyBurn: "预计本周 Credits",
+        weeklyBurnNote: "仅统计普通 credits，高级服务另算",
         configuredProducts: "进入执行链",
         freeSlot: "还有 1 个免费配置名额",
         upgradeToUnlock: "升级后解锁真实提交",
         active: "已激活",
       },
       board: {
-        eyebrow: "行动看板",
+        eyebrow: "Launch Board",
         title: "每个产品都应该有明确的下一步。",
         body: "这里不只是列产品，而是直接告诉你该升级、该启动，还是该去看运行中的结果。",
       },
@@ -321,8 +317,8 @@ function getDashboardCopy(locale: Locale) {
         noRunsYet: "还没有执行记录",
         launchCount: "启动次数",
         successfulActions: "成功动作",
-        weeklyBurn: "本周积分预估",
-        weeklyBurnNote: "仅普通积分",
+        weeklyBurn: "本周 credits 预估",
+        weeklyBurnNote: "仅普通 credits",
         budgetCall: "预算建议",
         budgetAction: "建议动作",
         reclaimTitle: "系统调度",
@@ -348,8 +344,8 @@ function getDashboardCopy(locale: Locale) {
         stageBody: {
           unlock: "产品档案已经在位，升级后就能进入真实提交。",
           running: "有一条渠道正在处理，详情页会自动刷新进度。",
-          ready: "最适合先跑的真实渠道已经标出来，可以直接启动。",
-          momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条路径。",
+          ready: "最适合先跑的 live 渠道已经标出来，可以直接启动。",
+          momentum: "这个产品已经跑过至少一轮，可以继续扩展下一条渠道。",
           setup: "先进入产品页确认档案，再启动第一条渠道。",
         },
         budgetLabels: {
@@ -360,13 +356,13 @@ function getDashboardCopy(locale: Locale) {
           hold_premium: "先别开高级机会",
         },
         budgetBodies: {
-          build_queue: "当前预算压力还不高，先把覆盖面和首轮任务铺起来。",
-          watch_effect: "这周消耗已经起来了，先等这批任务见效，不要同时再开太多新任务。",
-          prove_first: "现在最值钱的是先把动作回执和真实回复推成公开结果，再继续消耗积分。",
+          build_queue: "当前预算压力还不高，先把 coverage 和首轮任务铺起来。",
+          watch_effect: "这周 burn 已经起来了，先等这批任务见效，不要同时再开太多新任务。",
+          prove_first: "现在最值钱的是先把 receipt 和 reply 推成 proof，再继续烧 credits。",
           upgrade_now:
-            "当前消耗和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
+            "当前 burn 和推进密度已经接近 Starter 的舒适上限，升级后再扩渠道会更顺。",
           hold_premium:
-            "付费机会先留在高级服务层，等普通积分路径先跑出结果再接入。",
+            "付费机会先留在高级服务层，等普通 credits 路线先跑出 proof 再接入。",
         },
         budgetActions: {
           build_queue: "继续建任务",
@@ -378,16 +374,16 @@ function getDashboardCopy(locale: Locale) {
       },
       checkout: {
         successEyebrow: "付款已完成",
-        successTitle: "计划已经解锁，直接开始第一条真实渠道。",
+        successTitle: "计划已经解锁，直接开始第一条 live 渠道。",
         successBody:
           "最好的下一步不是回头研究价格，而是立刻把这个产品送进真实分发。BacklinkPilot 应该在付款后直接带你进入执行。",
         successPendingTitle: "付款已完成，正在确认计划状态。",
         successPendingBody:
-          "如果页面顶部还没显示新计划，通常只是系统还在同步。等几秒后刷新，这个工作台会自动切换成可执行状态。",
+          "如果页面顶部还没显示新计划，通常只是 webhook 正在同步。等几秒后刷新，这个工作台会自动切换成可执行状态。",
         cancelledEyebrow: "付款未完成",
         cancelledTitle: "别丢失推进节奏，选回最合适的一档继续。",
         cancelledBody:
-          "你的产品、启动路径和推荐渠道都还在。选对计划后，可以直接从当前工作台接着往下跑。",
+          "你的产品、launch 路径和推荐渠道都还在。选对计划后，可以直接从当前工作台接着往下跑。",
         startNow: "立即启动推荐渠道",
         openProduct: "打开推荐产品",
         addProduct: "添加第一个产品",
@@ -395,36 +391,15 @@ function getDashboardCopy(locale: Locale) {
         starter: "回到入门版",
         growth: "直接看增长版",
       },
-      upgradeOffers: {
-        title: "升级后会直接得到什么",
-        starter: {
-          title: "先补上核心执行层",
-          body: "Starter 会把产品从纯配置态推进到真实执行，直接解锁 live 渠道、动作清单和结果路径。",
-        },
-        growth: {
-          title: "再补上托管邮箱层",
-          body: "Growth 在核心执行之外，再加上托管邮箱，让平台代发、代回和线程回流真正接上。",
-        },
-        premiumNote:
-          "付费机会仍然是单独服务，不会因为升级就被伪装成基础套餐已包含。",
-        needCore: {
-          title: "当前缺的是核心执行层",
-          body: "先升级到 Starter，把真实渠道和结果路径跑起来，再谈更深一层的加购。",
-        },
-        needManaged: {
-          title: "当前缺的是托管邮箱层",
-          body: "当前核心执行已经在位。继续扩密度时，缺的是托管邮箱，而不是更多泛泛的后台能力。",
-        },
-      },
       lanes: {
         liveTitle: "今天可执行",
-        liveBody: "默认开放渠道会直接执行，其他渠道会清楚标明需要人工审核或哪个计划。",
+        liveBody: "已上线渠道会直接执行，推进中渠道会清楚标明需要哪个计划。",
         roadmapTitle: "后续路线",
-        roadmapBody: `当前默认开放 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道，另有 ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} 个渠道保持人工审核或推进中。`,
+        roadmapBody: `当前共 ${LIVE_CHANNEL_COUNT} 个 live 渠道，${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} 个 roadmap 渠道。`,
         included: "已包含",
         locked: "需升级",
         availableNow: "今天可跑",
-        whenRolledOut: "上线后可跑",
+        whenRolledOut: "rollout 完成后可跑",
         requires: "需要",
       },
       modal: {
@@ -456,7 +431,7 @@ function getDashboardCopy(locale: Locale) {
       onboarding: {
         title: "免费配置你的第一个产品",
         body:
-          "先贴首页，自动补齐产品文案。你会先看到行动面板的推荐，再决定什么时候进入真实提交。",
+          "先贴首页，自动补齐产品文案。你会先看到 launch board 的推荐，再决定什么时候进入真实提交。",
         primary: "添加第一个产品",
         secondary: "查看计划",
         steps: [
@@ -470,7 +445,7 @@ function getDashboardCopy(locale: Locale) {
           },
           {
             title: "3. 准备好再升级",
-            copy: `当你准备启动默认自动执行时，再解锁 ${DEFAULT_EXECUTION_CHANNEL_COUNT} 个默认开放渠道。`,
+            copy: `当你准备启动真实提交时，再解锁 ${LIVE_CHANNEL_COUNT} 个已上线渠道。`,
           },
         ],
       },
@@ -500,7 +475,7 @@ function getDashboardCopy(locale: Locale) {
           plan: {
             title: "2. 生成覆盖计划",
             empty:
-              "先有产品，系统才能基于新增目标和真实渠道生成覆盖路线。",
+              "先有产品，系统才能基于 discovery 供给和 live 渠道生成覆盖路线。",
           ready:
               "系统已经能根据当前产品、今日供给和可用渠道，给出一版可执行覆盖计划。",
             action: "创建覆盖计划",
@@ -525,34 +500,34 @@ function getDashboardCopy(locale: Locale) {
         },
       },
       strategy: {
-        eyebrow: "本周重心",
+        eyebrow: "组合策略",
         title: "别把每个产品平均推进。",
         body:
-          "系统要直接告诉你这周先盯哪个产品、先推哪个结果、哪些高级机会先别开，而不是让你自己在一堆卡片里判断。",
-        modeLabel: "当前节奏",
-        allocationLabel: "本周注意力",
-        actionLabel: "当前最该做的事",
+          "长期看，这个系统应该像组合管理器，而不是待办清单。它需要告诉你这周哪些产品该先做 proof，哪些该继续 build，哪些先别开 premium。",
+        modeLabel: "当前工作模式",
+        allocationLabel: "本周 attention 分配",
+        actionLabel: "全局建议动作",
         allocation: {
-          prove: "推结果",
+          prove: "推 proof",
           watch: "盯生效",
-          build: "继续铺量",
+          build: "继续 build",
           premium: "高级机会",
         },
         modes: {
           unlock: {
-            title: "先解锁第一条真实渠道，再谈组合优化。",
+            title: "先解锁第一条 live 渠道，再谈组合优化。",
             body:
-              "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进真实提交，后面的结果推进和预算分配才会成立。",
+              "你现在最缺的不是更多策略，而是第一条真实执行链。先把产品送进 live submission，后面的 proof 和预算分配才会成立。",
           },
           upgrade: {
             title: "工作台已经开始顶到当前计划上限。",
             body:
-              "至少一个产品已经接近需要升级的密度。先扩可用计划，再继续堆渠道和任务，不然消耗和能力边界会打架。",
+              "至少一个产品已经接近需要升级的密度。先扩可用计划，再继续堆渠道和任务，不然 burn 和能力边界会打架。",
           },
           prove: {
-            title: "这周先把已有信号推成更公开的结果。",
+            title: "这周先把已有信号推成更公开的 proof。",
             body:
-              "现在最值钱的不是新铺一层任务，而是把已经拿到的动作回执、真实回复和接近发布的线程往前推成公开结果。",
+              "现在最值钱的不是新铺一层任务，而是把已经拿到的 receipt、reply 和接近发布的线程往前推。",
           },
           watch: {
             title: "让已经跑出去的任务先见效。",
@@ -560,46 +535,46 @@ function getDashboardCopy(locale: Locale) {
               "这周更重要的是看哪些任务开始生效，而不是继续同时打开太多新动作。",
           },
           build: {
-            title: "当前更像冷启动阶段，先把覆盖面和任务面做出来。",
+            title: "当前更像冷启动阶段，先把 coverage 和任务面做出来。",
             body:
-              "还没有足够多的结果压力，所以最有效的动作仍然是生成计划、补齐目标和启动首轮渠道。",
+              "还没有足够多的 proof 压力，所以最有效的动作仍然是生成计划、补齐目标和启动首轮 lane。",
           },
         },
         lanes: {
           prove: {
-            title: "优先推结果",
+            title: "优先推 proof",
             body: "这些产品最接近公开结果，值得优先投入精力。",
           },
           watch: {
             title: "先盯生效",
-            body: "这些产品已经开始消耗积分，先观察结果再继续加速。",
+            body: "这些产品已经开始消耗 credits，先观察结果再继续加速。",
           },
           build: {
-            title: "继续铺量",
-            body: "这些产品还在搭建覆盖和任务基础，适合继续铺第一层执行面。",
+            title: "继续 build",
+            body: "这些产品还在搭建 coverage 和任务基础，适合继续铺第一层执行面。",
           },
           premium: {
-            title: "先别开高级机会",
-            body: "这些产品有高级机会，但普通结果还不够，先不要把高级机会混进主线。",
+            title: "先 hold premium",
+            body: "这些产品有高级机会，但普通 proof 还不够，先不要把 premium 混进主线。",
           },
         },
         laneMetrics: {
           products: "产品数",
-          burn: "相关积分",
+          burn: "相关 credits",
           open: "打开",
           empty: "当前没有产品落在这条策略里。",
         },
       },
       capacity: {
-        eyebrow: "本周开口",
-        title: "把本周同时推进的动作收在可控范围内。",
+        eyebrow: "执行容量",
+        title: "把本周开口收在可控范围内。",
         body:
-          "系统不只要推荐动作，还要控制这周同时打开多少提交、结果推进和高级机会，避免越跑越乱。",
-        policyLabel: "当前节奏状态",
+          "长期上，这套系统不该只会推荐动作，还要控制每周同时打开多少 submission、proof 和 premium work，避免账户越来越像噪音机器。",
+        policyLabel: "当前容量策略",
         laneLabels: {
-          submission: "提交名额",
-          proof: "结果名额",
-          premium: "高级机会名额",
+          submission: "Submission 开口",
+          proof: "Proof 开口",
+          premium: "Premium 开口",
         },
         metrics: {
           used: "已占用",
@@ -614,7 +589,7 @@ function getDashboardCopy(locale: Locale) {
           },
           tighten: {
             title: "先收口",
-            body: "当前开口已经偏多，优先把现有任务推向生效和结果。",
+            body: "当前开口已经偏多，优先把现有任务推向生效和 proof。",
           },
           balanced: {
             title: "保持平衡推进",
@@ -622,31 +597,31 @@ function getDashboardCopy(locale: Locale) {
           },
           expand: {
             title: "可以继续扩一点",
-            body: "当前仍然偏铺量模式，还有空间继续铺首轮提交和覆盖面。",
+            body: "当前仍然偏 build 模式，还有空间继续铺首轮 submission 和 coverage。",
           },
         },
         fullError: {
           submission:
-            "本周提交名额已经满了。先盯生效或推进结果，再开新的提交动作。",
+            "本周 submission 开口已经满了。先盯生效或推进 proof，再开新的提交任务。",
           proof:
-            "本周结果名额已经满了。先把当前结果任务往前推完，再排新的结果任务。",
+            "本周 proof 开口已经满了。先把当前结果任务往前推完，再排新的 proof。",
           premium:
-            "当前高级机会名额已经满了。先把普通结果路径跑顺，再继续接高级机会。",
+            "当前 premium 开口已经满了。先把普通 proof 路线跑顺，再继续接高级机会。",
         },
       },
       builder: {
-        eyebrow: "创建动作",
-        title: "先把下一步动作建出来，再继续放大执行",
+        eyebrow: "Task Builder",
+        title: "先把任务建出来，再谈放大执行",
         body:
-          "这一层会把“推荐覆盖计划”和“导入外链清单”变成真正可执行的动作，不再只是停留在看板判断。",
+          "这一层开始把“推荐覆盖计划”和“导入外链清单”变成真实任务，而不是只停留在看板判断。",
         productLabel: "目标产品",
         autoTitle: "系统生成覆盖计划",
         autoBody:
-          "基于当前产品、已跑渠道和新增目标，生成一版推荐覆盖计划，并直接落成动作。",
+          "基于当前产品、已跑渠道和 discovery 供给，生成一版推荐覆盖计划，并落成任务。",
         autoAction: "生成覆盖计划",
-        competitorTitle: "生成竞品差距规划",
+        competitorTitle: "生成竞品覆盖规划",
         competitorBody:
-          "贴上竞品网址，系统会给你一版竞品差距动作，告诉你先该补哪些渠道。",
+          "贴上竞品网址，系统会把它们压成一版竞品覆盖任务，告诉你先该匹配哪些渠道。",
         competitorPlaceholder:
           "competitor-one.com\nhttps://competitor-two.com\ncompetitor-three.ai",
         competitorAction: "生成竞品规划",
@@ -662,7 +637,7 @@ function getDashboardCopy(locale: Locale) {
         loading: "处理中...",
         detectedCount: "识别到的条目",
         note:
-          "这一步先把动作和阶段结构立住。后面再继续接真实执行和积分计费。",
+          "这一步先把任务和阶段结构立住。后面再继续接真实导入执行和积分扣费。",
       },
     tasks: {
       eyebrow: "动作清单",
@@ -674,13 +649,13 @@ function getDashboardCopy(locale: Locale) {
           "还没有动作。先登记一个产品，让系统开始生成覆盖计划和执行动作。",
         labels: {
           stage: "阶段",
-          preview: "动作预览",
+          preview: "任务预览",
           economics: "积分预估",
-          billing: "收费方式",
+          billing: "计费规则",
           updatedAt: "最近更新",
           success: "成功",
-          failure: "失败/人工处理费",
-          focus: "当前优先",
+          failure: "失败/辛苦费",
+          focus: "当前权重",
           fromPlan: "来源",
           createNextTasks: "生成下一批任务",
           creatingTasks: "生成中...",
@@ -693,9 +668,8 @@ function getDashboardCopy(locale: Locale) {
         kinds: {
           profile: "产品登记",
           coverage: "覆盖计划",
-          submission: "提交动作",
-          proof: "结果动作",
-          review: "人工审核",
+          submission: "外链任务",
+          proof: "结果推进",
         },
         stages: {
           pending: "待启动",
@@ -706,29 +680,27 @@ function getDashboardCopy(locale: Locale) {
       footer:
           "这批积分还是产品层预估，不会先于真实计费生效。它现在的作用，是先让用户理解每类任务的成本结构。",
         focusLabels: {
-          prove_now: "最接近公开结果",
+          prove_now: "最接近结果",
           watch_effect: "盯住生效",
           expand_lane: "继续扩量",
-          build_queue: "继续补量",
-          review_wait: "等人工判断",
-          review_done: "查看审核结论",
+          build_queue: "补齐计划",
         },
         billingLabels: {
           included: "包含项",
           credit_on_success: "成功扣积分",
-          premium_service: "人工服务",
+          premium_service: "高级服务",
         },
         billingDetails: {
           included: "登记、规划和任务编排先不扣积分，先把执行路径搭起来。",
           credit_on_success: "只有真实成功动作计入积分；失败只记辛苦费，不按成功任务收费。",
           premium_service:
-            "这类机会不走普通积分包，后续按人工服务或单独报价处理。",
+            "这类机会不走普通 credit 包，后续按高级服务或单独商务处理。",
         },
         billingDisplays: {
           includedSuccess: "0",
           includedFailure: "0",
           premiumSuccess: "单独报价",
-          premiumFailure: "人工评估",
+          premiumFailure: "商务评估",
         },
       },
       emptyState: {
@@ -741,25 +713,25 @@ function getDashboardCopy(locale: Locale) {
         title: "把新增目标和收费机会变成一眼能懂的供给视图。",
         body:
           "系统每天都会持续补进新的可发目标，同时把收费型和商务型机会单独沉淀，避免和默认执行主线混在一起。",
-        contractTitle: "能力更新状态",
+        contractTitle: "能力同步状态",
         contractFresh: "当前已同步",
         contractChanged: "有新能力待同步",
         contractFreshBody:
-          "当前能力指纹和上一版一致，没有新的产品同步动作被触发。",
+          "当前能力指纹和上一版一致，没有新的 SaaS 同步动作被触发。",
         contractChangedBody:
-          "能力指纹已变化。先看需要补的产品动作，再更新展示、文案和能力说明。",
-        claimRuleTitle: "当前对外边界",
-        provenTitle: "已验证市场",
-        buildoutTitle: "扩展中市场",
-        watchlistTitle: "观察中市场",
-        anchorsTitle: "核心市场",
+          "能力指纹已变化。先看 required SaaS actions，再更新产品展示、文案和能力说明。",
+        claimRuleTitle: "对外承诺边界",
+        provenTitle: "Proven 市场",
+        buildoutTitle: "Priority buildout 市场",
+        watchlistTitle: "Watchlist 市场",
+        anchorsTitle: "Anchor markets",
         adaptiveCopyTitle: "语言自适应文案",
         adaptiveCopyBody:
           "提交文案和外联消息会按目标语言适配，不再默认只用英文。",
         noAdaptiveCopyBody:
           "这项能力还没有进入 proven 合同，不该被当成现成卖点宣传。",
-        reviewActionsTitle: "需要同步的产品动作",
-        noReviewActions: "当前没有新的产品同步动作。",
+        reviewActionsTitle: "需要同步的 SaaS 动作",
+        noReviewActions: "当前没有新的 SaaS 同步动作。",
         fingerprintLabel: "能力指纹",
         reviewPendingLabel: "待吸收",
         reviewedLabel: "已吸收",
@@ -767,59 +739,47 @@ function getDashboardCopy(locale: Locale) {
         acknowledgeAction: "标记为已吸收",
         acknowledging: "标记中...",
         acknowledgeError: "能力合同状态更新失败，请稍后再试。",
-        historyTitle: "最近能力变化",
+        historyTitle: "能力升级历史",
         historyBody:
           "这里记录最近几次能力合同变化，方便产品、运营和销售理解现在的能力是怎么迭代出来的。",
         historyChanged: "有结构变化",
         historyStable: "当前能力快照",
-        historyEmpty: "当前还没有最近能力变化可展示。",
+        historyEmpty: "当前还没有能力升级历史可展示。",
         addedLabel: "新增能力",
         removedLabel: "移除能力",
         snapshotLabel: "状态快照",
-        progressLabel: "今日新增目标",
+        surfacesTitle: "需要同步的产品面",
+        surfacesBody:
+          "能力合同已经点名这些页面或界面需要跟着升级。这样产品团队知道应该先改哪里，而不是只看到一个 fingerprint。",
+        surfacesEmpty: "当前没有登记具体的产品同步面。",
+        customerAudience: "用户侧",
+        internalAudience: "内部",
+        copyImpactTitle: "文案与销售影响",
+        copyImpactBody:
+          "这里把这次能力升级对客户文案、销售演示和内部执行口径的影响压成短摘要，避免大家各自理解。",
+        customerSummaryLabel: "对用户的核心说法",
+        claimGuardrailLabel: "对外口径护栏",
+        salesNoteLabel: "销售/演示说明",
+        operatorNoteLabel: "内部执行说明",
+        copyImpactEmpty: "当前没有新的文案影响摘要。",
+        progressLabel: "今日发现进度",
         targetLabel: "今日硬目标",
         gapLabel: "今日剩余缺口",
-        paidBacklogLabel: "收费机会库存",
-        paidRootsLabel: "收费机会根域",
-        paidNewLabel: "今日新增收费机会",
+        paidBacklogLabel: "收费目标库存",
+        paidRootsLabel: "收费目标根域",
+        paidNewLabel: "今日新增收费目标",
         progressReached: "今日供给地板已达成",
-        progressRunning: "系统还在继续补货",
-        supplyTitle: "今日新增目标",
+        progressRunning: "今日还在持续补货",
+        supplyTitle: "发现供给层",
         supplyBody:
-          "你可以直接看到今天已经补进多少新目标，以及距离每日 100 个高质量根域还差多少。",
-        inventoryTitle: "收费机会",
+          "用户可以直接看到系统今天已经补进多少新目标、距离每日 100 个值得发的新根域目标还差多少。",
+        inventoryTitle: "收费情报层",
         inventoryBody:
-          "收费型和商务型机会会持续被收集，但会和默认执行主线分开，避免把普通执行路径搞乱。",
-        paidDeskTitle: "付费机会入口",
-        paidDeskBody:
-          "这一层不是基础套餐默认结果，而是需要单独判断和处理的机会层。只有主线结果先稳住，系统才会建议你打开。",
-        paidDeskOwnerLabel: "当前优先产品",
-        paidDeskOpenAction: "打开当前优先产品",
-        paidDeskListAction: "查看动作清单",
-        paidDeskGuideAction: "查看单独处理说明",
-        paidDeskNoOwner: "当前还没有适合承接这层机会的产品。",
-        paidDeskReadinessTitle: "现在适不适合打开",
-        paidDeskOpenBody:
-          "当前主线结果已经足够稳，可以开始单独筛这层机会，但仍然不该和基础主线混在一起。",
-        paidDeskHoldBody:
-          "先把主线结果跑稳，再打开这层机会，避免把预算和注意力一起拉散。",
-        paidDeskHowTitle: "这层服务怎么走",
-        paidDeskHowCollect: "单独收集",
-        paidDeskHowReview: "人工判断",
-        paidDeskHowQuote: "单独报价",
-        paidGuideTitle: "付费机会怎么单独处理",
-        paidGuideBody:
-          "这层不是基础套餐自动发出的动作，而是一层单独服务。先看为什么它单独处理、什么时候值得开，以及当前是谁在承接。",
-        paidGuideWhyTitle: "为什么单独处理",
-        paidGuideWhyBody:
-          "因为这里经常涉及价格、商务条件和非标准发布路径，不该伪装成基础软件自动结果。",
-        paidGuideWhenTitle: "什么时候值得开",
-        paidGuideOwnerTitle: "当前谁在承接",
-        paidGuideOwnerEmpty: "现在还没有产品适合承接这层服务，先把主线结果做稳。",
-        sampleTitle: "收费机会样例",
-        sampleEmpty: "当前还没有收费机会样例，下一轮巡航后会自动出现。",
+          "收费型和商务型机会会持续被收集，但不会混进默认免费执行队列，避免执行量污染策略质量。",
+        sampleTitle: "代表性收费目标",
+        sampleEmpty: "当前还没有代表性收费目标样例，下一轮巡航后会自动出现。",
         openTarget: "查看目标",
-        sourceLabel: "来源",
+        sourceLabel: "发现来源",
       },
       detectedLabel: "识别自",
     };
@@ -830,25 +790,25 @@ function getDashboardCopy(locale: Locale) {
       logout: "Log out",
     },
     header: {
-      title: "Action Board",
+      title: "Launch Workspace",
       addFirstProduct: "Add Your First Product",
       addProduct: "+ Add Product",
       upgradePlan: "Upgrade Plan",
     },
     hero: {
-      eyebrow: "Consumer-grade backlink app",
+      eyebrow: "Consumer-grade backlink workspace",
       noProductTitle: "Set up the first product, then start real distribution.",
       noProductBody:
         "Paste your homepage, let the app fill the basics, and we will line up the best first lane automatically.",
       freeTitle: "Your first product is staged. The next step is unlocking live lanes.",
       freeBody:
-        "Starter unlocks Directory Submission as the first default execution lane, while the rest stay behind manual review or rollout.",
+        "Starter unlocks Directory Submission and Stealth immediately, both running from the product profile you already saved.",
       activeTitle: "A backlink launch is running right now.",
       activeBody:
         "Live products keep refreshing progress here. You should be watching outcomes, not manually tracking every site.",
-      readyTitle: "The action board is ready. Now run the best next path.",
+      readyTitle: "The launch board is ready. Now run the best next lane.",
       readyBody:
-        "We prioritize the next real path that has not been used yet, so the flow feels like a consumer product instead of an operations console.",
+        "We prioritize the next live lane that has not been used yet, so the flow feels like a consumer product instead of an operations console.",
       primaryNoProduct: "Add First Product",
       primaryUnlock: "Unlock Starter",
       secondaryGrowth: "See Growth",
@@ -858,7 +818,7 @@ function getDashboardCopy(locale: Locale) {
       secondaryAdd: "Add Another Product",
       summaryTitle: "This screen answers three things first",
       summaryItems: [
-        "whether you have a real path available today",
+        "whether you have a live lane available today",
         "which product should move next",
         "whether to upgrade, launch, or watch progress",
       ],
@@ -877,7 +837,7 @@ function getDashboardCopy(locale: Locale) {
       active: "Active",
     },
     board: {
-      eyebrow: "Action Board",
+      eyebrow: "Launch Board",
       title: "Every product should have a clear next step.",
       body:
         "This is not just a product list. It should tell you whether to upgrade, launch, or review a run already in motion.",
@@ -914,17 +874,17 @@ function getDashboardCopy(locale: Locale) {
       },
         stageBody: {
           unlock: "The product profile is already staged. Upgrade and it can enter live execution.",
-          running: "A real path is already processing and the detail page will keep updating.",
-          ready: "The best real path is identified and can be launched now.",
-          momentum: "This product has already started moving. The next path should expand the distribution.",
-          setup: "Open the product page, confirm the profile, and launch the first path after that.",
+          running: "A live lane is already processing and the detail page will keep updating.",
+          ready: "The best live lane is identified and can be launched now.",
+          momentum: "This product has already started moving. The next lane should expand the distribution.",
+          setup: "Open the product page, confirm the profile, and launch the first lane after that.",
         },
         budgetLabels: {
           build_queue: "Keep building",
           watch_effect: "Watch effect",
-          prove_first: "Turn spend into results",
+          prove_first: "Turn spend into proof",
           upgrade_now: "Upgrade now",
-          hold_premium: "Hold paid opportunities",
+          hold_premium: "Hold premium work",
         },
         budgetBodies: {
           build_queue:
@@ -932,23 +892,23 @@ function getDashboardCopy(locale: Locale) {
           watch_effect:
             "Weekly burn is already rising. Let the current tasks land before opening too many new ones.",
           prove_first:
-            "The highest-value move now is turning receipts and replies into visible results before burning more credits.",
+            "The highest-value move now is turning receipts and replies into proof before burning more credits.",
           upgrade_now:
             "The current burn and execution density are pushing past a comfortable Starter cadence. Upgrade before expanding further.",
           hold_premium:
-            "Keep paid opportunities separate until the normal credit path produces real results first.",
+            "Keep paid opportunities in the premium lane until the normal credit path produces proof first.",
         },
         budgetActions: {
           build_queue: "Keep building tasks",
           watch_effect: "Watch execution",
-          prove_first: "Push results",
+          prove_first: "Push toward proof",
           upgrade_now: "Upgrade to Growth",
-          hold_premium: "Review paid opportunities",
+          hold_premium: "Review premium work",
         },
       },
     checkout: {
       successEyebrow: "Payment received",
-      successTitle: "Your plan is unlocked. Start the first real path now.",
+      successTitle: "Your plan is unlocked. Start the first live lane now.",
       successBody:
         "The best next move is not going back to pricing. It is sending the product into real distribution immediately. BacklinkPilot should take you straight into execution after payment.",
       successPendingTitle: "Payment received. Plan status is still syncing.",
@@ -957,41 +917,20 @@ function getDashboardCopy(locale: Locale) {
       cancelledEyebrow: "Checkout not completed",
       cancelledTitle: "Do not lose the launch rhythm. Pick the right plan and continue.",
       cancelledBody:
-        "Your product, launch path, and recommended paths are all still here. Choose the right plan and continue from this exact workspace.",
-      startNow: "Start Recommended Path",
+        "Your product, launch path, and recommended lanes are all still here. Choose the right plan and continue from this exact workspace.",
+      startNow: "Start Recommended Lane",
       openProduct: "Open Recommended Product",
       addProduct: "Add First Product",
       refresh: "Refresh Workspace",
       starter: "Back to Starter",
       growth: "See Growth",
     },
-    upgradeOffers: {
-      title: "What the upgrade unlocks right away",
-      starter: {
-        title: "Add the core execution layer first",
-        body: "Starter moves the product out of pure setup and into real execution with live lanes, action flow, and the result path.",
-      },
-      growth: {
-        title: "Then add the managed inbox layer",
-        body: "Growth adds managed inbox on top of core execution so send, reply, and thread flow can run through the platform.",
-      },
-      premiumNote:
-        "Paid opportunities still stay separate service work and do not turn into fake base-plan promises after upgrade.",
-      needCore: {
-        title: "The missing layer is core execution",
-        body: "Upgrade to Starter first so live lanes and the result path can actually run before you add anything deeper.",
-      },
-      needManaged: {
-        title: "The missing layer is managed inbox",
-        body: "Core execution is already in place. The next real gap is managed inbox, not more vague backend capability.",
-      },
-    },
     lanes: {
       liveTitle: "Runnable today",
       liveBody:
         "Live lanes can execute immediately. Planned lanes stay visible so the upgrade path is obvious.",
       roadmapTitle: "Roadmap lanes",
-      roadmapBody: `There are ${DEFAULT_EXECUTION_CHANNEL_COUNT} default execution lanes today, and ${TOTAL_CHANNEL_COUNT - DEFAULT_EXECUTION_CHANNEL_COUNT} lanes that stay in manual review or rollout.`,
+      roadmapBody: `There are ${LIVE_CHANNEL_COUNT} live lanes today and ${TOTAL_CHANNEL_COUNT - LIVE_CHANNEL_COUNT} roadmap lanes behind rollout.`,
       included: "Included",
       locked: "Upgrade",
       availableNow: "Runnable now",
@@ -1028,7 +967,7 @@ function getDashboardCopy(locale: Locale) {
     onboarding: {
       title: "Set up your first product for free",
       body:
-        "Paste your homepage, auto-detect the product copy, then let the action board show the next move before you pay.",
+        "Paste your homepage, auto-detect the product copy, then let the launch board show the next move before you pay.",
       primary: "Add First Product",
       secondary: "See Plans",
       steps: [
@@ -1044,7 +983,7 @@ function getDashboardCopy(locale: Locale) {
         },
         {
           title: "3. Upgrade when ready",
-          copy: `Unlock ${DEFAULT_EXECUTION_CHANNEL_COUNT} default execution lanes when you want real submissions to begin.`,
+          copy: `Unlock ${LIVE_CHANNEL_COUNT} live lanes when you want real submissions to begin.`,
         },
       ],
     },
@@ -1074,9 +1013,9 @@ function getDashboardCopy(locale: Locale) {
         plan: {
           title: "2. Build the coverage plan",
           empty:
-            "The system needs a product profile before it can turn discovery supply and real paths into a coverage plan.",
+            "The system needs a product profile before it can turn discovery supply and live lanes into a coverage path.",
           ready:
-            "The app can already turn the current product, today's discovery supply, and available real paths into an executable coverage plan.",
+            "The app can already turn the current product, today's discovery supply, and available live lanes into an executable coverage plan.",
           action: "Create coverage plan",
         },
         launch: {
@@ -1086,7 +1025,7 @@ function getDashboardCopy(locale: Locale) {
           running:
             "A real task is already moving. Watch that instead of reading more capability copy.",
           ready:
-            "The highest-value move now is starting the recommended path so the first task batch actually starts.",
+            "The highest-value move now is launching the recommended lane so the first task batch actually starts.",
           actionLaunch: "Launch recommended task",
           actionQueue: "Open task queue",
         },
@@ -1102,25 +1041,25 @@ function getDashboardCopy(locale: Locale) {
         },
       },
     },
-    strategy: {
-      eyebrow: "This week's focus",
-      title: "Do not move every product equally.",
-      body:
-        "The system should tell the user which product deserves attention first, which result path should be pushed, and which paid opportunities should stay separate.",
-      modeLabel: "Current rhythm",
-      allocationLabel: "Attention this week",
-      actionLabel: "Best next move",
-      allocation: {
-        prove: "Push results",
-        watch: "Watch effect",
-        build: "Keep building",
-          premium: "Paid opportunities",
-      },
+      strategy: {
+        eyebrow: "本周重心",
+        title: "别把每个产品都平均推进。",
+        body:
+          "系统要直接告诉你这周先盯哪个产品、先推哪个结果、哪些高级机会先别开，而不是让你自己在一堆卡片里判断。",
+        modeLabel: "当前节奏",
+        allocationLabel: "本周注意力",
+        actionLabel: "当前最该做的事",
+        allocation: {
+          prove: "推结果",
+          watch: "Watch effect",
+          build: "继续铺量",
+          premium: "高级机会",
+        },
       modes: {
         unlock: {
-          title: "Unlock the first real path before optimizing the portfolio.",
+          title: "Unlock the first live lane before optimizing the portfolio.",
           body:
-            "The missing piece is not more strategy. It is getting the first product into live execution so result tracking and budget guidance have something real to work with.",
+            "The missing piece is not more strategy. It is getting the first product into live execution so proof and budget guidance have something real to work with.",
         },
         upgrade: {
           title: "The workspace is starting to push past the current plan ceiling.",
@@ -1128,9 +1067,9 @@ function getDashboardCopy(locale: Locale) {
             "At least one product is reaching upgrade density. Expand the plan before stacking more lanes and tasks, or the burn pressure and capability boundary will fight each other.",
         },
         prove: {
-          title: "Turn existing signal into more public results this week.",
+          title: "Turn existing signal into more public proof this week.",
           body:
-            "The highest-value move is not opening another layer of tasks. It is pushing current receipts, replies, and near-publication threads closer to visible results.",
+            "The highest-value move is not opening another layer of tasks. It is pushing current receipts, replies, and near-publication threads closer to visible proof.",
         },
         watch: {
           title: "Let the work already in motion land first.",
@@ -1140,12 +1079,12 @@ function getDashboardCopy(locale: Locale) {
         build: {
           title: "This workspace is still in build mode, so expand coverage and the task surface.",
           body:
-            "There is not enough result pressure yet, so the best move is still creating plans, filling the target base, and launching the first paths.",
+            "There is not enough proof pressure yet, so the best move is still creating plans, filling the target base, and launching the first lanes.",
         },
       },
       lanes: {
         prove: {
-          title: "Push results now",
+          title: "Push proof now",
           body: "These products are closest to visible results and deserve the first attention.",
         },
         watch: {
@@ -1157,8 +1096,8 @@ function getDashboardCopy(locale: Locale) {
           body: "These products still need more coverage and first-layer execution before they should dominate the workspace.",
         },
         premium: {
-          title: "Hold paid opportunities",
-          body: "These products have paid opportunities, but normal results should land before they become the main path.",
+          title: "Hold premium work",
+          body: "These products have premium opportunities, but normal proof should land before premium becomes the main path.",
         },
       },
       laneMetrics: {
@@ -1168,17 +1107,17 @@ function getDashboardCopy(locale: Locale) {
         empty: "No products are sitting in this strategy lane right now.",
       },
     },
-    capacity: {
-      eyebrow: "This week's openings",
-      title: "Keep this week's active work inside a controllable range.",
-      body:
-        "The system should not only recommend moves. It should also limit how many submission, result, and paid-opportunity paths stay open at the same time so the account does not turn noisy.",
-      policyLabel: "Current pace",
-      laneLabels: {
-        submission: "Submission slots",
-        proof: "Result slots",
-        premium: "Premium slots",
-      },
+      capacity: {
+        eyebrow: "本周开口",
+        title: "把本周同时推进的动作收在可控范围内。",
+        body:
+          "系统不只要推荐动作，还要控制这周同时打开多少提交、结果推进和高级机会，避免越跑越乱。",
+        policyLabel: "当前节奏状态",
+        laneLabels: {
+          submission: "提交名额",
+          proof: "结果名额",
+          premium: "高级机会名额",
+        },
       metrics: {
         used: "Used",
         limit: "Suggested cap",
@@ -1188,11 +1127,11 @@ function getDashboardCopy(locale: Locale) {
       states: {
         unlock: {
           title: "Unlock first, then worry about capacity.",
-          body: "Before real execution is open, there is no value in opening too many paths at once.",
+          body: "Before live execution is really open, there is no value in opening too many lanes at once.",
         },
         tighten: {
           title: "Tighten the aperture first.",
-          body: "The workspace is already carrying too many openings. Push current work toward effect and results before opening more.",
+          body: "The workspace is already carrying too many openings. Push current work toward effect and proof before opening more.",
         },
         balanced: {
           title: "The current pace is balanced.",
@@ -1205,26 +1144,26 @@ function getDashboardCopy(locale: Locale) {
       },
       fullError: {
         submission:
-          "The submission path is already full for this week. Let current work land or push results before opening more submissions.",
+          "The submission lane is already full for this week. Let current work land or push proof before opening more submissions.",
         proof:
-          "The result path is already full for this week. Finish pushing the current result tasks before queuing another result task.",
+          "The proof lane is already full for this week. Finish pushing the current result tasks before queuing another proof task.",
         premium:
-          "The paid-opportunity path is already full right now. Keep it separate until the standard result path is clearer.",
+          "The premium lane is already full right now. Keep premium work separate until the standard proof path is clearer.",
       },
     },
     builder: {
-      eyebrow: "Create actions",
-      title: "Create the next action first, then scale the run",
+      eyebrow: "Task Builder",
+      title: "Create the task first, then scale the execution",
       body:
-        "This is where recommended plans and imported backlink lists become real actions instead of staying as advice on the screen.",
+        "This is where recommended coverage plans and imported backlink lists become real workspace tasks instead of staying as dashboard judgment.",
       productLabel: "Product",
       autoTitle: "Generate a system coverage plan",
         autoBody:
-          "Use the current product, completed paths, and fresh supply to generate a recommended coverage plan and turn it into action.",
+          "Use the current product, completed lanes, and discovery supply to generate a recommended coverage plan and turn it into a task.",
         autoAction: "Generate coverage plan",
-        competitorTitle: "Map competitor gaps",
+        competitorTitle: "Build a competitor coverage map",
         competitorBody:
-          "Paste competitor URLs and the app will turn them into a competitor gap plan that shows which paths your product should match first.",
+          "Paste competitor URLs and the app will turn them into a competitor coverage task that shows which lanes your product should match first.",
         competitorPlaceholder:
           "competitor-one.com\nhttps://competitor-two.com\ncompetitor-three.ai",
         competitorAction: "Generate competitor plan",
@@ -1240,7 +1179,7 @@ function getDashboardCopy(locale: Locale) {
       loading: "Working...",
       detectedCount: "Detected lines",
       note:
-        "This step first makes the action and stage structure real. Real execution and billing can plug in after that.",
+        "This step focuses on making the task and stage structure real first. Real execution and billing can plug in after that.",
     },
     tasks: {
       eyebrow: "Action List",
@@ -1252,13 +1191,13 @@ function getDashboardCopy(locale: Locale) {
         "There are no actions yet. Register one product first and the system can start building the coverage and execution flow.",
       labels: {
         stage: "Stage",
-        preview: "Action preview",
+        preview: "Task preview",
         economics: "Credit preview",
-        billing: "Pricing rule",
+        billing: "Billing rule",
         updatedAt: "Updated",
         success: "Success",
-        failure: "Failure / handling fee",
-        focus: "Current priority",
+        failure: "Failure / ops fee",
+        focus: "Current focus",
         fromPlan: "From",
         createNextTasks: "Create next tasks",
         creatingTasks: "Creating...",
@@ -1271,9 +1210,8 @@ function getDashboardCopy(locale: Locale) {
       kinds: {
         profile: "Product setup",
         coverage: "Coverage plan",
-        submission: "Submission action",
-        proof: "Result action",
-        review: "Manual review",
+        submission: "Backlink task",
+        proof: "Proof task",
       },
       stages: {
         pending: "Pending",
@@ -1284,17 +1222,15 @@ function getDashboardCopy(locale: Locale) {
       footer:
         "These credits are still a product-layer preview. They do not charge before the real billing model exists. Right now they help users understand the cost structure of each task type.",
       focusLabels: {
-        prove_now: "Closest to visible results",
+        prove_now: "Closest to proof",
         watch_effect: "Watch effect",
         expand_lane: "Expand next",
-        build_queue: "Keep building",
-        review_wait: "Wait for review",
-        review_done: "Review decision",
+        build_queue: "Build queue",
       },
       billingLabels: {
         included: "Included",
         credit_on_success: "Credits on success",
-        premium_service: "Hands-on service",
+        premium_service: "Premium service",
       },
       billingDetails: {
         included:
@@ -1302,13 +1238,13 @@ function getDashboardCopy(locale: Locale) {
         credit_on_success:
           "Only real successful actions count toward credits. Failures stay as ops fees instead of success charges.",
         premium_service:
-          "These opportunities do not run through the normal credit pack and should route into hands-on service or custom pricing.",
+          "These opportunities do not run through the normal credit pack and should route into premium handling or custom pricing.",
       },
       billingDisplays: {
         includedSuccess: "0",
         includedFailure: "0",
         premiumSuccess: "Custom quote",
-        premiumFailure: "Manual review",
+        premiumFailure: "Ops review",
       },
     },
     emptyState: {
@@ -1321,24 +1257,24 @@ function getDashboardCopy(locale: Locale) {
         title: "Turn fresh targets and paid opportunities into a clear supply view.",
         body:
           "The system keeps replenishing worthwhile targets every day while keeping paid and commercial opportunities separate from the default execution path.",
-        contractTitle: "Capability update status",
+        contractTitle: "Capability sync status",
         contractFresh: "Up to date",
         contractChanged: "New capability update pending",
         contractFreshBody:
           "The current capability fingerprint matches the previous one, so no new SaaS sync work is being triggered right now.",
         contractChangedBody:
           "The capability fingerprint changed. Review the required SaaS actions before updating product claims, copy, and capability explanations.",
-        claimRuleTitle: "What is safe to claim",
-        provenTitle: "Ready now",
-        buildoutTitle: "Expanding next",
-        watchlistTitle: "Watching",
-        anchorsTitle: "Core markets",
+        claimRuleTitle: "Claim boundary",
+        provenTitle: "Proven markets",
+        buildoutTitle: "Priority buildout markets",
+        watchlistTitle: "Watchlist markets",
+        anchorsTitle: "Anchor markets",
         adaptiveCopyTitle: "Language-adaptive copy",
         adaptiveCopyBody:
           "Submission copy and outreach messaging adapt to the target language instead of defaulting to English-only messaging.",
         noAdaptiveCopyBody:
           "This capability is not in the proven contract yet, so it should not be marketed as a live differentiator.",
-        reviewActionsTitle: "Product updates to make",
+        reviewActionsTitle: "Required SaaS actions",
         noReviewActions: "There are no new SaaS sync actions right now.",
         fingerprintLabel: "Capability fingerprint",
         reviewPendingLabel: "Needs adoption",
@@ -1347,7 +1283,7 @@ function getDashboardCopy(locale: Locale) {
         acknowledgeAction: "Mark as adopted",
         acknowledging: "Saving...",
         acknowledgeError: "Unable to update the capability contract state right now.",
-        historyTitle: "Recent capability changes",
+        historyTitle: "Capability upgrade history",
         historyBody:
           "This keeps the recent capability-contract changes visible so product, ops, and sales can see how the current capability layer evolved.",
         historyChanged: "Structural change",
@@ -1356,52 +1292,39 @@ function getDashboardCopy(locale: Locale) {
         addedLabel: "Added",
         removedLabel: "Removed",
         snapshotLabel: "Snapshot",
-        progressLabel: "Fresh targets today",
+        surfacesTitle: "Product surfaces to sync",
+        surfacesBody:
+          "The capability contract explicitly names the product surfaces that should absorb this upgrade, so the team knows where to update first instead of only seeing a fingerprint.",
+        surfacesEmpty: "There are no explicit product surfaces registered right now.",
+        customerAudience: "Customer-facing",
+        internalAudience: "Internal",
+        copyImpactTitle: "Copy and sales impact",
+        copyImpactBody:
+          "This compresses the customer-copy, sales-demo, and operator impact of the current capability layer into one place.",
+        customerSummaryLabel: "Customer-facing summary",
+        claimGuardrailLabel: "Public-claim guardrail",
+        salesNoteLabel: "Sales/demo note",
+        operatorNoteLabel: "Operator note",
+        copyImpactEmpty: "There is no new copy-impact guidance right now.",
+        progressLabel: "Today's discovery progress",
         targetLabel: "Daily floor",
         gapLabel: "Remaining gap today",
-      paidBacklogLabel: "Paid opportunity backlog",
-      paidRootsLabel: "Paid opportunity root domains",
-      paidNewLabel: "New paid opportunities today",
+      paidBacklogLabel: "Paid target backlog",
+      paidRootsLabel: "Paid target root domains",
+      paidNewLabel: "New paid targets today",
       progressReached: "Today's supply floor is already met",
-      progressRunning: "The system is still adding fresh supply today",
-      supplyTitle: "Fresh targets today",
+      progressRunning: "The system is still replenishing today's supply",
+      supplyTitle: "Discovery supply layer",
       supplyBody:
-        "Users can see how many fresh targets have already been discovered today and how far the engine still is from the 100-worthy-root-domain floor.",
-      inventoryTitle: "Paid opportunities",
+        "Users can see how much fresh target supply has already been discovered today and how far the engine still is from the 100-worthy-root-domain floor.",
+      inventoryTitle: "Paid intelligence layer",
       inventoryBody:
-        "Paid and commercial opportunities are collected continuously, but kept separate from the default send path so raw volume does not muddy the core product path.",
-      paidDeskTitle: "Paid opportunity desk",
-      paidDeskBody:
-        "This is not part of the default plan outcome. It stays as a separate service layer until the core result path is stable enough to justify opening it.",
-      paidDeskOwnerLabel: "Current priority product",
-      paidDeskOpenAction: "Open the current priority product",
-      paidDeskListAction: "Open the action list",
-      paidDeskGuideAction: "See how this service works",
-      paidDeskNoOwner: "No product is ready to absorb this layer yet.",
-      paidDeskReadinessTitle: "Should this layer open now?",
-      paidDeskOpenBody:
-        "The core result path is stable enough now, so this layer can be reviewed separately without pretending it belongs to the default plan path.",
-      paidDeskHoldBody:
-        "Keep the core result path stable first, then open this layer so budget and attention do not get split too early.",
-      paidDeskHowTitle: "How this service works",
-      paidDeskHowCollect: "Collected separately",
-      paidDeskHowReview: "Manually reviewed",
-      paidDeskHowQuote: "Quoted separately",
-      paidGuideTitle: "How paid opportunities are handled separately",
-      paidGuideBody:
-        "This is not an automatic base-plan action. Start with why it is separated, when it is worth opening, and which product owns it right now.",
-      paidGuideWhyTitle: "Why it is separate",
-      paidGuideWhyBody:
-        "These opportunities often involve pricing, commercial terms, and non-standard publishing paths, so they should not be presented as normal software automation.",
-      paidGuideWhenTitle: "When it is worth opening",
-      paidGuideOwnerTitle: "Who owns it right now",
-      paidGuideOwnerEmpty:
-        "No product is ready to absorb this service layer yet. Stabilize the core result path first.",
-      sampleTitle: "Paid opportunity examples",
+        "Paid and commercial opportunities are collected continuously, but kept separate from the default free-send queue so strategic quality does not get polluted by raw volume.",
+      sampleTitle: "Representative paid targets",
       sampleEmpty:
         "There are no representative paid targets yet. The next discovery run should fill them in automatically.",
       openTarget: "Open target",
-      sourceLabel: "Source",
+      sourceLabel: "Discovery source",
     },
     detectedLabel: "Detected from",
   };
@@ -1410,51 +1333,45 @@ function getDashboardCopy(locale: Locale) {
 function getProofBoardCopy(locale: Locale) {
   if (locale === "zh") {
     return {
-      eyebrow: "结果中心",
-      title: "先看已经拿到的结果，再推进最接近公开结果的产品",
+      eyebrow: "Proof Board",
+      title: "优先推进最接近结果的产品",
       body:
-        "用户买的不是工作台本身，而是可见结果。这里先把真实动作、真实回复、接近公开结果和已确认结果压成一个统一入口。",
+        "全局最优不是盯着每个局部动作，而是优先把最接近可证明结果的产品推到结果层。",
       stats: {
-        receipts: "真实动作",
+        receipts: "动作回执",
         threads: "真实回复",
-        close: "接近公开结果",
-        verify: "公开结果",
+        close: "接近发布",
+        verify: "待验证",
       },
-      globalFocusLabel: "当前最值得推进的结果动作",
-      productsEyebrow: "最接近结果的产品",
-      productsTitle: "别平均用力，先推这几个",
-      productsBody:
-        "这几个产品离公开结果最近。先把它们推过去，再考虑加新产品或扩大动作面。",
-      resultPathLabel: "结果路径",
-      latestSignal: "最近结果信号",
-      openProduct: "打开产品",
-      openTopProduct: "打开当前结果重点",
-      noCandidates: "还没有明确线索",
-      candidates: "线索",
-      activeTaskLabel: "进行中的结果动作",
-      currentPriority: "当前优先",
+      globalFocusLabel: "当前全局优先级",
       empty:
-        "当前还没有明显进入结果层的产品。先让第一个产品跑出真实动作和回复，再来放大结果。",
+        "当前还没有明显接近结果的产品。先继续跑 live 渠道，把结果信号做厚。",
+      noCandidates: "还没有明确候选",
+      openProduct: "打开产品",
+      openTopProduct: "打开全局优先产品",
+      latestSignal: "最近信号",
+      candidates: "候选",
+      activeTaskLabel: "当前进行中的结果任务",
       actionLabels: {
         verify_published: "验证结果",
         protect_publication: "推进接近发布",
         send_materials: "补齐资料",
         review_commercial: "评估商务条件",
         hold_review: "继续跟进",
-        push_receipts: "推进回执结果",
+        push_receipts: "推进回执证明",
         build_signal: "打开产品",
         open_active: "打开正在进行的任务",
       },
       taskStatus: {
         queued: "已排队",
         in_progress: "进行中",
-        proved: "已确认",
+        proved: "已证明",
         dropped: "已放弃",
       },
       priorities: {
         verify_published: {
           title: "先验证最接近上线的产品",
-          body: "这些产品已经接近拿到公开结果，应该优先抓证据并沉淀成果。",
+          body: "这些产品已经接近拿到公开证明，应该优先抓证据并沉淀结果。",
         },
         protect_publication: {
           title: "先守住接近发布的线程",
@@ -1473,43 +1390,37 @@ function getProofBoardCopy(locale: Locale) {
           body: "这些线程还在内部评估，关键是别让它们自然冷掉。",
         },
         push_receipts: {
-          title: "先把提交回执推进到公开结果",
+          title: "先把提交回执推进到公开证明",
           body: "虽然还没有强回复，但已有真实动作成功，值得继续追公开结果。",
         },
         build_signal: {
           title: "先继续堆厚结果信号",
-          body: "当前还没有足够强的结果候选，继续执行比局部微调更重要。",
+          body: "当前还没有足够强的 proof 候选，继续执行比局部微调更重要。",
         },
       },
     };
   }
 
   return {
-    eyebrow: "Results Center",
-    title: "See what is landing now, then push the products closest to public results",
+    eyebrow: "Proof Board",
+    title: "Push the products closest to real results first",
     body:
-      "Users are buying visible outcomes, not dashboard complexity. This view keeps real actions, live replies, near-publication threads, and confirmed results in one place.",
+      "Global optimization means prioritizing the products that are nearest to provable outcomes, not polishing isolated local steps.",
     stats: {
-      receipts: "Real actions",
+      receipts: "Action receipts",
       threads: "Live replies",
-      close: "Near public results",
-      verify: "Public results",
+      close: "Close to publication",
+      verify: "Ready to verify",
     },
-    globalFocusLabel: "Best next result move",
-    productsEyebrow: "Closest visible results",
-    productsTitle: "Push these before you spread attention",
-    productsBody:
-      "These products are currently the closest to visible results. Push them first before opening more surface area.",
-    resultPathLabel: "Result path",
-    latestSignal: "Latest result signal",
-    openProduct: "Open product",
-    openTopProduct: "Open current result priority",
-    noCandidates: "No named signals yet",
-    candidates: "Signals",
-    activeTaskLabel: "Active result move",
-    currentPriority: "Current priority",
+    globalFocusLabel: "Current global priority",
     empty:
-      "No product is clearly in the result layer yet. Land the first real actions and live replies before widening the surface area.",
+      "There are no obvious proof-front products yet. Keep running live lanes until the result layer gets thicker.",
+    noCandidates: "No named candidates yet",
+    openProduct: "Open Product",
+    openTopProduct: "Open top proof product",
+    latestSignal: "Latest signal",
+    candidates: "Candidates",
+    activeTaskLabel: "Active proof task",
     actionLabels: {
       verify_published: "Verify result",
       protect_publication: "Protect publication",
@@ -1529,7 +1440,7 @@ function getProofBoardCopy(locale: Locale) {
     priorities: {
       verify_published: {
         title: "Verify the products closest to going live",
-        body: "These products are closest to public results and should be converted into visible outcomes first.",
+        body: "These products are closest to public proof and should be converted into visible results first.",
       },
       protect_publication: {
         title: "Protect the threads closest to publication",
@@ -1548,12 +1459,12 @@ function getProofBoardCopy(locale: Locale) {
         body: "These conversations are still being evaluated, so follow-up discipline matters most.",
       },
       push_receipts: {
-        title: "Push submission receipts toward public results",
+        title: "Push submission receipts toward public proof",
         body: "There may not be strong live replies yet, but real actions already landed and should be driven further.",
       },
       build_signal: {
         title: "Keep building result signal",
-        body: "There are not enough strong result candidates yet, so more execution matters more than local polishing.",
+        body: "There are not enough strong proof candidates yet, so more execution matters more than local polishing.",
       },
     },
   };
@@ -1562,41 +1473,41 @@ function getProofBoardCopy(locale: Locale) {
 function getTodayBriefCopy(locale: Locale) {
   if (locale === "zh") {
     return {
-      eyebrow: "今日重点",
-      title: "先看今天最重要的三件事",
+      eyebrow: "Today Brief",
+      title: "把今天最重要的判断压成三张卡",
       body:
         "实战里最怕的是信息很多，但方向不清。这里先告诉你今天最强的结果信号、最大的阻塞，以及唯一最该做的动作。",
       cards: {
-        signal: "最强结果",
+        signal: "最强信号",
         blocker: "最大阻塞",
-        move: "唯一下一步",
+        move: "唯一推荐动作",
       },
       emptySignalTitle: "还没有进入结果层的产品",
-      emptySignalBody: "先让第一个产品进入真实执行，再谈结果和扩张。",
-      activeSignalTitle: "今天有真实渠道在跑",
+      emptySignalBody: "先让第一个产品进入真实执行，再谈 proof 和扩张。",
+      activeSignalTitle: "今天有 live 渠道在跑",
       activeSignalBody: "最该看的不是更多设置，而是这一轮什么时候开始产出真实结果。",
       readySignalTitle: "已经出现可推进的结果信号",
-      readySignalBody: "这个产品最接近进入公开结果，应该优先推进它。",
+      readySignalBody: "这个产品最接近进入公开 proof，应该优先推进它。",
       noProductBlockerTitle: "还没有可执行的产品档案",
-      noProductBlockerBody: "没有产品，后面的结果推进、外联和升级都没有承载点。",
+      noProductBlockerBody: "没有产品，后面的 proof、外联和升级都没有承载点。",
       freeBlockerTitle: "真实渠道还没解锁",
       freeBlockerBody: "产品已经配好，但还停在免费配置层，真实提交和结果还没开始累积。",
-      syncBlockerTitle: "付款后还在同步",
+      syncBlockerTitle: "付款后同步还没完成",
       syncBlockerBody: "通常只是 webhook 在追平。先刷新一次，别在半同步状态下误判。",
       discoveryBlockerTitle: "今天的目标供给还在补货",
       discoveryBlockerBody: "发现引擎还没补满今天的目标地板，后续执行面还会继续变厚。",
       proofBlockerTitle: "结果信号还不够厚",
       proofBlockerBody: "现在更重要的是继续执行，先把 receipt 和 reply 层做厚，再谈局部优化。",
       actionSetupTitle: "先把第一个产品加进来",
-      actionSetupBody: "先形成一个可执行档案，后面的启动、结果推进和托管邮箱才有落点。",
+      actionSetupBody: "先形成一个可执行档案，后面的 launch、proof 和 managed inbox 才有落点。",
       actionUnlockTitle: "先解锁 Starter",
-      actionUnlockBody: "这是从配置态进入真实提交态的分水岭。目录提交会先开始产生真实结果信号，其他渠道继续走人工审核或推进中。",
-      actionSyncTitle: "先刷新一下",
+      actionUnlockBody: "这是从配置态进入真实提交态的分水岭，目录和 stealth 会立刻开始产生结果信号。",
+      actionSyncTitle: "先刷新工作台",
       actionSyncBody: "计划状态同步完以后，这一屏的推荐动作才会切换成真正可执行。",
       actionProofTitle: "先推进最接近结果的产品",
-      actionProofBody: "不要平均用力。先把最接近公开结果的产品推过去，结果感会最强。",
+      actionProofBody: "不要平均用力。先把最接近 proof 的产品推过去，结果感会最强。",
       actionLaunchTitle: "先启动推荐渠道",
-      actionLaunchBody: "当前最值得做的是把推荐渠道跑起来，让结果开始积累。",
+      actionLaunchBody: "当前最值得做的是把推荐 lane 跑起来，让结果层开始积累。",
       actionReviewTitle: "先打开最值得看的产品",
       actionReviewBody: "如果没有更强动作，先回到最关键的产品页看清楚它现在卡在哪。",
       refresh: "刷新工作台",
@@ -1605,41 +1516,41 @@ function getTodayBriefCopy(locale: Locale) {
   }
 
   return {
-    eyebrow: "Today's focus",
-    title: "Start with the three things that matter today",
+    eyebrow: "Today Brief",
+    title: "Compress today's product judgment into three cards",
     body:
       "Real usage breaks when the screen is full of information but short on direction. Start with the strongest signal, the biggest blocker, and the single move that matters most.",
     cards: {
-      signal: "Strongest result",
+      signal: "Strongest signal",
       blocker: "Biggest blocker",
-      move: "Single next move",
+      move: "Single best move",
     },
     emptySignalTitle: "No product has entered the result layer yet",
-    emptySignalBody: "Get the first product into live execution before worrying about results or expansion.",
-    activeSignalTitle: "A real path is running today",
+    emptySignalBody: "Get the first product into live execution before worrying about proof or expansion.",
+    activeSignalTitle: "A live lane is running today",
     activeSignalBody: "The thing to watch now is not more setup. It is when this run starts producing real result signal.",
-    readySignalTitle: "A product is already showing result pressure",
-    readySignalBody: "This product is the closest to a visible result and should be pushed first.",
+    readySignalTitle: "A product is already showing proof pressure",
+    readySignalBody: "This product is the closest to public proof and should be pushed first.",
     noProductBlockerTitle: "There is no executable product profile yet",
-    noProductBlockerBody: "Without a product, result work, outreach, and upgrades have nothing real to operate on.",
+    noProductBlockerBody: "Without a product, proof, outreach, and upgrades have nothing real to operate on.",
     freeBlockerTitle: "Live lanes are still locked",
     freeBlockerBody: "The product is staged, but the workspace is still stuck in setup mode and not accumulating real submission signal.",
-    syncBlockerTitle: "Plan sync is still catching up",
+    syncBlockerTitle: "Post-checkout sync is still catching up",
     syncBlockerBody: "This is usually just the webhook finishing. Refresh once before judging the workspace state.",
     discoveryBlockerTitle: "Today's target supply is still filling in",
     discoveryBlockerBody: "The discovery engine has not finished replenishing today's floor, so the execution surface is still getting thicker.",
     proofBlockerTitle: "The result layer is still too thin",
     proofBlockerBody: "More execution matters more than local polishing until receipts and replies get thicker.",
     actionSetupTitle: "Add the first product first",
-    actionSetupBody: "You need a real product profile before launch, result work, and managed inbox can become meaningful.",
+    actionSetupBody: "You need a real product profile before launch, proof, and managed inbox can become meaningful.",
     actionUnlockTitle: "Unlock Starter first",
-    actionUnlockBody: "This is the line between setup mode and real execution. Directory Submission starts producing real signal first, while the rest stay in manual review or rollout.",
-    actionSyncTitle: "Refresh once first",
+    actionUnlockBody: "This is the line between setup mode and real execution. Directory and Stealth start producing signal immediately.",
+    actionSyncTitle: "Refresh the workspace first",
     actionSyncBody: "The right move only becomes visible after the plan sync is complete.",
-    actionProofTitle: "Push the product closest to visible results first",
-    actionProofBody: "Do not spread effort evenly. Move the product closest to visible results and the result feeling gets stronger faster.",
-    actionLaunchTitle: "Start the recommended path first",
-    actionLaunchBody: "The highest-value move right now is starting the recommended path so the result layer can compound.",
+    actionProofTitle: "Push the product closest to proof first",
+    actionProofBody: "Do not spread effort evenly. Move the product closest to proof and the result feeling gets stronger faster.",
+    actionLaunchTitle: "Launch the recommended lane first",
+    actionLaunchBody: "The highest-value move right now is starting the recommended lane so the result layer can compound.",
     actionReviewTitle: "Open the product that matters most",
     actionReviewBody: "If there is no stronger move, go to the key product page and get clarity on what is blocking it.",
     refresh: "Refresh workspace",
@@ -1650,7 +1561,7 @@ function getTodayBriefCopy(locale: Locale) {
 function getOutcomeLadderCopy(locale: Locale) {
   if (locale === "zh") {
     return {
-      eyebrow: "结果路径",
+      eyebrow: "Outcome Ladder",
       title: "用同一条结果路径看所有产品",
       body:
         "真正的消费级体验不是让你学会一堆运营术语，而是让你知道每个产品目前处在哪一步，以及离下一个结果还差什么。",
@@ -1663,15 +1574,15 @@ function getOutcomeLadderCopy(locale: Locale) {
         launched: "首轮已启动",
         receipts: "拿到动作回执",
         threads: "拿到真实回复",
-        close: "接近公开结果",
-        proved: "结果已确认",
+        close: "接近公开 proof",
+        proved: "已进入 proof",
       },
       stageBody: {
         staged: "这个产品已经有基本档案，但还没有进入真实执行。",
         launched: "这个产品已经开始跑真实渠道，下一步是等第一批有效动作回执。",
         receipts: "已经出现真实动作成功，下一步要把它推进到回复或公开结果。",
         threads: "已经拿到真实回复，重点是别让高质量线程冷掉。",
-        close: "它已经接近公开结果，最值得优先推进。",
+        close: "它已经接近公开 proof，最值得优先推进。",
         proved: "这个产品已经拿到最强结果信号，接下来应该复制和扩张。",
       },
       nextBody: {
@@ -1679,7 +1590,7 @@ function getOutcomeLadderCopy(locale: Locale) {
         launched: "拿到第一批成功动作回执。",
         receipts: "把回执推进到回复或公开证据。",
         threads: "把回复推进到接近发布或公开结果。",
-        close: "拿到最终结果证据并沉淀成成果。",
+        close: "拿到最终 proof 并沉淀成成果。",
         proved: "把这套打法复制到下一条渠道或下一个产品。",
       },
       actionBody: {
@@ -1687,7 +1598,7 @@ function getOutcomeLadderCopy(locale: Locale) {
         launched: "现在最值钱的动作是盯住进度和第一批结果。",
         receipts: "现在最值钱的动作是把已成功的信号推进到回复层。",
         threads: "现在最值钱的动作是守住高质量线程，别让它们自然流失。",
-        close: "现在最值钱的动作是把结果坐实，而不是分散到别的产品。",
+        close: "现在最值钱的动作是抓 proof，而不是分散到别的产品。",
         proved: "现在最值钱的动作是复制这条结果路径。",
       },
       openProduct: "打开产品",
@@ -1695,7 +1606,7 @@ function getOutcomeLadderCopy(locale: Locale) {
   }
 
   return {
-    eyebrow: "Results Path",
+    eyebrow: "Outcome Ladder",
     title: "Map every product onto the same result path",
     body:
       "A consumer-grade product should not make you learn ops jargon. It should show what stage each product is in and what is missing before the next real outcome.",
@@ -1708,23 +1619,23 @@ function getOutcomeLadderCopy(locale: Locale) {
       launched: "First lane launched",
       receipts: "Receipts landed",
       threads: "Replies landed",
-      close: "Close to public results",
-      proved: "Result confirmed",
+      close: "Close to public proof",
+      proved: "Proof reached",
     },
     stageBody: {
       staged: "The product profile exists, but it has not entered live execution yet.",
       launched: "A real lane has started. The next threshold is the first useful action receipt.",
       receipts: "Real actions have landed. The next move is pushing them toward replies or public outcomes.",
       threads: "Real replies are live now, so the priority is protecting the strong threads.",
-      close: "This product is close to public results and deserves priority.",
+      close: "This product is close to public proof and deserves priority.",
       proved: "This product already has the strongest result signal. Now the job is replication and expansion.",
     },
     nextBody: {
       staged: "Launch the first live lane.",
       launched: "Land the first successful action receipts.",
       receipts: "Push receipts toward replies or public evidence.",
-      threads: "Push replies toward publication or visible results.",
-      close: "Capture the final evidence and turn it into a visible outcome.",
+      threads: "Push replies toward publication or proof.",
+      close: "Capture the final proof and turn it into visible outcome.",
       proved: "Replicate this path into the next lane or product.",
     },
     actionBody: {
@@ -1732,7 +1643,7 @@ function getOutcomeLadderCopy(locale: Locale) {
       launched: "The highest-value move now is watching for the first real outcome.",
       receipts: "The highest-value move now is pushing successful signal toward replies.",
       threads: "The highest-value move now is protecting the strongest live threads.",
-      close: "The highest-value move now is confirming the result instead of spreading attention.",
+      close: "The highest-value move now is capturing proof instead of spreading attention.",
       proved: "The highest-value move now is copying the winning pattern.",
     },
     openProduct: "Open product",
@@ -1767,39 +1678,6 @@ function workspaceTaskStageRank(stage: WorkspaceTaskStage) {
   }[stage];
 }
 
-function localizedReviewRequestStatus(
-  status: ChannelReviewRequest["status"],
-  locale: Locale
-) {
-  if (locale === "zh") {
-    return status === "approved"
-      ? "审核已通过"
-      : status === "rejected"
-        ? "审核未通过"
-        : "人工审核已排队";
-  }
-
-  return status === "approved"
-    ? "Review approved"
-    : status === "rejected"
-      ? "Review not approved"
-      : "Manual review queued";
-}
-
-function channelReviewRequestStatusClasses(
-  status: ChannelReviewRequest["status"]
-) {
-  if (status === "approved") {
-    return "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100";
-  }
-
-  if (status === "rejected") {
-    return "border-red-300/15 bg-red-300/[0.08] text-red-200";
-  }
-
-  return "border-amber-300/15 bg-amber-300/[0.08] text-amber-100";
-}
-
 function workspaceTaskPriorityScore(task: WorkspaceTask) {
   const baseStageScore = {
     pending: 10,
@@ -1814,10 +1692,6 @@ function workspaceTaskPriorityScore(task: WorkspaceTask) {
 
   if (task.kind === "submission") {
     return baseStageScore + 45;
-  }
-
-  if (task.kind === "review") {
-    return baseStageScore + 25;
   }
 
   if (
@@ -1845,12 +1719,6 @@ function workspaceTaskFocusLabel(
 
   if (task.kind === "submission" || task.stage === "awaiting_effect") {
     return copy.tasks.focusLabels.watch_effect;
-  }
-
-  if (task.kind === "review") {
-    return task.reviewStatus === "queued"
-      ? copy.tasks.focusLabels.review_wait
-      : copy.tasks.focusLabels.review_done;
   }
 
   if (
@@ -2438,24 +2306,8 @@ function plannerSelectionStatusCopy(args: {
   selectedProductName: string;
   recommendedProductName: string;
   followsRecommendation: boolean;
-  resetReason: "reclaimed" | "missing" | null;
-  requestedProductName: string | null;
 }) {
   if (args.locale === "zh") {
-    if (args.resetReason === "reclaimed" && args.requestedProductName) {
-      return {
-        badge: "已切回当前优先",
-        body: `你刚才选中的 ${args.requestedProductName} 当前不再承接新增任务，所以 Task Builder 已切回 ${args.recommendedProductName}。`,
-      };
-    }
-
-    if (args.resetReason === "missing" && args.requestedProductName) {
-      return {
-        badge: "已切回当前优先",
-        body: `你刚才选中的 ${args.requestedProductName} 已经不在当前工作台里，所以 Task Builder 已切回 ${args.recommendedProductName}。`,
-      };
-    }
-
     return args.followsRecommendation
       ? {
           badge: "跟随当前优先产品",
@@ -2467,23 +2319,9 @@ function plannerSelectionStatusCopy(args: {
         };
   }
 
-  if (args.resetReason === "reclaimed" && args.requestedProductName) {
-    return {
-      badge: "Moved back to current priority",
-      body: `${args.requestedProductName} is not taking new tasks right now, so the builder moved back to ${args.recommendedProductName}.`,
-    };
-  }
-
-  if (args.resetReason === "missing" && args.requestedProductName) {
-    return {
-      badge: "Moved back to current priority",
-      body: `${args.requestedProductName} is no longer available in this workspace, so the builder moved back to ${args.recommendedProductName}.`,
-    };
-  }
-
   return args.followsRecommendation
     ? {
-        badge: "Following current priority",
+        badge: "Following the current lead",
         body: `The workspace is routing new tasks into ${args.recommendedProductName} right now. You can still switch to another valid product manually.`,
       }
     : {
@@ -2501,18 +2339,18 @@ function workspaceLeadSummaryCopy(args: {
     return {
       unlock: `当前系统先把 ${args.leadProductName} 作为主产品，先完成第一条可执行路径的解锁。`,
       upgrade: `当前系统先把 ${args.leadProductName} 放在最前面，因为下一步价值更像升级而不是继续铺新任务。`,
-      prove: `当前系统先推 ${args.leadProductName}，因为它最接近变成公开结果。`,
+      prove: `当前系统先推 ${args.leadProductName}，因为它最接近变成 proof。`,
       watch: `当前系统先盯 ${args.leadProductName}，因为它更该先看生效和结果信号。`,
       build: `当前系统先把新增任务喂给 ${args.leadProductName}，因为它最适合吸收本周新增供给。`,
     }[args.mode];
   }
 
   return {
-    unlock: `${args.leadProductName} is the current priority because the workspace should unlock its first executable path before spreading wider.`,
-    upgrade: `${args.leadProductName} is the current priority because the next move looks more like an upgrade decision than more task volume.`,
-    prove: `${args.leadProductName} is the current priority because it is the closest product to turning into visible results.`,
-    watch: `${args.leadProductName} is the current priority because the better move is watching effect and result signals first.`,
-    build: `${args.leadProductName} is the current priority because it is the best product to absorb this week's fresh supply.`,
+    unlock: `${args.leadProductName} is the current lead because the workspace should unlock its first executable path before spreading wider.`,
+    upgrade: `${args.leadProductName} is the current lead because the next move looks more like an upgrade decision than more task volume.`,
+    prove: `${args.leadProductName} is the current lead because it is the closest product to turning into proof.`,
+    watch: `${args.leadProductName} is the current lead because the better move is watching effect and result signals first.`,
+    build: `${args.leadProductName} is the current lead because it is the best product to absorb this week's fresh supply.`,
   }[args.mode];
 }
 
@@ -3138,24 +2976,24 @@ function getLocalizedChannel(channel: ChannelContract, locale: Locale) {
         desc: "提交到经过筛选的 AI 工具目录，自动完成表单填写。",
       },
       stealth: {
-        name: "高风险浏览器路线",
-        desc: "高风险路线，已从默认客户执行里移除，不再作为标准自动渠道。",
+        name: "Stealth 浏览器提交",
+        desc: "使用同一套目录网络，但带上 stealth 防护去通过更难的站点。",
       },
       community: {
-        name: "社区/平台路线",
-        desc: "开发者社区和平台型站点不作为默认自动推广渠道。",
+        name: "社区提交",
+        desc: "GitHub、Product Hunt 和开发者社区处于受控 rollout 中。",
       },
       resource_page: {
         name: "资源页外联",
-        desc: "资源页外联需要先人工审核相关性，再决定是否推进。",
+        desc: "编辑类资源页外联仍在受控 rollout 中。",
       },
       social: {
         name: "社交分发",
-        desc: "社交分发需要先人工判断场景和平台适配。",
+        desc: "X 和 Pinterest 分发目前仍在客户 worker 之外执行。",
       },
       editorial: {
         name: "编辑外联",
-        desc: "编辑外联保持人工审核，避免把普通分发做成打扰式推广。",
+        desc: "编辑外联渠道仍在受控 rollout 中。",
       },
     };
 
@@ -3322,7 +3160,6 @@ export default function DashboardClient({
   );
   const [capabilityReview, setCapabilityReview] =
     useState<SaasCapabilityReviewState>(capabilityReviewState);
-  const [channelReviewRequests, setChannelReviewRequests] = useState<ChannelReviewRequest[]>([]);
   const [capabilityReviewAction, setCapabilityReviewAction] = useState(false);
   const [capabilityReviewError, setCapabilityReviewError] = useState("");
   const previousRecommendedPlannerProductId = useRef(
@@ -3334,45 +3171,6 @@ export default function DashboardClient({
   }, [capabilityReviewState]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadChannelReviewRequests() {
-      if (products.length === 0) {
-        setChannelReviewRequests([]);
-        return;
-      }
-
-      const results = await Promise.all(
-        products.map(async (product) => {
-          const response = await fetch(`/api/products/${product.id}/review-requests`).catch(
-            () => null
-          );
-
-          if (!response?.ok) {
-            return [] as ChannelReviewRequest[];
-          }
-
-          const payload = (await response.json().catch(() => null)) as
-            | { requests?: ChannelReviewRequest[] }
-            | null;
-
-          return payload?.requests || [];
-        })
-      );
-
-      if (!cancelled) {
-        setChannelReviewRequests(results.flat());
-      }
-    }
-
-    loadChannelReviewRequests();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [products]);
-
-  useEffect(() => {
     if (!products.some((product) => product.id === plannerProductId)) {
       setPlannerProductId(
         workspaceSupply.recommendedAutoCoverageProductId || products[0]?.id || ""
@@ -3381,139 +3179,14 @@ export default function DashboardClient({
   }, [plannerProductId, products, workspaceSupply.recommendedAutoCoverageProductId]);
 
   const isPaid = subscription?.status === "active";
-  const deliveryLayerCopy =
-    locale === "zh"
-      ? {
-          setup: "套餐内 · 产品配置",
-          core: "套餐内 · 核心软件层",
-          coreUpgrade: "升级后进入 · 核心软件层",
-          managed: "加购层 · 托管邮箱",
-          result: "服务动作 · 结果推进",
-          premium: "服务动作 · 付费机会",
-        }
-      : {
-          setup: "Included · Product setup",
-          core: "Included · Core software",
-          coreUpgrade: "Upgrade to unlock · Core software",
-          managed: "Add-on · Managed inbox",
-          result: "Service action · Result push",
-          premium: "Service action · Paid opportunity",
-        };
-  const deliveryLayerToneClasses = {
-    core: "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
-    managed: "border-sky-300/15 bg-sky-300/[0.08] text-sky-100",
-    result: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
-    premium: "border-fuchsia-300/15 bg-fuchsia-300/[0.08] text-fuchsia-100",
-    neutral: "border-white/10 bg-white/[0.04] text-stone-200",
-  } as const;
-  type DeliveryLayerTone = keyof typeof deliveryLayerToneClasses;
-  type DeliveryLayerTag = {
-    label: string;
-    tone: DeliveryLayerTone;
-  };
-  const renderDeliveryLayerTag = (tag: DeliveryLayerTag) => (
-    <span
-      className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-medium ${deliveryLayerToneClasses[tag.tone]}`}
-    >
-      {tag.label}
-    </span>
-  );
-  const getDeliveryLayerTagFromHref = (href: string): DeliveryLayerTag => {
-    if (href.includes("#managed-inbox")) {
-      return { label: deliveryLayerCopy.managed, tone: "managed" };
-    }
-    if (href.includes("#proof-pipeline") || href.includes("#results-proof")) {
-      return { label: deliveryLayerCopy.result, tone: "result" };
-    }
-    if (href.includes("/pricing") || href.includes("/api/stripe/checkout")) {
-      return { label: deliveryLayerCopy.coreUpgrade, tone: "core" };
-    }
-    return { label: deliveryLayerCopy.core, tone: "core" };
-  };
-  const getDeliveryLayerTag = (
-    action:
-      | TodayBriefMove
-      | BudgetAction
-      | ProductProofAction
-      | ProductPrimaryAction
-      | null
-      | undefined
-  ): DeliveryLayerTag => {
-    if (!action) {
-      return { label: deliveryLayerCopy.core, tone: "core" };
-    }
-    if ("taskType" in action) {
-      return { label: deliveryLayerCopy.result, tone: "result" };
-    }
-    if (action.kind === "proof") {
-      return { label: deliveryLayerCopy.result, tone: "result" };
-    }
-    if (action.kind === "launch") {
-      return { label: deliveryLayerCopy.core, tone: "core" };
-    }
-    if (action.kind === "button" || action.kind === "refresh") {
-      return { label: deliveryLayerCopy.setup, tone: "neutral" };
-    }
-    return getDeliveryLayerTagFromHref(action.href);
-  };
-  const getWorkspaceTaskDeliveryLayerTag = (task: WorkspaceTask): DeliveryLayerTag => {
-    if (task.billingRule?.type === "premium_service") {
-      return { label: deliveryLayerCopy.premium, tone: "premium" };
-    }
-    if (task.kind === "proof") {
-      return { label: deliveryLayerCopy.result, tone: "result" };
-    }
-    if (task.kind === "profile") {
-      return { label: deliveryLayerCopy.setup, tone: "neutral" };
-    }
-    if (task.kind === "review") {
-      return {
-        label:
-          locale === "zh"
-            ? "服务动作 · 人工审核"
-            : "Service action · Manual review",
-        tone: "neutral",
-      };
-    }
-    return { label: deliveryLayerCopy.core, tone: "core" };
-  };
   const currentPlan = isPaid ? subscription?.plan || "starter" : "free";
-  const upgradeOfferCards = [
-    {
-      key: "starter",
-      tag: { label: deliveryLayerCopy.coreUpgrade, tone: "core" as const },
-      title: copy.upgradeOffers.starter.title,
-      body: copy.upgradeOffers.starter.body,
-    },
-    {
-      key: "growth",
-      tag: { label: deliveryLayerCopy.managed, tone: "managed" as const },
-      title: copy.upgradeOffers.growth.title,
-      body: copy.upgradeOffers.growth.body,
-    },
-  ] as const;
-  const currentUpgradeNeed =
-    currentPlan === "free"
-      ? {
-          tag: { label: deliveryLayerCopy.coreUpgrade, tone: "core" as const },
-          title: copy.upgradeOffers.needCore.title,
-          body: copy.upgradeOffers.needCore.body,
-        }
-      : {
-          tag: { label: deliveryLayerCopy.managed, tone: "managed" as const },
-          title: copy.upgradeOffers.needManaged.title,
-          body: copy.upgradeOffers.needManaged.body,
-        };
   const planName = formatPlanName(currentPlan, locale);
   const proofSummaryByProductId = new Map(
     productProofSummaries.map((summary) => [summary.productId, summary])
   );
   const canAddProduct = isPaid || products.length < FREE_PREVIEW_PRODUCT_LIMIT;
-  const isSingleProductMode = products.length === 1;
-  const liveChannels = DEFAULT_EXECUTION_CHANNELS;
-  const roadmapChannels = CHANNELS.filter(
-    (channel) => !DEFAULT_EXECUTION_CHANNELS.some((item) => item.id === channel.id)
-  );
+  const liveChannels = CHANNELS.filter((channel) => channel.support_status === "live");
+  const roadmapChannels = CHANNELS.filter((channel) => channel.support_status !== "live");
   const liveChannelsForPlan = isPaid
     ? liveChannels.filter((channel) => channel.plans.includes(currentPlan))
     : [];
@@ -3572,6 +3245,8 @@ export default function DashboardClient({
   const requiredCapabilityActions = capabilityReviewPending
     ? capabilityContract.required_saas_actions.slice(0, 4)
     : [];
+  const capabilitySurfaces = capabilityContract.product_surfaces_to_sync.slice(0, 6);
+  const capabilityCopyGuidance = capabilityContract.copy_update_guidance;
   const recentCapabilityHistory = capabilityHistory.history.slice(0, 4);
   const productPolicyById = new Map(
     workspacePolicy.products.map((product) => [product.productId, product] as const)
@@ -3763,7 +3438,6 @@ export default function DashboardClient({
       proof,
     };
   });
-  const singleProductSummary = isSingleProductMode ? productSummaries[0] || null : null;
   const proofLedProducts = productSummaries
     .filter(
       (summary) =>
@@ -3814,19 +3488,6 @@ export default function DashboardClient({
       proved: 0,
     } satisfies Record<OutcomeStage, number>
   );
-  const resultCenterProducts = outcomeLeaders.slice(0, 3);
-  const resultCenterLead = resultCenterProducts[0] || null;
-  const resultCenterLeadStage = resultCenterLead
-    ? getOutcomeStage(resultCenterLead)
-    : null;
-  const resultCenterLeadProofAction =
-    resultCenterLead && resultCenterLead.proof.priority !== "build_signal"
-      ? proofActionForSummary(resultCenterLead, proofCopy)
-      : null;
-  const resultCenterLeadLaunchAction =
-    resultCenterLead && isLaunchAction(resultCenterLead.primaryAction)
-      ? resultCenterLead.primaryAction
-      : null;
   const workspaceProofStats = productSummaries.reduce(
     (totals, summary) => ({
       receipts: totals.receipts + summary.proof.counts.receipts,
@@ -3860,6 +3521,14 @@ export default function DashboardClient({
     featuredCandidates.find((summary) => summary.stage === "unlock") ||
     featuredCandidates[0] ||
     null;
+  const topProofAction =
+    actionableProofProducts[0]
+      ? proofActionForSummary(actionableProofProducts[0], proofCopy)
+      : null;
+  const featuredProofAction =
+    featuredProduct && featuredProduct.proof.priority !== "build_signal"
+      ? proofActionForSummary(featuredProduct, proofCopy)
+      : null;
   const featuredLaunchAction =
     featuredProduct && isLaunchAction(featuredProduct.primaryAction)
       ? featuredProduct.primaryAction
@@ -3881,9 +3550,6 @@ export default function DashboardClient({
       const baseHref = `/dashboard/product/${summary.product.id}`;
       const taskPlans = workspaceTaskPlans.filter(
         (plan) => plan.productId === summary.product.id
-      );
-      const reviewRequests = channelReviewRequests.filter(
-        (request) => request.productId === summary.product.id
       );
 
       taskPlans.forEach((plan) => {
@@ -4033,60 +3699,6 @@ export default function DashboardClient({
         });
       });
 
-      reviewRequests.slice(0, 2).forEach((reviewRequest) => {
-        const economics = taskEconomics({ kind: "profile" });
-        const localizedChannel =
-          CHANNELS.find((channel) => channel.id === reviewRequest.channelId) || null;
-        const channelLabel = localizedChannel
-          ? getLocalizedChannel(localizedChannel, locale).name
-          : reviewRequest.channelName;
-        const title =
-          reviewRequest.status === "approved"
-            ? locale === "zh"
-              ? `${channelLabel} 已通过人工审核`
-              : `${channelLabel} passed manual review`
-            : reviewRequest.status === "rejected"
-              ? locale === "zh"
-                ? `${channelLabel} 未通过人工审核`
-                : `${channelLabel} was not approved for manual review`
-              : locale === "zh"
-                ? `${channelLabel} 人工审核已排队`
-                : `${channelLabel} is queued for manual review`;
-        const preview =
-          reviewRequest.status === "approved"
-            ? locale === "zh"
-              ? "这条路线已经通过人工审核。下一步在产品详情里看是否值得继续人工承接。"
-              : "This route passed manual review. Open the product to decide whether it deserves further human-handled execution."
-            : reviewRequest.status === "rejected"
-              ? locale === "zh"
-                ? "当前结论是不建议推进。先把默认开放路径跑稳，除非产品故事明显变化。"
-                : "The current decision is to keep this route closed. Stay on the default-open path unless the product story changes materially."
-              : locale === "zh"
-                ? "系统已经把这条路线记入人工审核队列。先保持主线执行，等人工判断是否值得打开。"
-                : "The app already logged this route for manual review. Keep the main path moving while a human decides whether it is worth opening.";
-
-        tasks.push({
-          id: `review:${summary.product.id}:${reviewRequest.id}`,
-          productId: summary.product.id,
-          productName: summary.product.name,
-          kind: "review",
-          taskPlanId: null,
-          taskPlanMode: null,
-          sourcePlanId: null,
-          sourcePlanTitle: null,
-          materializedChannelIds: [],
-          childPlanIds: [],
-          stage: reviewRequest.status === "queued" ? "pending" : "planned",
-          title,
-          preview,
-          href: `${baseHref}`,
-          updatedAt: reviewRequest.updatedAt,
-          ...economics,
-          coverageBreakdown: null,
-          reviewStatus: reviewRequest.status,
-        });
-      });
-
       const proofTask = summary.proof.activeTask || summary.proof.latestTask;
       if (proofTask) {
         const economics = taskEconomics({
@@ -4210,9 +3822,6 @@ export default function DashboardClient({
   const plannerProductReclaimed = plannerProductId
     ? Boolean(productPolicyById.get(plannerProductId)?.reclaimReason)
     : false;
-  const requestedPlannerSummary = plannerProductId
-    ? productSummaries.find((summary) => summary.product.id === plannerProductId) || null
-    : null;
   const resolvedPlannerProductId =
     plannerProductExists && !plannerProductReclaimed
       ? plannerProductId
@@ -4227,14 +3836,6 @@ export default function DashboardClient({
   const plannerFollowsRecommendation =
     !resolvedPlannerProductId ||
     resolvedPlannerProductId === recommendedPlannerProductId;
-  const plannerResetReason =
-    plannerProductId && plannerProductId !== recommendedPlannerProductId
-      ? !plannerProductExists
-        ? ("missing" as const)
-        : plannerProductReclaimed
-          ? ("reclaimed" as const)
-          : null
-      : null;
   const plannerSelectionStatus =
     resolvedPlannerSummary && recommendedPlannerSummary
       ? plannerSelectionStatusCopy({
@@ -4242,8 +3843,6 @@ export default function DashboardClient({
           selectedProductName: resolvedPlannerSummary.product.name,
           recommendedProductName: recommendedPlannerSummary.product.name,
           followsRecommendation: plannerFollowsRecommendation,
-          resetReason: plannerResetReason,
-          requestedProductName: requestedPlannerSummary?.product.name || null,
         })
       : null;
   const builderTargetText = resolvedPlannerSummary
@@ -4275,28 +3874,6 @@ export default function DashboardClient({
     locale,
     workspaceSupply,
   });
-  const premiumDeskOwner = workspaceSupply.premiumOwner;
-  const premiumDeskHref = premiumDeskOwner
-    ? withPriorityContext(
-        `/dashboard/product/${premiumDeskOwner.productId}#managed-inbox`,
-        premiumDeskOwner.productId,
-        workspaceStrategyLead?.product.id === premiumDeskOwner.productId
-      )
-    : "#task-queue";
-  const premiumDeskReadinessBody = workspaceSupply.release.premium.open
-    ? copy.discovery.paidDeskOpenBody
-    : copy.discovery.paidDeskHoldBody;
-  const premiumDeskGuideHref = "#paid-opportunity-guide";
-  const premiumDeskDecisionAction =
-    workspaceSupply.release.premium.open && premiumDeskOwner
-      ? {
-          href: premiumDeskHref,
-          label: copy.discovery.paidDeskOpenAction,
-        }
-      : {
-          href: premiumDeskGuideHref,
-          label: copy.discovery.paidDeskGuideAction,
-        };
   const productOwnedLanesById = new Map(
     productSummaries.map((summary) => {
       const ownedLanes = (
@@ -4471,44 +4048,6 @@ export default function DashboardClient({
         workspaceStrategyLead?.product.id === recommendedPlannerSummary.product.id
       )
     : null;
-  const taskBuilderBody = singleProductSummary
-    ? locale === "zh"
-      ? `现在先围绕 ${singleProductSummary.product.name} 建下一步动作，不再把注意力切到多产品管理。`
-      : `Build the next actions around ${singleProductSummary.product.name} first instead of splitting attention across multiple products.`
-    : copy.builder.body;
-  const taskBuilderLeadEyebrow = isSingleProductMode
-    ? locale === "zh"
-      ? "当前动作目标"
-      : "Current action target"
-    : locale === "zh"
-      ? "当前建任务优先"
-      : "Current build priority";
-  const taskBuilderLeadBody =
-    isSingleProductMode && recommendedPlannerSummary
-      ? locale === "zh"
-        ? `这块现在会一直围绕 ${recommendedPlannerSummary.product.name} 建动作，让你先把一个产品跑出结果。`
-        : `This section now stays focused on ${recommendedPlannerSummary.product.name} so you can get one product to results first.`
-      : workspaceLeadSummary ||
-        (recommendedPlannerSummary
-          ? locale === "zh"
-            ? `系统当前会先把新增任务路由给 ${recommendedPlannerSummary.product.name}。`
-            : `The workspace is routing new tasks into ${recommendedPlannerSummary.product.name} right now.`
-          : "");
-  const actionListTitle = singleProductSummary
-    ? locale === "zh"
-      ? `${singleProductSummary.product.name} 的动作清单`
-      : `${singleProductSummary.product.name} action list`
-    : taskQueueCopy.title;
-  const actionListBody = singleProductSummary
-    ? locale === "zh"
-      ? `这里是 ${singleProductSummary.product.name} 接下来最值得推进的动作，不再把多个产品的事情混在一起。`
-      : `This is the next set of actions for ${singleProductSummary.product.name}, without mixing in other products.`
-    : taskQueueCopy.body;
-  const actionListPreviewBadge = singleProductSummary
-    ? locale === "zh"
-      ? "当前产品"
-      : "Current product"
-    : taskQueueCopy.previewBadge;
   const featuredProductDetailHref = featuredProduct
     ? withPriorityContext(
         `/dashboard/product/${featuredProduct.product.id}`,
@@ -4530,12 +4069,8 @@ export default function DashboardClient({
         true
       )
     : null;
-  const withWorkspaceLeadPriority = (href: string) =>
-    workspaceStrategyLead
-      ? withPriorityContext(href, workspaceStrategyLead.product.id, true)
-      : href;
   const todayBriefLeadLabel =
-    locale === "zh" ? "当前优先" : "Current priority";
+    locale === "zh" ? "当前优先" : "Current lead";
   const todayBriefLeadName =
     workspaceStrategyLead?.product.name || featuredProduct?.product.name || null;
   const todayBriefSignal = !products.length
@@ -4653,7 +4188,7 @@ export default function DashboardClient({
                           ? todayBriefCopy.actionLaunchBody
                           : todayBriefCopy.actionReviewBody,
                     label: workspaceStrategyLeadAction.label,
-                    href: withWorkspaceLeadPriority(workspaceStrategyLeadAction.href),
+                    href: workspaceStrategyLeadAction.href,
                   }
                 : {
                     kind: "link",
@@ -4665,11 +4200,6 @@ export default function DashboardClient({
                       featuredProductDetailHref ||
                       "/dashboard",
                   };
-  const todayBriefActionTag = !products.length
-    ? { label: deliveryLayerCopy.setup, tone: "neutral" as const }
-    : !isPaid
-      ? { label: deliveryLayerCopy.coreUpgrade, tone: "core" as const }
-      : getDeliveryLayerTag(todayBriefMove);
   const orderedProductSummaries = workspaceStrategyLead
     ? [
         workspaceStrategyLead,
@@ -4718,18 +4248,6 @@ export default function DashboardClient({
   }
 
   async function handleWorkspaceLaunch(productId: string, channelId: string) {
-    const channel = CHANNELS.find((item) => item.id === channelId);
-    const launchGuardMessage = getChannelLaunchGuardMessage({
-      locale,
-      channelId,
-      channelName: channel?.name || channelId,
-    });
-
-    if (launchGuardMessage) {
-      setWorkspaceActionError(launchGuardMessage);
-      return;
-    }
-
     const laneGuardMessage = workspaceLaneGuardMessage({
       lane: "submission",
       locale,
@@ -4747,29 +4265,22 @@ export default function DashboardClient({
     setLaunchingKey(actionKey);
     setWorkspaceActionError("");
 
-    const response = await fetch(`/api/products/${productId}/submissions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channelId }),
+    const supabase = createClient();
+    const { error } = await supabase.from("submissions").insert({
+      user_id: user.id,
+      product_id: productId,
+      channel: channelId,
+      status: "queued",
     });
 
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
-      setWorkspaceActionError(payload?.error || copy.errors.saveFailed);
+    if (error) {
+      setWorkspaceActionError(error.message || copy.errors.saveFailed);
       setLaunchingKey(null);
       return;
     }
 
     setLaunchingKey(null);
-    router.push(
-      withPriorityContext(
-        `/dashboard/product/${productId}#submission-history`,
-        productId,
-        workspaceStrategyLead?.product.id === productId
-      )
-    );
+    router.push(`/dashboard/product/${productId}#submission-history`);
     router.refresh();
   }
 
@@ -4779,13 +4290,7 @@ export default function DashboardClient({
   ) {
     if (action.mode === "open") {
       setWorkspaceActionError("");
-      router.push(
-        withPriorityContext(
-          action.href,
-          productId,
-          workspaceStrategyLead?.product.id === productId
-        )
-      );
+      router.push(action.href);
       return;
     }
 
@@ -4825,13 +4330,7 @@ export default function DashboardClient({
         throw new Error(data?.error || "Could not queue the proof task.");
       }
 
-      router.push(
-        withPriorityContext(
-          action.href,
-          productId,
-          workspaceStrategyLead?.product.id === productId
-        )
-      );
+      router.push(action.href);
       router.refresh();
     } catch (error) {
       setWorkspaceActionError(
@@ -5169,134 +4668,112 @@ export default function DashboardClient({
               </div>
             ) : null}
 
-            <div className="mt-7">
-              {renderDeliveryLayerTag(todayBriefActionTag)}
-              <div className="mt-3 flex flex-wrap gap-3">
-                {products.length === 0 ? (
-                  <>
+            <div className="mt-7 flex flex-wrap gap-3">
+              {products.length === 0 ? (
+                <>
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryNoProduct}
+                  </button>
+                  <Link
+                    href="/pricing"
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryPricing}
+                  </Link>
+                </>
+              ) : !isPaid ? (
+                <>
+                  <a
+                    href="/api/stripe/checkout?plan=starter"
+                    className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                  >
+                    {copy.hero.primaryUnlock}
+                  </a>
+                  <a
+                    href="/api/stripe/checkout?plan=growth"
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryGrowth}
+                  </a>
+                </>
+              ) : products.length > 0 ? (
+                <>
+                  {todayBriefMove.kind === "refresh" ? (
                     <button
-                      onClick={openAddProduct}
+                      type="button"
+                      onClick={() => router.refresh()}
                       className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                     >
-                      {copy.hero.primaryNoProduct}
+                      {todayBriefMove.label}
                     </button>
-                    <Link
-                      href="/pricing"
-                      className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  ) : todayBriefMove.kind === "launch" ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceLaunch(
+                          todayBriefMove.productId,
+                          todayBriefMove.channelId
+                        )
+                      }
+                      disabled={
+                        launchingKey ===
+                        `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                      }
+                      className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                     >
-                      {copy.hero.secondaryPricing}
-                    </Link>
-                  </>
-                ) : !isPaid ? (
-                  <>
-                    <a
-                      href="/api/stripe/checkout?plan=starter"
-                      className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                      {launchingKey ===
+                      `${todayBriefMove.productId}:${todayBriefMove.channelId}`
+                        ? copy.productCard.starting
+                        : todayBriefMove.label}
+                    </button>
+                  ) : todayBriefMove.kind === "proof" ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceProofAction(
+                          todayBriefMove.productId,
+                          todayBriefMove.proofAction
+                        )
+                      }
+                      disabled={
+                        proofActionKey ===
+                        `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                      }
+                      className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
                     >
-                      {copy.hero.primaryUnlock}
-                    </a>
-                    <a
-                      href="/api/stripe/checkout?plan=growth"
-                      className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.hero.secondaryGrowth}
-                    </a>
-                    <div className="mt-2 grid w-full gap-3 sm:grid-cols-2">
-                      {upgradeOfferCards.map((card) => (
-                        <div
-                          key={card.key}
-                          className="rounded-[1.1rem] border border-[var(--line-soft)] bg-black/15 p-4"
-                        >
-                          {renderDeliveryLayerTag(card.tag)}
-                          <div className="mt-3 text-sm font-semibold text-white">
-                            {card.title}
-                          </div>
-                          <p className="mt-2 text-xs leading-6 text-stone-400">
-                            {card.body}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="w-full text-xs leading-6 text-stone-500">
-                      {copy.upgradeOffers.premiumNote}
-                    </p>
-                  </>
-                ) : products.length > 0 ? (
-                  <>
-                    {todayBriefMove.kind === "refresh" ? (
-                      <button
-                        type="button"
-                        onClick={() => router.refresh()}
+                      {proofActionKey ===
+                      `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
+                        ? copy.productCard.starting
+                        : todayBriefMove.label}
+                    </button>
+                  ) : todayBriefMove.kind === "link" ? (
+                    todayBriefMove.href.startsWith("/api/") ? (
+                      <a
+                        href={todayBriefMove.href}
                         className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                       >
                         {todayBriefMove.label}
-                      </button>
-                    ) : todayBriefMove.kind === "launch" ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleWorkspaceLaunch(
-                            todayBriefMove.productId,
-                            todayBriefMove.channelId
-                          )
-                        }
-                        disabled={
-                          launchingKey ===
-                          `${todayBriefMove.productId}:${todayBriefMove.channelId}`
-                        }
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                      </a>
+                    ) : (
+                      <Link
+                        href={todayBriefMove.href}
+                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
                       >
-                        {launchingKey ===
-                        `${todayBriefMove.productId}:${todayBriefMove.channelId}`
-                          ? copy.productCard.starting
-                          : todayBriefMove.label}
-                      </button>
-                    ) : todayBriefMove.kind === "proof" ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleWorkspaceProofAction(
-                            todayBriefMove.productId,
-                            todayBriefMove.proofAction
-                          )
-                        }
-                        disabled={
-                          proofActionKey ===
-                          `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
-                        }
-                        className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                      >
-                        {proofActionKey ===
-                        `${todayBriefMove.productId}:${todayBriefMove.proofAction.taskType}`
-                          ? copy.productCard.starting
-                          : todayBriefMove.label}
-                      </button>
-                    ) : todayBriefMove.kind === "link" ? (
-                      todayBriefMove.href.startsWith("/api/") ? (
-                        <a
-                          href={todayBriefMove.href}
-                          className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                        >
-                          {todayBriefMove.label}
-                        </a>
-                      ) : (
-                        <Link
-                          href={todayBriefMove.href}
-                          className="rounded-full bg-[var(--accent-500)] px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
-                        >
-                          {todayBriefMove.label}
-                        </Link>
-                      )
-                    ) : null}
-                    <button
-                      onClick={openAddProduct}
-                      className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
-                    >
-                      {copy.hero.secondaryAdd}
-                    </button>
-                  </>
-                ) : null}
-              </div>
+                        {todayBriefMove.label}
+                      </Link>
+                    )
+                  ) : null}
+                  <button
+                    onClick={openAddProduct}
+                    className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/6"
+                  >
+                    {copy.hero.secondaryAdd}
+                  </button>
+                </>
+              ) : null}
             </div>
 
             <div className="mt-8 grid gap-3 md:grid-cols-3">
@@ -5364,316 +4841,6 @@ export default function DashboardClient({
             ))}
           </div>
         </section>
-
-        {products.length > 0 ? (
-          <section className="mt-8 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
-            <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(159,224,207,0.12),rgba(255,255,255,0.04))] p-7">
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                {proofCopy.eyebrow}
-              </p>
-              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
-                {proofCopy.title}
-              </h2>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
-                {proofCopy.body}
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                {(
-                  [
-                    "staged",
-                    "launched",
-                    "receipts",
-                    "threads",
-                    "close",
-                    "proved",
-                  ] as const
-                ).map((stage) => (
-                  <div
-                    key={stage}
-                    className="rounded-full border border-[var(--line-soft)] bg-black/15 px-4 py-2 text-xs text-stone-300"
-                  >
-                    {outcomeCopy.stages[stage]} · {outcomeStageCounts[stage]}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {(
-                  [
-                    ["receipts", workspaceProofStats.receipts],
-                    ["threads", workspaceProofStats.threads],
-                    ["close", workspaceProofStats.close],
-                    ["verify", workspaceProofStats.verify],
-                  ] as const
-                ).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
-                  >
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                      {proofCopy.stats[key]}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                className={`mt-6 rounded-[1.25rem] border p-5 ${proofPriorityClasses(
-                  globalProofPriority
-                )}`}
-              >
-                <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
-                  {proofCopy.globalFocusLabel}
-                </div>
-                {resultCenterLead ? (
-                  <div className="mt-3 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs font-medium text-current">
-                    {proofCopy.currentPriority}: {resultCenterLead.product.name}
-                  </div>
-                ) : null}
-                <h3 className="mt-3 text-2xl font-semibold text-white">
-                  {proofCopy.priorities[globalProofPriority].title}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-stone-200">
-                  {proofCopy.priorities[globalProofPriority].body}
-                </p>
-                {resultCenterLeadStage ? (
-                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
-                    {proofCopy.resultPathLabel}: {outcomeCopy.stages[resultCenterLeadStage]}
-                  </div>
-                ) : null}
-                {resultCenterLead?.proof.activeTask ? (
-                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
-                    {proofCopy.activeTaskLabel}:{" "}
-                    {getProofTaskStatusLabel(
-                      resultCenterLead.proof.activeTask.status,
-                      proofCopy
-                    )}
-                  </div>
-                ) : null}
-                <div className="mt-5 flex flex-wrap gap-3">
-                  {resultCenterLead && resultCenterLeadProofAction ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleWorkspaceProofAction(
-                          resultCenterLead.product.id,
-                          resultCenterLeadProofAction
-                        )
-                      }
-                      disabled={
-                        proofActionKey ===
-                        `${resultCenterLead.product.id}:${resultCenterLeadProofAction.taskType}`
-                      }
-                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
-                    >
-                      {proofActionKey ===
-                      `${resultCenterLead.product.id}:${resultCenterLeadProofAction.taskType}`
-                        ? copy.productCard.starting
-                        : resultCenterLeadProofAction.label}
-                    </button>
-                  ) : resultCenterLead && resultCenterLeadLaunchAction ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleWorkspaceLaunch(
-                          resultCenterLead.product.id,
-                          resultCenterLeadLaunchAction.channelId
-                        )
-                      }
-                      disabled={
-                        launchingKey ===
-                        `${resultCenterLead.product.id}:${resultCenterLeadLaunchAction.channelId}`
-                      }
-                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
-                    >
-                      {launchingKey ===
-                      `${resultCenterLead.product.id}:${resultCenterLeadLaunchAction.channelId}`
-                        ? copy.productCard.starting
-                        : resultCenterLeadLaunchAction.label}
-                    </button>
-                  ) : resultCenterLead ? (
-                    <Link
-                      href={withPriorityContext(
-                        `/dashboard/product/${resultCenterLead.product.id}`,
-                        resultCenterLead.product.id,
-                        workspaceStrategyLead?.product.id ===
-                          resultCenterLead.product.id
-                      )}
-                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25"
-                    >
-                      {proofCopy.openTopProduct}
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
-              <div className="max-w-3xl">
-                <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                  {proofCopy.productsEyebrow}
-                </p>
-                <h3 className="mt-4 text-2xl font-semibold text-white">
-                  {proofCopy.productsTitle}
-                </h3>
-                <p className="mt-4 text-sm leading-7 text-stone-400">
-                  {proofCopy.productsBody}
-                </p>
-              </div>
-
-              {resultCenterProducts.length > 0 ? (
-                <div className="mt-6 grid gap-4">
-                  {resultCenterProducts.map((summary) => {
-                    const proofAction =
-                      summary.proof.priority !== "build_signal"
-                        ? proofActionForSummary(summary, proofCopy)
-                        : null;
-                    const launchAction = isLaunchAction(summary.primaryAction)
-                      ? summary.primaryAction
-                      : null;
-                    const stage = getOutcomeStage(summary);
-
-                    return (
-                      <div
-                        key={summary.product.id}
-                        className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-medium text-stone-100">
-                            {outcomeCopy.stages[stage]}
-                          </span>
-                          {workspaceStrategyLead?.product.id === summary.product.id ? (
-                            <span
-                              className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
-                                summary.proof.priority
-                              )}`}
-                            >
-                              {proofCopy.currentPriority}
-                            </span>
-                          ) : null}
-                          <div className="text-lg font-semibold text-white">
-                            {summary.product.name}
-                          </div>
-                        </div>
-                        <p className="mt-3 text-sm leading-7 text-stone-300">
-                          {outcomeCopy.stageBody[stage]}
-                        </p>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                          {(
-                            [
-                              ["receipts", summary.proof.counts.receipts],
-                              ["threads", summary.proof.counts.threads],
-                              ["close", summary.proof.counts.close],
-                              ["verify", summary.proof.counts.verify],
-                            ] as const
-                          ).map(([key, value]) => (
-                            <div
-                              key={`${summary.product.id}:${key}`}
-                              className="rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-3"
-                            >
-                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                                {proofCopy.stats[key]}
-                              </div>
-                              <div className="mt-2 text-lg font-semibold text-white">
-                                {value}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
-                          {summary.proof.candidateLabels.length > 0 ? (
-                            summary.proof.candidateLabels.map((label) => (
-                              <span
-                                key={`${summary.product.id}-${label}`}
-                                className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
-                              >
-                                {proofCopy.candidates}: {label}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
-                              {proofCopy.noCandidates}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
-                          <span>
-                            {proofCopy.latestSignal}:{" "}
-                            {summary.proof.lastSignalAt
-                              ? formatDashboardDate(summary.proof.lastSignalAt, locale)
-                              : "—"}
-                          </span>
-                          <div className="flex flex-wrap gap-2">
-                            {proofAction ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleWorkspaceProofAction(
-                                    summary.product.id,
-                                    proofAction
-                                  )
-                                }
-                                disabled={
-                                  proofActionKey ===
-                                  `${summary.product.id}:${proofAction.taskType}`
-                                }
-                                className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                              >
-                                {proofActionKey ===
-                                `${summary.product.id}:${proofAction.taskType}`
-                                  ? copy.productCard.starting
-                                  : proofAction.label}
-                              </button>
-                            ) : launchAction ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleWorkspaceLaunch(
-                                    summary.product.id,
-                                    launchAction.channelId
-                                  )
-                                }
-                                disabled={
-                                  launchingKey ===
-                                  `${summary.product.id}:${launchAction.channelId}`
-                                }
-                                className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
-                              >
-                                {launchingKey ===
-                                `${summary.product.id}:${launchAction.channelId}`
-                                  ? copy.productCard.starting
-                                  : launchAction.label}
-                              </button>
-                            ) : null}
-                            <Link
-                              href={withPriorityContext(
-                                `/dashboard/product/${summary.product.id}`,
-                                summary.product.id,
-                                workspaceStrategyLead?.product.id === summary.product.id
-                              )}
-                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                            >
-                              {proofCopy.openProduct}
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="mt-6 text-sm leading-7 text-stone-400">
-                  {proofCopy.empty}
-                </p>
-              )}
-            </div>
-          </section>
-        ) : null}
 
         <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
           <div className="max-w-3xl">
@@ -5805,7 +4972,6 @@ export default function DashboardClient({
           </div>
         </section>
 
-        {!isSingleProductMode ? (
         <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
           <div className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -5868,7 +5034,7 @@ export default function DashboardClient({
                     </button>
                   ) : step.href ? (
                     <Link
-                      href={withWorkspaceLeadPriority(step.href)}
+                      href={step.href}
                       className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                     >
                       {step.actionLabel}
@@ -5885,9 +5051,8 @@ export default function DashboardClient({
 
           <p className="mt-6 text-sm leading-7 text-stone-500">{workflowCopy.note}</p>
         </section>
-        ) : null}
 
-        {products.length > 1 ? (
+        {products.length > 0 ? (
           <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
             <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
               <div>
@@ -6152,7 +5317,7 @@ export default function DashboardClient({
           </section>
         ) : null}
 
-        {products.length > 1 ? (
+        {products.length > 0 ? (
           <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
               <div>
@@ -6295,7 +5460,7 @@ export default function DashboardClient({
                 {copy.builder.title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-stone-400">
-                {taskBuilderBody}
+                {copy.builder.body}
               </p>
             </div>
 
@@ -6304,7 +5469,9 @@ export default function DashboardClient({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                      {taskBuilderLeadEyebrow}
+                      {locale === "zh"
+                        ? "当前建任务优先"
+                        : "Current build lead"}
                     </p>
                     <h3 className="mt-3 text-xl font-semibold text-white">
                       {recommendedPlannerSummary.product.name}
@@ -6317,17 +5484,19 @@ export default function DashboardClient({
                     >
                       {locale === "zh"
                         ? "打开当前优先产品"
-                        : "Open current priority"}
+                        : "Open current lead"}
                     </Link>
                   ) : null}
                 </div>
                 <p className="mt-4 text-sm leading-7 text-stone-300">
-                  {taskBuilderLeadBody}
+                  {workspaceLeadSummary ||
+                    (locale === "zh"
+                      ? `系统当前会先把新增任务路由给 ${recommendedPlannerSummary.product.name}。`
+                      : `The workspace is routing new tasks into ${recommendedPlannerSummary.product.name} right now.`)}
                 </p>
               </div>
             ) : null}
 
-            {!isSingleProductMode ? (
             <div className="mt-6 max-w-sm">
               <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-stone-500">
                 {copy.builder.productLabel}
@@ -6343,7 +5512,7 @@ export default function DashboardClient({
                     {summary.product.id === recommendedPlannerProductId
                       ? locale === "zh"
                         ? " · 当前优先"
-                        : " · Current priority"
+                        : " · Current lead"
                       : ""}
                   </option>
                 ))}
@@ -6379,9 +5548,7 @@ export default function DashboardClient({
                 </div>
               ) : null}
             </div>
-            ) : null}
 
-            {!isSingleProductMode ? (
             <div className="mt-6 rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -6487,7 +5654,6 @@ export default function DashboardClient({
                 ))}
               </div>
             </div>
-            ) : null}
 
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
               <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
@@ -6502,7 +5668,6 @@ export default function DashboardClient({
                     {builderTargetText}
                   </p>
                 ) : null}
-                <div className="mt-3">{renderDeliveryLayerTag({ label: deliveryLayerCopy.core, tone: "core" })}</div>
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("auto")}
@@ -6537,7 +5702,6 @@ export default function DashboardClient({
                 <div className="mt-3 text-xs text-stone-500">
                   {copy.builder.detectedCount}: {competitorLineCount}
                 </div>
-                <div className="mt-3">{renderDeliveryLayerTag({ label: deliveryLayerCopy.core, tone: "core" })}</div>
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("competitor")}
@@ -6597,7 +5761,6 @@ export default function DashboardClient({
                 <div className="mt-3 text-xs text-stone-500">
                   {copy.builder.detectedCount}: {importLineCount}
                 </div>
-                <div className="mt-3">{renderDeliveryLayerTag({ label: deliveryLayerCopy.core, tone: "core" })}</div>
                 <button
                   type="button"
                   onClick={() => handleCreateTaskPlan("import")}
@@ -6630,14 +5793,14 @@ export default function DashboardClient({
                 {taskQueueCopy.eyebrow}
               </p>
               <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-                {actionListTitle}
+                {taskQueueCopy.title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-stone-400">
-                {actionListBody}
+                {taskQueueCopy.body}
               </p>
             </div>
             <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
-              {actionListPreviewBadge}
+              {taskQueueCopy.previewBadge}
             </span>
           </div>
 
@@ -6654,32 +5817,19 @@ export default function DashboardClient({
                         <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-stone-300">
                           {taskQueueCopy.kinds[task.kind]}
                         </span>
-                        {renderDeliveryLayerTag(getWorkspaceTaskDeliveryLayerTag(task))}
-                        {task.kind === "review" && task.reviewStatus ? (
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-medium ${channelReviewRequestStatusClasses(
-                              task.reviewStatus
-                            )}`}
-                          >
-                            {localizedReviewRequestStatus(task.reviewStatus, locale)}
-                          </span>
-                        ) : (
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceTaskStageClasses(
-                              task.stage
-                            )}`}
-                          >
-                            {taskQueueCopy.stages[task.stage]}
-                          </span>
-                        )}
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceTaskStageClasses(
+                            task.stage
+                          )}`}
+                        >
+                          {taskQueueCopy.stages[task.stage]}
+                        </span>
                         {task.focusLabel ? (
                           <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1 text-xs text-emerald-100">
                             {taskQueueCopy.labels.focus}: {task.focusLabel}
                           </span>
                         ) : null}
-                        {!isSingleProductMode ? (
-                          <span className="text-sm text-stone-500">{task.productName}</span>
-                        ) : null}
+                        <span className="text-sm text-stone-500">{task.productName}</span>
                         {task.sourcePlanTitle ? (
                           <span className="text-sm text-stone-500">
                             {taskQueueCopy.labels.fromPlan}: {task.sourcePlanTitle}
@@ -6785,7 +5935,6 @@ export default function DashboardClient({
                           {formatDashboardDate(task.updatedAt, locale)}
                         </div>
                         <div className="flex flex-wrap items-center justify-end gap-2">
-                          {renderDeliveryLayerTag(getWorkspaceTaskDeliveryLayerTag(task))}
                           {task.kind === "coverage" &&
                           task.taskPlanMode === "competitor_map" &&
                           task.taskPlanId ? (
@@ -6817,7 +5966,7 @@ export default function DashboardClient({
                             )
                           ) : null}
                           <Link
-                            href={withWorkspaceLeadPriority(task.href)}
+                            href={task.href}
                             className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
                           >
                             {taskQueueCopy.labels.open}
@@ -6839,6 +5988,159 @@ export default function DashboardClient({
             {taskQueueCopy.footer}
           </p>
         </section>
+
+        {products.length > 0 ? (
+          <section className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {outcomeCopy.eyebrow}
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                {outcomeCopy.title}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-stone-400">
+                {outcomeCopy.body}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              {(
+                [
+                  "staged",
+                  "launched",
+                  "receipts",
+                  "threads",
+                  "close",
+                  "proved",
+                ] as const
+              ).map((stage) => (
+                <div
+                  key={stage}
+                  className="rounded-full border border-[var(--line-soft)] bg-black/15 px-4 py-2 text-xs text-stone-300"
+                >
+                  {outcomeCopy.stages[stage]} · {outcomeStageCounts[stage]}
+                </div>
+              ))}
+            </div>
+
+            {outcomeLeaders.length > 0 ? (
+              <div className="mt-6 grid gap-4">
+                {outcomeLeaders.slice(0, 4).map((summary) => {
+                  const stage = getOutcomeStage(summary);
+                  const proofAction =
+                    summary.proof.priority !== "build_signal"
+                      ? proofActionForSummary(summary, proofCopy)
+                      : null;
+                  const launchAction = isLaunchAction(summary.primaryAction)
+                    ? summary.primaryAction
+                    : null;
+
+                  return (
+                    <div
+                      key={`${summary.product.id}:${stage}`}
+                      className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                    >
+                      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="max-w-3xl">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-medium text-stone-100">
+                              {outcomeCopy.stageLabel}: {outcomeCopy.stages[stage]}
+                            </span>
+                            <span className="text-lg font-semibold text-white">
+                              {summary.product.name}
+                            </span>
+                          </div>
+
+                          <p className="mt-3 text-sm leading-7 text-stone-300">
+                            {outcomeCopy.stageBody[stage]}
+                          </p>
+
+                          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                            <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {outcomeCopy.nextLabel}
+                              </div>
+                              <div className="mt-2 text-sm leading-7 text-stone-200">
+                                {outcomeCopy.nextBody[stage]}
+                              </div>
+                            </div>
+                            <div className="rounded-[1.15rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                                {outcomeCopy.actionLabel}
+                              </div>
+                              <div className="mt-2 text-sm leading-7 text-stone-200">
+                                {outcomeCopy.actionBody[stage]}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          {proofAction ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleWorkspaceProofAction(
+                                  summary.product.id,
+                                  proofAction
+                                )
+                              }
+                              disabled={
+                                proofActionKey ===
+                                `${summary.product.id}:${proofAction.taskType}`
+                              }
+                              className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-60"
+                            >
+                              {proofActionKey ===
+                              `${summary.product.id}:${proofAction.taskType}`
+                                ? copy.productCard.starting
+                                : proofAction.label}
+                            </button>
+                          ) : launchAction ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleWorkspaceLaunch(
+                                  summary.product.id,
+                                  launchAction.channelId
+                                )
+                              }
+                              disabled={
+                                launchingKey ===
+                                `${summary.product.id}:${launchAction.channelId}`
+                              }
+                              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                            >
+                              {launchingKey ===
+                              `${summary.product.id}:${launchAction.channelId}`
+                                ? copy.productCard.starting
+                                : launchAction.label}
+                            </button>
+                          ) : (
+                            <Link
+                              href={withPriorityContext(
+                                `/dashboard/product/${summary.product.id}`,
+                                summary.product.id,
+                                workspaceStrategyLead?.product.id === summary.product.id
+                              )}
+                              className="rounded-full bg-[var(--accent-500)] px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)]"
+                            >
+                              {outcomeCopy.openProduct}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm leading-7 text-stone-400">
+                {outcomeCopy.empty}
+              </p>
+            )}
+          </section>
+        ) : null}
 
         {isCheckoutSuccess || isCheckoutCancelled ? (
           <section className="mt-8">
@@ -6958,25 +6260,6 @@ export default function DashboardClient({
                       >
                         {copy.checkout.growth}
                       </a>
-                      <div className="mt-2 grid w-full gap-3 sm:grid-cols-2">
-                        {upgradeOfferCards.map((card) => (
-                          <div
-                            key={`checkout-${card.key}`}
-                            className="rounded-[1.1rem] border border-white/10 bg-black/15 p-4"
-                          >
-                            {renderDeliveryLayerTag(card.tag)}
-                            <div className="mt-3 text-sm font-semibold text-white">
-                              {card.title}
-                            </div>
-                            <p className="mt-2 text-xs leading-6 text-stone-400">
-                              {card.body}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="w-full text-xs leading-6 text-stone-500">
-                        {copy.upgradeOffers.premiumNote}
-                      </p>
                     </>
                   )}
                 </div>
@@ -7248,126 +6531,6 @@ export default function DashboardClient({
             </div>
 
             <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.discovery.paidDeskTitle}
-                  </div>
-                  <div className="mt-3">
-                    {renderDeliveryLayerTag({
-                      label: deliveryLayerCopy.premium,
-                      tone: "premium",
-                    })}
-                  </div>
-                </div>
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceSupplyReleaseClasses(
-                    workspaceSupply.release.premium.open
-                  )}`}
-                >
-                  {workspaceSupplyReleaseLabel({
-                    locale,
-                    open: workspaceSupply.release.premium.open,
-                  })}
-                </span>
-              </div>
-              <p className="mt-4 text-sm leading-7 text-stone-300">
-                {copy.discovery.paidDeskBody}
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {[
-                  [
-                    copy.discovery.paidBacklogLabel,
-                    `${operationalInsights.paid_target_backlog_count}`,
-                  ],
-                  [
-                    copy.discovery.paidRootsLabel,
-                    `${operationalInsights.paid_target_root_domain_count}`,
-                  ],
-                  [
-                    copy.discovery.paidNewLabel,
-                    `${operationalInsights.paid_target_new_today_count}`,
-                  ],
-                ].map(([label, value]) => (
-                  <div
-                    key={`premium-desk-${label}`}
-                    className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3"
-                  >
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
-                      {label}
-                    </div>
-                    <div className="mt-2 text-lg font-semibold text-white">{value}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
-                  {copy.discovery.paidDeskOwnerLabel}
-                </div>
-                <div className="mt-2 text-sm font-medium text-white">
-                  {premiumDeskOwner
-                    ? premiumDeskOwner.productName
-                    : copy.discovery.paidDeskNoOwner}
-                </div>
-                <p className="mt-2 text-xs leading-6 text-stone-500">
-                  {premiumDeskOwner
-                    ? workspaceSupplyReasonLabel(premiumDeskOwner, locale)
-                    : workspaceSupplyReleaseReasonCopy({
-                        locale,
-                        snapshot: workspaceSupply,
-                        tier: "premium",
-                      })}
-                </p>
-                {premiumDeskOwner ? (
-                  <p className="mt-2 text-xs leading-6 text-stone-500">
-                    {workspaceSupplyReleaseReasonCopy({
-                      locale,
-                      snapshot: workspaceSupply,
-                      tier: "premium",
-                    })}
-                  </p>
-                ) : null}
-                <div className="mt-4">
-                  <Link
-                    href={premiumDeskDecisionAction.href}
-                    className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
-                  >
-                    {premiumDeskDecisionAction.label}
-                  </Link>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.discovery.paidDeskReadinessTitle}
-                  </div>
-                  <p className="mt-2 text-sm leading-7 text-stone-300">
-                    {premiumDeskReadinessBody}
-                  </p>
-                </div>
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.discovery.paidDeskHowTitle}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {[
-                      copy.discovery.paidDeskHowCollect,
-                      copy.discovery.paidDeskHowReview,
-                      copy.discovery.paidDeskHowQuote,
-                    ].map((label) => (
-                      <span
-                        key={`premium-flow-${label}`}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-stone-200"
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
               <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                 {copy.discovery.reviewActionsTitle}
               </div>
@@ -7402,6 +6565,117 @@ export default function DashboardClient({
               ) : (
                 <p className="mt-4 text-sm leading-7 text-stone-400">
                   {copy.discovery.noReviewActions}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.discovery.surfacesTitle}
+              </div>
+              <p className="mt-3 text-sm leading-7 text-stone-300">
+                {copy.discovery.surfacesBody}
+              </p>
+              {capabilitySurfaces.length > 0 ? (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {capabilitySurfaces.map((surface) => (
+                    <div
+                      key={surface.id}
+                      className="rounded-[1.05rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${discoveryMarketToneClasses(
+                            surface.audience === "customer" ? "feature" : "watchlist"
+                          )}`}
+                        >
+                          {surface.audience === "customer"
+                            ? copy.discovery.customerAudience
+                            : copy.discovery.internalAudience}
+                        </span>
+                        <span className="text-sm font-medium text-white">
+                          {surface.label}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-stone-300">
+                        {surface.summary}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {copy.discovery.surfacesEmpty}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                {copy.discovery.copyImpactTitle}
+              </div>
+              <p className="mt-3 text-sm leading-7 text-stone-300">
+                {copy.discovery.copyImpactBody}
+              </p>
+              {[
+                [
+                  copy.discovery.customerSummaryLabel,
+                  capabilityCopyGuidance.customer_summary,
+                ],
+                [
+                  copy.discovery.claimGuardrailLabel,
+                  capabilityCopyGuidance.public_claim_guardrail,
+                ],
+                [
+                  copy.discovery.salesNoteLabel,
+                  capabilityCopyGuidance.sales_enablement_note,
+                ],
+                [
+                  copy.discovery.operatorNoteLabel,
+                  capabilityCopyGuidance.operator_note,
+                ],
+              ].some(([, value]) => Boolean(value)) ? (
+                <div className="mt-4 grid gap-3">
+                  {[
+                    [
+                      copy.discovery.customerSummaryLabel,
+                      capabilityCopyGuidance.customer_summary,
+                    ],
+                    [
+                      copy.discovery.claimGuardrailLabel,
+                      capabilityCopyGuidance.public_claim_guardrail,
+                    ],
+                    [
+                      copy.discovery.salesNoteLabel,
+                      capabilityCopyGuidance.sales_enablement_note,
+                    ],
+                    [
+                      copy.discovery.adaptiveCopyTitle,
+                      capabilityCopyGuidance.localized_copy_note,
+                    ],
+                    [
+                      copy.discovery.operatorNoteLabel,
+                      capabilityCopyGuidance.operator_note,
+                    ],
+                  ]
+                    .filter(([, value]) => Boolean(value))
+                    .map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="rounded-[1.05rem] border border-[var(--line-soft)] bg-white/[0.03] p-4"
+                      >
+                        <div className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                          {label}
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {value}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-stone-400">
+                  {copy.discovery.copyImpactEmpty}
                 </p>
               )}
             </div>
@@ -7537,95 +6811,194 @@ export default function DashboardClient({
         ) : null}
 
         {products.length > 0 ? (
-          <section
-            id="paid-opportunity-guide"
-            className="mt-8 rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7"
-          >
-            <div className="max-w-4xl">
+          <section className="mt-12 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
+            <div className="rounded-[1.85rem] border border-[var(--line-strong)] bg-[linear-gradient(135deg,rgba(159,224,207,0.09),rgba(255,255,255,0.04))] p-7">
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                {copy.discovery.inventoryTitle}
+                {proofCopy.eyebrow}
               </p>
-              <h2 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-                {copy.discovery.paidGuideTitle}
+              <h2 className="font-display mt-4 text-4xl leading-tight text-stone-50 md:text-5xl">
+                {proofCopy.title}
               </h2>
-              <p className="mt-4 text-sm leading-7 text-stone-400">
-                {copy.discovery.paidGuideBody}
+              <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
+                {proofCopy.body}
               </p>
-            </div>
 
-            <div className="mt-6 grid gap-4 xl:grid-cols-3">
-              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                  {copy.discovery.paidGuideWhyTitle}
-                </div>
-                <div className="mt-3">
-                  {renderDeliveryLayerTag({
-                    label: deliveryLayerCopy.premium,
-                    tone: "premium",
-                  })}
-                </div>
-                <p className="mt-4 text-sm leading-7 text-stone-300">
-                  {copy.discovery.paidGuideWhyBody}
-                </p>
-              </div>
-
-              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                    {copy.discovery.paidGuideWhenTitle}
-                  </div>
-                  <span
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${workspaceSupplyReleaseClasses(
-                      workspaceSupply.release.premium.open
-                    )}`}
+              <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {(
+                  [
+                    ["receipts", workspaceProofStats.receipts],
+                    ["threads", workspaceProofStats.threads],
+                    ["close", workspaceProofStats.close],
+                    ["verify", workspaceProofStats.verify],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4"
                   >
-                    {workspaceSupplyReleaseLabel({
-                      locale,
-                      open: workspaceSupply.release.premium.open,
-                    })}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-stone-300">
-                  {premiumDeskReadinessBody}
-                </p>
-                <p className="mt-3 text-xs leading-6 text-stone-500">
-                  {workspaceSupplyReleaseReasonCopy({
-                    locale,
-                    snapshot: workspaceSupply,
-                    tier: "premium",
-                  })}
-                </p>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                      {proofCopy.stats[key]}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+                  </div>
+                ))}
               </div>
 
-              <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-black/15 p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                  {copy.discovery.paidGuideOwnerTitle}
+              <div
+                className={`mt-6 rounded-[1.25rem] border p-5 ${proofPriorityClasses(
+                  globalProofPriority
+                )}`}
+              >
+                <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
+                  {proofCopy.globalFocusLabel}
                 </div>
-                <div className="mt-4 text-sm font-medium text-white">
-                  {premiumDeskOwner
-                    ? premiumDeskOwner.productName
-                    : copy.discovery.paidGuideOwnerEmpty}
-                </div>
-                <p className="mt-3 text-xs leading-6 text-stone-500">
-                  {premiumDeskOwner
-                    ? workspaceSupplyReasonLabel(premiumDeskOwner, locale)
-                    : workspaceSupplyReleaseReasonCopy({
-                        locale,
-                        snapshot: workspaceSupply,
-                        tier: "premium",
-                      })}
+                <h3 className="mt-3 text-2xl font-semibold text-white">
+                  {proofCopy.priorities[globalProofPriority].title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-stone-200">
+                  {proofCopy.priorities[globalProofPriority].body}
                 </p>
-                {premiumDeskOwner ? (
-                  <div className="mt-4">
-                    <Link
-                      href={premiumDeskHref}
-                      className="inline-flex rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                {topProofProducts[0]?.proof.activeTask ? (
+                  <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs text-stone-200">
+                    {proofCopy.activeTaskLabel}:{" "}
+                    {getProofTaskStatusLabel(
+                      topProofProducts[0].proof.activeTask.status,
+                      proofCopy
+                    )}
+                  </div>
+                ) : null}
+                {topProofAction ? (
+                  <div className="mt-5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleWorkspaceProofAction(
+                          topProofProducts[0].product.id,
+                          topProofAction
+                        )
+                      }
+                      disabled={
+                        proofActionKey ===
+                        `${topProofProducts[0].product.id}:${topProofAction.taskType}`
+                      }
+                      className="inline-flex rounded-full bg-black/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/25 disabled:opacity-60"
                     >
-                      {copy.discovery.paidDeskOpenAction}
-                    </Link>
+                      {proofActionKey ===
+                      `${topProofProducts[0].product.id}:${topProofAction.taskType}`
+                        ? copy.productCard.starting
+                        : topProofAction.label}
+                    </button>
                   </div>
                 ) : null}
               </div>
+            </div>
+
+            <div className="rounded-[1.85rem] border border-[var(--line-soft)] bg-white/[0.04] p-7">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                {proofCopy.eyebrow}
+              </p>
+              <h3 className="mt-4 text-2xl font-semibold text-white">
+                {proofCopy.title}
+              </h3>
+
+              {topProofProducts.length > 0 ? (
+                <div className="mt-6 grid gap-4">
+                  {topProofProducts.map((summary) => {
+                    const proofAction = proofActionForSummary(summary, proofCopy);
+
+                    return (
+                      <div
+                        key={summary.product.id}
+                        className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-5"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-medium ${proofPriorityClasses(
+                              summary.proof.priority
+                            )}`}
+                          >
+                            {proofCopy.priorities[summary.proof.priority].title}
+                          </span>
+                          <div className="text-lg font-semibold text-white">
+                            {summary.product.name}
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-stone-300">
+                          {proofCopy.priorities[summary.proof.priority].body}
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-400">
+                          {summary.proof.candidateLabels.length > 0 ? (
+                            summary.proof.candidateLabels.map((label) => (
+                              <span
+                                key={`${summary.product.id}-${label}`}
+                                className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5"
+                              >
+                                {proofCopy.candidates}: {label}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-3 py-1.5">
+                              {proofCopy.noCandidates}
+                            </span>
+                          )}
+                        </div>
+                        {summary.proof.activeTask ? (
+                          <div className="mt-4 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
+                            {proofCopy.activeTaskLabel}:{" "}
+                            {getProofTaskStatusLabel(
+                              summary.proof.activeTask.status,
+                              proofCopy
+                            )}
+                          </div>
+                        ) : null}
+                        <div className="mt-4 flex items-center justify-between gap-4 text-xs text-stone-500">
+                          <span>
+                            {proofCopy.latestSignal}:{" "}
+                            {summary.proof.lastSignalAt
+                              ? formatDashboardDate(summary.proof.lastSignalAt, locale)
+                              : "—"}
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleWorkspaceProofAction(
+                                  summary.product.id,
+                                  proofAction
+                                )
+                              }
+                              disabled={
+                                proofActionKey ===
+                                `${summary.product.id}:${proofAction.taskType}`
+                              }
+                              className="rounded-full bg-[var(--accent-500)] px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-[var(--accent-300)] disabled:opacity-60"
+                            >
+                              {proofActionKey ===
+                              `${summary.product.id}:${proofAction.taskType}`
+                                ? copy.productCard.starting
+                                : proofAction.label}
+                            </button>
+                            <Link
+                              href={withPriorityContext(
+                                `/dashboard/product/${summary.product.id}`,
+                                summary.product.id,
+                                workspaceStrategyLead?.product.id === summary.product.id
+                              )}
+                              className="rounded-full border border-[var(--line-soft)] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                            >
+                              {proofCopy.openProduct}
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-6 text-sm leading-7 text-stone-400">
+                  {proofCopy.empty}
+                </p>
+              )}
             </div>
           </section>
         ) : null}
@@ -8006,7 +7379,7 @@ export default function DashboardClient({
                                 {copy.productCard.channelsReady}
                               </div>
                               <div className="mt-2 text-2xl font-semibold text-white">
-                                {liveChannelsForPlan.length}/{DEFAULT_EXECUTION_CHANNEL_COUNT}
+                                {liveChannelsForPlan.length}/{LIVE_CHANNEL_COUNT}
                               </div>
                             </div>
                             <div className="rounded-[1.25rem] border border-[var(--line-soft)] bg-black/15 p-4">
@@ -8046,20 +7419,6 @@ export default function DashboardClient({
                               <div className="mt-4">
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
                                   {copy.productCard.budgetAction}
-                                </div>
-                                {budgetDecision.key === "upgrade_now" ? (
-                                  <div className="mt-3 rounded-[1rem] border border-[var(--line-soft)] bg-white/[0.03] p-4">
-                                    {renderDeliveryLayerTag(currentUpgradeNeed.tag)}
-                                    <div className="mt-3 text-sm font-semibold text-white">
-                                      {currentUpgradeNeed.title}
-                                    </div>
-                                    <p className="mt-2 text-xs leading-6 text-stone-400">
-                                      {currentUpgradeNeed.body}
-                                    </p>
-                                  </div>
-                                ) : null}
-                                <div className="mt-3">
-                                  {renderDeliveryLayerTag(getDeliveryLayerTag(budgetAction))}
                                 </div>
                                 <div className="mt-3">
                                   {budgetAction.kind === "proof" ? (
@@ -8145,15 +7504,7 @@ export default function DashboardClient({
                             </div>
                           </div>
 
-                          <div className="mt-5">
-                            {renderDeliveryLayerTag(
-                              proofAction
-                                ? getDeliveryLayerTag(proofAction)
-                                : launchAction
-                                  ? getDeliveryLayerTag(launchAction)
-                                  : getDeliveryLayerTag(linkAction || null)
-                            )}
-                            <div className="mt-3 flex flex-wrap gap-3">
+                          <div className="mt-5 flex flex-wrap gap-3">
                             {summary.proof.activeTask ? (
                               <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-stone-300">
                                 {proofCopy.activeTaskLabel}:{" "}
@@ -8231,7 +7582,6 @@ export default function DashboardClient({
                             >
                               {copy.productCard.open}
                             </Link>
-                            </div>
                           </div>
                         </div>
                       </div>

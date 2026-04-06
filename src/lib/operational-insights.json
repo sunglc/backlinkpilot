@@ -1,0 +1,1067 @@
+{
+  "generated_at": "2026-04-06 10:11:36",
+  "reply_action_count": 11,
+  "reply_category_counts": {
+    "free_submit_route_provided": 1,
+    "paid_listing_offer": 6,
+    "rejected": 1,
+    "support_auto_followup": 3
+  },
+  "requires_response_counts": {
+    "no": 5,
+    "optional": 6
+  },
+  "host_public_verified_count": 14,
+  "today_action_count": 1,
+  "today_quality_result_count": 0,
+  "today_action_root_domain_count": 1,
+  "today_quality_root_domain_count": 0,
+  "source_library_count": 54,
+  "source_library_root_domain_count": 53,
+  "source_segments": {
+    "ecommerce_visuals": 17,
+    "general_ai_roundup": 5,
+    "image_generation": 10,
+    "marketing_social": 11,
+    "video_generation": 11
+  },
+  "discovery_target_new_worthy_root_domains": 100,
+  "discovery_counted_new_worthy_root_domain_count": 0,
+  "discovery_remaining_to_target": 100,
+  "discovery_target_reached": false,
+  "discovery_mode": "threeue_free_default",
+  "discovery_threeue_accelerator": {
+    "enabled": false,
+    "operator_rule": "3ue is an optional accelerator only. Daily discovery must remain stable without it."
+  },
+  "discovery_market_plan_version": "2026-03-29",
+  "discovery_market_plan_objective": "Run discovery as an evidence-weighted multilingual system with heavy emphasis on English and Japanese, not an even-split language list.",
+  "discovery_market_distribution_model": "overweight_anchor_markets",
+  "discovery_market_claim_rule": "Only markets with real downstream evidence should be shown to SaaS users as proven live supply. Planned markets without evidence must be labeled as buildout or watchlist.",
+  "discovery_anchor_markets": [
+    "en",
+    "ja"
+  ],
+  "discovery_priority_buildout_languages": [
+    "es",
+    "ar",
+    "ko",
+    "pt",
+    "de",
+    "fr",
+    "ru",
+    "tr",
+    "id",
+    "hi"
+  ],
+  "discovery_primary_markets": [
+    {
+      "language": "en",
+      "locale": "en-US",
+      "market_label": "English / global",
+      "tier": "anchor",
+      "daily_share_pct": 44,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "monitor_existing",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "best ai video generator",
+        "ai image to video tools",
+        "submit ai tool"
+      ],
+      "notes": "Anchor market for global editorial pages, AI tool roundups, and product directories."
+    },
+    {
+      "language": "ja",
+      "locale": "ja-JP",
+      "market_label": "Japanese",
+      "tier": "anchor",
+      "daily_share_pct": 20,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow",
+        "monitor_existing"
+      ],
+      "query_seeds": [
+        "AI 動画生成",
+        "画像から動画 AI",
+        "AI ツール ディレクトリ"
+      ],
+      "notes": "High fit for creator tools, AI productivity media, and software curation sites."
+    },
+    {
+      "language": "es",
+      "locale": "es-ES",
+      "market_label": "Spanish / Spain + LatAm",
+      "tier": "buildout",
+      "daily_share_pct": 8,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "Generador de video IA",
+        "Imagen a video IA",
+        "directorio de herramientas IA"
+      ],
+      "notes": "Good coverage across Spain, Mexico, Argentina, Chile, and broader LatAm software media."
+    },
+    {
+      "language": "ar",
+      "locale": "ar-SA",
+      "market_label": "Arabic / Middle East",
+      "tier": "buildout",
+      "daily_share_pct": 6,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "مولد فيديو بالذكاء الاصطناعي",
+        "من صورة إلى فيديو بالذكاء الاصطناعي",
+        "دليل أدوات الذكاء الاصطناعي"
+      ],
+      "notes": "Primary GCC and Arabic-language discovery lane; prefer UAE, Saudi, Qatar, Kuwait, Egypt."
+    },
+    {
+      "language": "ko",
+      "locale": "ko-KR",
+      "market_label": "Korean",
+      "tier": "buildout",
+      "daily_share_pct": 6,
+      "default_workflows": [
+        "surface_first_discovery",
+        "monitor_existing"
+      ],
+      "query_seeds": [
+        "AI 동영상 생성기",
+        "이미지에서 동영상 AI",
+        "AI 도구 디렉토리"
+      ],
+      "notes": "Strong fit for creator/design communities and modern software directories."
+    },
+    {
+      "language": "pt",
+      "locale": "pt-BR",
+      "market_label": "Brazilian Portuguese",
+      "tier": "buildout",
+      "daily_share_pct": 5,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "gerador de vídeo IA",
+        "imagem para vídeo IA",
+        "diretório de ferramentas de IA"
+      ],
+      "notes": "Brazil should be treated as its own first-class market, not a side note under Europe."
+    },
+    {
+      "language": "de",
+      "locale": "de-DE",
+      "market_label": "German",
+      "tier": "selective",
+      "daily_share_pct": 3,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "KI Videogenerator",
+        "Bild zu Video KI",
+        "KI Tools Verzeichnis"
+      ],
+      "notes": "Useful for high-trust software review sites and business/creator tool roundups."
+    },
+    {
+      "language": "fr",
+      "locale": "fr-FR",
+      "market_label": "French",
+      "tier": "selective",
+      "daily_share_pct": 3,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "générateur vidéo IA",
+        "image vers vidéo IA",
+        "annuaire outils IA"
+      ],
+      "notes": "France plus broader French-language software and startup media."
+    },
+    {
+      "language": "ru",
+      "locale": "ru-RU",
+      "market_label": "Russian / CIS",
+      "tier": "selective",
+      "daily_share_pct": 2,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "генератор видео ИИ",
+        "изображение в видео ИИ",
+        "каталог инструментов ИИ"
+      ],
+      "notes": "Treat Russian-language discovery as a separate lane for CIS software blogs and tool directories."
+    },
+    {
+      "language": "tr",
+      "locale": "tr-TR",
+      "market_label": "Turkish",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "yapay zeka video oluşturucu",
+        "görselden videoya yapay zeka",
+        "yapay zeka araç dizini"
+      ],
+      "notes": "Useful bridge market across Europe and the Middle East."
+    },
+    {
+      "language": "id",
+      "locale": "id-ID",
+      "market_label": "Indonesian",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "generator video AI",
+        "gambar ke video AI"
+      ],
+      "notes": "Strong emerging-market fit for creator and small-business AI tools."
+    },
+    {
+      "language": "hi",
+      "locale": "hi-IN",
+      "market_label": "Hindi / India",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "एआई वीडियो जनरेटर",
+        "इमेज से वीडियो एआई"
+      ],
+      "notes": "India matters enough to keep as an always-on emerging lane, especially for creator and marketing use cases."
+    }
+  ],
+  "discovery_proven_markets": [
+    {
+      "language": "en",
+      "locale": "en-US",
+      "market_label": "English / global",
+      "tier": "anchor",
+      "daily_share_pct": 44,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "monitor_existing",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "best ai video generator",
+        "ai image to video tools",
+        "submit ai tool"
+      ],
+      "notes": "Anchor market for global editorial pages, AI tool roundups, and product directories.",
+      "total_opportunity_count": 712,
+      "today_opportunity_count": 0,
+      "evidence_status": "proven",
+      "is_anchor_market": true,
+      "is_priority_buildout_market": false
+    }
+  ],
+  "discovery_priority_buildout_markets": [
+    {
+      "language": "ja",
+      "locale": "ja-JP",
+      "market_label": "Japanese",
+      "tier": "anchor",
+      "daily_share_pct": 20,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow",
+        "monitor_existing"
+      ],
+      "query_seeds": [
+        "AI 動画生成",
+        "画像から動画 AI",
+        "AI ツール ディレクトリ"
+      ],
+      "notes": "High fit for creator tools, AI productivity media, and software curation sites.",
+      "total_opportunity_count": 2,
+      "today_opportunity_count": 0,
+      "evidence_status": "anchor_buildout",
+      "is_anchor_market": true,
+      "is_priority_buildout_market": false
+    },
+    {
+      "language": "es",
+      "locale": "es-ES",
+      "market_label": "Spanish / Spain + LatAm",
+      "tier": "buildout",
+      "daily_share_pct": 8,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "Generador de video IA",
+        "Imagen a video IA",
+        "directorio de herramientas IA"
+      ],
+      "notes": "Good coverage across Spain, Mexico, Argentina, Chile, and broader LatAm software media.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "ar",
+      "locale": "ar-SA",
+      "market_label": "Arabic / Middle East",
+      "tier": "buildout",
+      "daily_share_pct": 6,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "مولد فيديو بالذكاء الاصطناعي",
+        "من صورة إلى فيديو بالذكاء الاصطناعي",
+        "دليل أدوات الذكاء الاصطناعي"
+      ],
+      "notes": "Primary GCC and Arabic-language discovery lane; prefer UAE, Saudi, Qatar, Kuwait, Egypt.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "ko",
+      "locale": "ko-KR",
+      "market_label": "Korean",
+      "tier": "buildout",
+      "daily_share_pct": 6,
+      "default_workflows": [
+        "surface_first_discovery",
+        "monitor_existing"
+      ],
+      "query_seeds": [
+        "AI 동영상 생성기",
+        "이미지에서 동영상 AI",
+        "AI 도구 디렉토리"
+      ],
+      "notes": "Strong fit for creator/design communities and modern software directories.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "pt",
+      "locale": "pt-BR",
+      "market_label": "Brazilian Portuguese",
+      "tier": "buildout",
+      "daily_share_pct": 5,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "gerador de vídeo IA",
+        "imagem para vídeo IA",
+        "diretório de ferramentas de IA"
+      ],
+      "notes": "Brazil should be treated as its own first-class market, not a side note under Europe.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "de",
+      "locale": "de-DE",
+      "market_label": "German",
+      "tier": "selective",
+      "daily_share_pct": 3,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "KI Videogenerator",
+        "Bild zu Video KI",
+        "KI Tools Verzeichnis"
+      ],
+      "notes": "Useful for high-trust software review sites and business/creator tool roundups.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "fr",
+      "locale": "fr-FR",
+      "market_label": "French",
+      "tier": "selective",
+      "daily_share_pct": 3,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "générateur vidéo IA",
+        "image vers vidéo IA",
+        "annuaire outils IA"
+      ],
+      "notes": "France plus broader French-language software and startup media.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "ru",
+      "locale": "ru-RU",
+      "market_label": "Russian / CIS",
+      "tier": "selective",
+      "daily_share_pct": 2,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "генератор видео ИИ",
+        "изображение в видео ИИ",
+        "каталог инструментов ИИ"
+      ],
+      "notes": "Treat Russian-language discovery as a separate lane for CIS software blogs and tool directories.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "tr",
+      "locale": "tr-TR",
+      "market_label": "Turkish",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "yapay zeka video oluşturucu",
+        "görselden videoya yapay zeka",
+        "yapay zeka araç dizini"
+      ],
+      "notes": "Useful bridge market across Europe and the Middle East.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "id",
+      "locale": "id-ID",
+      "market_label": "Indonesian",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "generator video AI",
+        "gambar ke video AI"
+      ],
+      "notes": "Strong emerging-market fit for creator and small-business AI tools.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "hi",
+      "locale": "hi-IN",
+      "market_label": "Hindi / India",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "एआई वीडियो जनरेटर",
+        "इमेज से वीडियो एआई"
+      ],
+      "notes": "India matters enough to keep as an always-on emerging lane, especially for creator and marketing use cases.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    }
+  ],
+  "discovery_watchlist_markets": [
+    {
+      "language": "he",
+      "locale": "he-IL",
+      "market_label": "Hebrew / Israel",
+      "notes": "Keep in watchlist until route quality or real downstream evidence improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    },
+    {
+      "language": "fa",
+      "locale": "fa-IR",
+      "market_label": "Persian",
+      "notes": "Keep in watchlist until route quality or real downstream evidence improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    },
+    {
+      "language": "th",
+      "locale": "th-TH",
+      "market_label": "Thai",
+      "notes": "Keep in watchlist until route quality or real downstream evidence improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    },
+    {
+      "language": "vi",
+      "locale": "vi-VN",
+      "market_label": "Vietnamese",
+      "notes": "Keep in watchlist until route quality or real downstream evidence improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    },
+    {
+      "language": "it",
+      "locale": "it-IT",
+      "market_label": "Italian",
+      "notes": "Track as a watchlist market and promote if route quality improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    },
+    {
+      "language": "pl",
+      "locale": "pl-PL",
+      "market_label": "Polish",
+      "notes": "Track as a watchlist market and promote if route quality improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    },
+    {
+      "language": "nl",
+      "locale": "nl-NL",
+      "market_label": "Dutch",
+      "notes": "Track as a watchlist market and promote if route quality improves.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "watchlist"
+    }
+  ],
+  "discovery_market_evidence": [
+    {
+      "language": "en",
+      "locale": "en-US",
+      "market_label": "English / global",
+      "tier": "anchor",
+      "daily_share_pct": 44,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "monitor_existing",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "best ai video generator",
+        "ai image to video tools",
+        "submit ai tool"
+      ],
+      "notes": "Anchor market for global editorial pages, AI tool roundups, and product directories.",
+      "total_opportunity_count": 712,
+      "today_opportunity_count": 0,
+      "evidence_status": "proven",
+      "is_anchor_market": true,
+      "is_priority_buildout_market": false
+    },
+    {
+      "language": "ja",
+      "locale": "ja-JP",
+      "market_label": "Japanese",
+      "tier": "anchor",
+      "daily_share_pct": 20,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow",
+        "monitor_existing"
+      ],
+      "query_seeds": [
+        "AI 動画生成",
+        "画像から動画 AI",
+        "AI ツール ディレクトリ"
+      ],
+      "notes": "High fit for creator tools, AI productivity media, and software curation sites.",
+      "total_opportunity_count": 2,
+      "today_opportunity_count": 0,
+      "evidence_status": "anchor_buildout",
+      "is_anchor_market": true,
+      "is_priority_buildout_market": false
+    },
+    {
+      "language": "es",
+      "locale": "es-ES",
+      "market_label": "Spanish / Spain + LatAm",
+      "tier": "buildout",
+      "daily_share_pct": 8,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "Generador de video IA",
+        "Imagen a video IA",
+        "directorio de herramientas IA"
+      ],
+      "notes": "Good coverage across Spain, Mexico, Argentina, Chile, and broader LatAm software media.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "ar",
+      "locale": "ar-SA",
+      "market_label": "Arabic / Middle East",
+      "tier": "buildout",
+      "daily_share_pct": 6,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "مولد فيديو بالذكاء الاصطناعي",
+        "من صورة إلى فيديو بالذكاء الاصطناعي",
+        "دليل أدوات الذكاء الاصطناعي"
+      ],
+      "notes": "Primary GCC and Arabic-language discovery lane; prefer UAE, Saudi, Qatar, Kuwait, Egypt.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "ko",
+      "locale": "ko-KR",
+      "market_label": "Korean",
+      "tier": "buildout",
+      "daily_share_pct": 6,
+      "default_workflows": [
+        "surface_first_discovery",
+        "monitor_existing"
+      ],
+      "query_seeds": [
+        "AI 동영상 생성기",
+        "이미지에서 동영상 AI",
+        "AI 도구 디렉토리"
+      ],
+      "notes": "Strong fit for creator/design communities and modern software directories.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "pt",
+      "locale": "pt-BR",
+      "market_label": "Brazilian Portuguese",
+      "tier": "buildout",
+      "daily_share_pct": 5,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "gerador de vídeo IA",
+        "imagem para vídeo IA",
+        "diretório de ferramentas de IA"
+      ],
+      "notes": "Brazil should be treated as its own first-class market, not a side note under Europe.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "de",
+      "locale": "de-DE",
+      "market_label": "German",
+      "tier": "selective",
+      "daily_share_pct": 3,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "KI Videogenerator",
+        "Bild zu Video KI",
+        "KI Tools Verzeichnis"
+      ],
+      "notes": "Useful for high-trust software review sites and business/creator tool roundups.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "fr",
+      "locale": "fr-FR",
+      "market_label": "French",
+      "tier": "selective",
+      "daily_share_pct": 3,
+      "default_workflows": [
+        "editorial_contact_workflow",
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "générateur vidéo IA",
+        "image vers vidéo IA",
+        "annuaire outils IA"
+      ],
+      "notes": "France plus broader French-language software and startup media.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "ru",
+      "locale": "ru-RU",
+      "market_label": "Russian / CIS",
+      "tier": "selective",
+      "daily_share_pct": 2,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "генератор видео ИИ",
+        "изображение в видео ИИ",
+        "каталог инструментов ИИ"
+      ],
+      "notes": "Treat Russian-language discovery as a separate lane for CIS software blogs and tool directories.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "tr",
+      "locale": "tr-TR",
+      "market_label": "Turkish",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery",
+        "editorial_contact_workflow"
+      ],
+      "query_seeds": [
+        "yapay zeka video oluşturucu",
+        "görselden videoya yapay zeka",
+        "yapay zeka araç dizini"
+      ],
+      "notes": "Useful bridge market across Europe and the Middle East.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "id",
+      "locale": "id-ID",
+      "market_label": "Indonesian",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "generator video AI",
+        "gambar ke video AI"
+      ],
+      "notes": "Strong emerging-market fit for creator and small-business AI tools.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    },
+    {
+      "language": "hi",
+      "locale": "hi-IN",
+      "market_label": "Hindi / India",
+      "tier": "selective",
+      "daily_share_pct": 1,
+      "default_workflows": [
+        "surface_first_discovery"
+      ],
+      "query_seeds": [
+        "एआई वीडियो जनरेटर",
+        "इमेज से वीडियो एआई"
+      ],
+      "notes": "India matters enough to keep as an always-on emerging lane, especially for creator and marketing use cases.",
+      "total_opportunity_count": 0,
+      "today_opportunity_count": 0,
+      "evidence_status": "priority_buildout",
+      "is_anchor_market": false,
+      "is_priority_buildout_market": true
+    }
+  ],
+  "discovery_detected_language_counts": [
+    {
+      "language": "en",
+      "total_opportunity_count": 712,
+      "today_opportunity_count": 0
+    },
+    {
+      "language": "zh",
+      "total_opportunity_count": 133,
+      "today_opportunity_count": 0
+    },
+    {
+      "language": "ja",
+      "total_opportunity_count": 2,
+      "today_opportunity_count": 0
+    }
+  ],
+  "paid_target_backlog_count": 69,
+  "paid_target_root_domain_count": 69,
+  "paid_target_new_today_count": 0,
+  "paid_target_new_today_root_domain_count": 0,
+  "top_paid_targets": [
+    {
+      "opportunity_id": "opp-20260329-587",
+      "platform_name": "directorydaddy.com | few of top websites | page no. 54",
+      "platform_url": "https://directorydaddy.com",
+      "submit_url": "https://directorydaddy.com",
+      "root_domain": "directorydaddy.com",
+      "platform_language": "en",
+      "priority_tier": "B",
+      "quality_tier": "B",
+      "readiness_score": 0,
+      "pipeline_lane": "paid_backlog",
+      "recommended_action": "archive_as_paid_backlink",
+      "why_now": "探测路径主要暴露 pricing/plan 信号；标题为 Premium Domains – Browse Pages",
+      "discovery_date": "2026-03-29",
+      "discovery_source": "competitor_multi_source_replenishment",
+      "is_new_today": false
+    },
+    {
+      "opportunity_id": "opp-20260329-636",
+      "platform_name": "bestwebdesigntools.com",
+      "platform_url": "https://bestwebdesigntools.com",
+      "submit_url": "https://bestwebdesigntools.com/",
+      "root_domain": "bestwebdesigntools.com",
+      "platform_language": "en",
+      "priority_tier": "B",
+      "quality_tier": "B",
+      "readiness_score": 0,
+      "pipeline_lane": "paid_backlog",
+      "recommended_action": "archive_as_paid_backlink",
+      "why_now": "真实浏览器 probe 暴露商业化/付费提交主路由；标题为 Discover Best Web Design Tools in The Internet",
+      "discovery_date": "2026-03-29",
+      "discovery_source": "competitor_backlink_csv_replenishment",
+      "is_new_today": false
+    },
+    {
+      "opportunity_id": "opp-20260329-634",
+      "platform_name": "beamtools.com",
+      "platform_url": "https://beamtools.com",
+      "submit_url": "https://beamtools.com/get-started",
+      "root_domain": "beamtools.com",
+      "platform_language": "en",
+      "priority_tier": "B",
+      "quality_tier": "B",
+      "readiness_score": 0,
+      "pipeline_lane": "paid_backlog",
+      "recommended_action": "archive_as_paid_backlink",
+      "why_now": "真实浏览器 probe 暴露商业化/付费提交主路由；标题为 Get Started - Beam Tools",
+      "discovery_date": "2026-03-29",
+      "discovery_source": "competitor_backlink_csv_replenishment",
+      "is_new_today": false
+    },
+    {
+      "opportunity_id": "opp-20260329-586",
+      "platform_name": "aier.im",
+      "platform_url": "https://aier.im",
+      "submit_url": "https://aier.im/submit",
+      "root_domain": "aier.im",
+      "platform_language": "en",
+      "priority_tier": "B",
+      "quality_tier": "B",
+      "readiness_score": 0,
+      "pipeline_lane": "paid_backlog",
+      "recommended_action": "archive_as_paid_backlink",
+      "why_now": "探测路径主要暴露 pricing/plan 信号；标题为 AI Tools Collection | Curated AI Resources",
+      "discovery_date": "2026-03-29",
+      "discovery_source": "competitor_multi_source_replenishment",
+      "is_new_today": false
+    },
+    {
+      "opportunity_id": "opp-20260329-593",
+      "platform_name": "Top AI & Crypto Tools Directory | AiSnag.ai",
+      "platform_url": "https://aisnag.ai",
+      "submit_url": "https://aisnag.ai",
+      "root_domain": "aisnag.ai",
+      "platform_language": "en",
+      "priority_tier": "B",
+      "quality_tier": "B",
+      "readiness_score": 0,
+      "pipeline_lane": "paid_backlog",
+      "recommended_action": "archive_as_paid_backlink",
+      "why_now": "探测路径主要暴露 pricing/plan 信号；标题为 Top AI Tools Directory – Discover The Best AI Tools In 2026",
+      "discovery_date": "2026-03-29",
+      "discovery_source": "competitor_multi_source_replenishment",
+      "is_new_today": false
+    },
+    {
+      "opportunity_id": "opp-20260329-618",
+      "platform_name": "TimeSkip AI",
+      "platform_url": "https://timeskip.io",
+      "submit_url": "https://timeskip.io",
+      "root_domain": "timeskip.io",
+      "platform_language": "en",
+      "priority_tier": "B",
+      "quality_tier": "B",
+      "readiness_score": 0,
+      "pipeline_lane": "paid_backlog",
+      "recommended_action": "archive_as_paid_backlink",
+      "why_now": "探测路径主要暴露 pricing/plan 信号；标题为 YouTube Chapter Generator – Automatic Chapters | TimeSkip AI",
+      "discovery_date": "2026-03-29",
+      "discovery_source": "competitor_multi_source_replenishment",
+      "is_new_today": false
+    }
+  ],
+  "playbook": {
+    "updated_at": "2026-04-06 10:11:36",
+    "learned_from_live_execution": true,
+    "source_campaign": "popcornai.art",
+    "north_star_metric": "ahrefs_domain_rating",
+    "north_star_target": 90,
+    "measurement_status": "measured",
+    "current_domain_rating": 0.2,
+    "remaining_gap": 89.8,
+    "quality_bar_ids": [
+      "topic_relevance",
+      "host_audience_value",
+      "service_grade_value"
+    ],
+    "recommended_lane_ids": [
+      "editorial_contact_workflow",
+      "email_workflow",
+      "monitor_existing",
+      "peer_growth_discovery"
+    ],
+    "anti_pattern_ids": [
+      "repeat_host_inflation",
+      "community_volume_as_authority",
+      "homepage_only_pitching",
+      "low_trust_directory_shells",
+      "knowledge_trapped_in_chat"
+    ],
+    "proof_snapshot": {
+      "host_public_verified_count": 14,
+      "today_action_root_domain_count": 1,
+      "reusable_root_domain_count": 53
+    },
+    "raw": {
+      "operating_principles": [
+        "Use exact Ahrefs DR as the external truth, but improve it through durable, editorially sensible, high-trust placements.",
+        "Treat net-new quality root domains, host-public verification, and deep-page relevance as the main DR-moving levers.",
+        "Bias new-root discovery toward English, Japanese, Spanish, and Middle East markets before Chinese shell directories.",
+        "Treat multilingual market expansion as a fixed operating plan with explicit market shares, not as ad hoc opportunistic translation work.",
+        "Do not confuse community volume, social volume, or repeat-host inflation with DR progress.",
+        "When a host exposes a real external submit form, treat it as a first-class structured submit surface, not a generic contact page.",
+        "When a visible browser probe finds a real structured submit form behind Turnstile or similar bot checks, treat it as a high-value captcha-recovery target instead of dismissing it as a weak discovery guess.",
+        "Keep expensive or unstable external discovery tools such as 3ue as optional accelerators only; daily discovery and SaaS value must remain usable without them.",
+        "When repeated design-tool directory shells resolve into paid gates, auth gates, or empty submit routes, demote that shell family quickly instead of re-probing near-identical variants.",
+        "When a host already gave a human email reply, all editorial follow-ups should keep the same thread context using reply headers instead of sending a fresh cold email.",
+        "When a platform has both an earlier successful submit signal and a later failed retry, preserve the strongest submit evidence for planning; do not let the weaker retry downgrade the opportunity back into qualification noise.",
+        "When a live visible-browser submit proves a contact or submit surface is broken, that failure should override earlier preflight optimism and remove the host from recovery/frontline queues until the route changes.",
+        "Collect paid and commercial backlink routes as a separate asset pool; do not mix them into the default free execution queue, but keep them productized for internal use and SaaS exposure.",
+        "When writing submission copy, directory descriptions, contact-form intros, or outreach emails, adapt the copy to the target site language instead of defaulting to English.",
+        "Run surface qualification in a visible browser session when a usable desktop is available; only fall back to headless when no display can be resolved.",
+        "Turn every repeated manual judgment into a reusable capability, summary, queue, rule, or automation.",
+        "Keep the system restart-safe: productized knowledge must live on disk, not in chat memory."
+      ],
+      "winning_patterns": [
+        "Solver-backed exact DR measurement is working; today Ahrefs DR is 0.2.",
+        "Paid/commercial targets are being archived as a reusable product asset; current paid root domains: 69.",
+        "Public verification remains a stronger trust signal than raw submission count; current verified hosts: 14.",
+        "Daily planner is correctly pushing work toward editorial, email, monitoring, and discovery lanes for DR growth.",
+        "The system now treats low DR as an explicit operating condition, not an abstract long-term goal."
+      ],
+      "anti_patterns": [
+        "Homepage-only outreach is too dominant.",
+        "Too many links concentrated on the same root domains.",
+        "Repeat-domain inflation counted as authority growth",
+        "GitHub/community-heavy volume mistaken for DR progress",
+        "Homepage-only pitching",
+        "Low-trust directory shells treated as equivalent to editorial mentions",
+        "Knowledge trapped in chat instead of summarized into reusable operating artifacts"
+      ],
+      "lane_labels": {
+        "editorial_contact_workflow": "editorial_resource_outreach",
+        "email_workflow": "editorial_email_outreach",
+        "monitor_existing": "public_verification_followup",
+        "peer_growth_discovery": "new_root_domain_discovery",
+        "route_recovery": "route_recovery",
+        "surface_first_discovery": "submit_surface_discovery",
+        "diversification_followup": "high_value_followup"
+      },
+      "anti_pattern_labels": {
+        "repeat_host_inflation": "repeat_host_inflation",
+        "community_volume_as_authority": "community_volume_as_authority",
+        "homepage_only_pitching": "homepage_only_pitching",
+        "low_trust_directory_shells": "low_trust_directory_shells",
+        "knowledge_trapped_in_chat": "knowledge_trapped_in_chat"
+      }
+    }
+  }
+}

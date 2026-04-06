@@ -35,6 +35,25 @@ interface OperationalInsights {
   today_quality_result_count: number;
   today_quality_root_domain_count: number;
   source_library_root_domain_count: number;
+  discovery_target_new_worthy_root_domains: number;
+  discovery_counted_new_worthy_root_domain_count: number;
+  discovery_remaining_to_target: number;
+  discovery_target_reached: boolean;
+  paid_target_backlog_count: number;
+  paid_target_root_domain_count: number;
+  paid_target_new_today_count: number;
+  paid_target_new_today_root_domain_count: number;
+  top_paid_targets: Array<{
+    opportunity_id: string;
+    platform_name: string;
+    platform_url: string;
+    submit_url: string;
+    root_domain: string;
+    platform_language: string;
+    recommended_action: string;
+    why_now: string;
+    discovery_source: string;
+  }>;
   source_segments: Record<string, number>;
   playbook: {
     updated_at: string;
@@ -63,6 +82,58 @@ interface OperationalInsights {
   };
 }
 
+interface CapabilityUpgradeFeed {
+  generated_at: string;
+  capability_fingerprint: string;
+  capabilities_changed: boolean;
+  change_summary: {
+    requires_saas_review: boolean;
+    added_capability_ids: string[];
+    removed_capability_ids: string[];
+  };
+  reusable_capability_ids: string[];
+  market_tiers: {
+    proven_languages: string[];
+    buildout_languages: string[];
+    watchlist_languages: string[];
+    detected_language_counts: Array<{
+      language: string;
+      total_opportunity_count: number;
+      today_opportunity_count: number;
+    }>;
+  };
+  product_claim_policy: {
+    rule: string;
+    distribution_model: string;
+    anchor_markets: string[];
+  };
+  product_surfaces_to_sync: Array<{
+    id: string;
+    label: string;
+    audience: string;
+    summary: string;
+  }>;
+  copy_update_guidance: {
+    customer_summary: string;
+    public_claim_guardrail: string;
+    sales_enablement_note: string;
+    localized_copy_note: string;
+    operator_note: string;
+  };
+  required_saas_actions: Array<{
+    id: string;
+    area: string;
+    priority: string;
+    required: boolean;
+    action: string;
+    why: string;
+  }>;
+  team_handoff_summary: {
+    one_line: string;
+    current_focus: string;
+  };
+}
+
 const EMPTY_OUTREACH_LIBRARY: HighQualityOutreachLibrary = {
   root_domain_count: 0,
   source_count: 0,
@@ -77,6 +148,15 @@ const EMPTY_OPERATIONAL_INSIGHTS: OperationalInsights = {
   today_quality_result_count: 0,
   today_quality_root_domain_count: 0,
   source_library_root_domain_count: 0,
+  discovery_target_new_worthy_root_domains: 0,
+  discovery_counted_new_worthy_root_domain_count: 0,
+  discovery_remaining_to_target: 0,
+  discovery_target_reached: false,
+  paid_target_backlog_count: 0,
+  paid_target_root_domain_count: 0,
+  paid_target_new_today_count: 0,
+  paid_target_new_today_root_domain_count: 0,
+  top_paid_targets: [],
   source_segments: {},
   playbook: {
     updated_at: "",
@@ -105,6 +185,42 @@ const EMPTY_OPERATIONAL_INSIGHTS: OperationalInsights = {
   },
 };
 
+const EMPTY_CAPABILITY_UPGRADE_FEED: CapabilityUpgradeFeed = {
+  generated_at: "",
+  capability_fingerprint: "",
+  capabilities_changed: false,
+  change_summary: {
+    requires_saas_review: false,
+    added_capability_ids: [],
+    removed_capability_ids: [],
+  },
+  reusable_capability_ids: [],
+  market_tiers: {
+    proven_languages: [],
+    buildout_languages: [],
+    watchlist_languages: [],
+    detected_language_counts: [],
+  },
+  product_claim_policy: {
+    rule: "",
+    distribution_model: "",
+    anchor_markets: [],
+  },
+  product_surfaces_to_sync: [],
+  copy_update_guidance: {
+    customer_summary: "",
+    public_claim_guardrail: "",
+    sales_enablement_note: "",
+    localized_copy_note: "",
+    operator_note: "",
+  },
+  required_saas_actions: [],
+  team_handoff_summary: {
+    one_line: "",
+    current_focus: "",
+  },
+};
+
 const HIGH_QUALITY_OUTREACH_LIBRARY_PATH = path.join(
   process.cwd(),
   "src/lib/high-quality-outreach-sources.json"
@@ -112,6 +228,10 @@ const HIGH_QUALITY_OUTREACH_LIBRARY_PATH = path.join(
 const OPERATIONAL_INSIGHTS_PATH = path.join(
   process.cwd(),
   "src/lib/operational-insights.json"
+);
+const CAPABILITY_UPGRADE_FEED_PATH = path.join(
+  process.cwd(),
+  "src/lib/capability-upgrade-feed.json"
 );
 
 async function readJsonIfPresent<T>(absolutePath: string, fallback: T): Promise<T> {
@@ -162,7 +282,7 @@ export default async function ProductPage({
     .eq("user_id", user.id)
     .single();
 
-  const [outreachLibrary, operationalInsights] = await Promise.all([
+  const [outreachLibrary, operationalInsights, capabilityUpgradeFeed] = await Promise.all([
     readJsonIfPresent<HighQualityOutreachLibrary>(
       HIGH_QUALITY_OUTREACH_LIBRARY_PATH,
       EMPTY_OUTREACH_LIBRARY
@@ -170,6 +290,10 @@ export default async function ProductPage({
     readJsonIfPresent<OperationalInsights>(
       OPERATIONAL_INSIGHTS_PATH,
       EMPTY_OPERATIONAL_INSIGHTS
+    ),
+    readJsonIfPresent<CapabilityUpgradeFeed>(
+      CAPABILITY_UPGRADE_FEED_PATH,
+      EMPTY_CAPABILITY_UPGRADE_FEED
     ),
   ]);
   const initialManagedInboxRecord = await getManagedInboxRecord({
@@ -201,6 +325,7 @@ export default async function ProductPage({
       managedInboxLiveActivity={managedInboxLiveActivity}
       outreachLibrary={outreachLibrary}
       operationalInsights={operationalInsights}
+      capabilityUpgradeFeed={capabilityUpgradeFeed}
       priorityContext={resolvedSearchParams?.priority === "1"}
     />
   );

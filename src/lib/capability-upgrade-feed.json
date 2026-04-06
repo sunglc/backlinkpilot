@@ -1,0 +1,278 @@
+{
+  "generated_at": "2026-04-06 10:11:36",
+  "contract_version": "2026-03-29",
+  "producer": {
+    "product": "popWL-backlinks",
+    "product_version": "0.6.0-dev",
+    "release_channel": "dev",
+    "latest_state_snapshot_id": "backlinks-20260401-190909",
+    "latest_state_snapshot_at": "2026-04-01 19:09:09",
+    "latest_state_snapshot_label": "trust-first-mode"
+  },
+  "capability_fingerprint": "e353d60233c392721f76d396f160eeb694a47326772af41a95f13cabd5208eda",
+  "previous_capability_fingerprint": "e353d60233c392721f76d396f160eeb694a47326772af41a95f13cabd5208eda",
+  "capabilities_changed": false,
+  "change_summary": {
+    "added_capability_ids": [],
+    "removed_capability_ids": [],
+    "requires_saas_review": false
+  },
+  "reusable_capability_ids": [
+    "exact_dr_measurement",
+    "dr_driven_planning",
+    "public_verification_loop",
+    "discovery_supply_engine",
+    "accelerator_optional_architecture",
+    "editorial_outreach_engine",
+    "threaded_editorial_followups",
+    "strongest_submission_state_memory",
+    "live_submit_failure_memory",
+    "external_submit_surface_qualification",
+    "visible_surface_probe",
+    "probe_autoregistered_opportunities",
+    "captcha_surface_triage",
+    "language_adaptive_submission_copy",
+    "gated_shell_pattern_memory",
+    "durable_recovery_surface"
+  ],
+  "capability_rows": [
+    {
+      "id": "exact_dr_measurement",
+      "name": "Exact Ahrefs DR Measurement",
+      "success_condition": "Daily exact DR can be collected and recorded."
+    },
+    {
+      "id": "dr_driven_planning",
+      "name": "DR-Driven Daily Planning",
+      "success_condition": "Daily plan is biased toward lanes that are most likely to improve DR."
+    },
+    {
+      "id": "public_verification_loop",
+      "name": "Public Verification Loop",
+      "success_condition": "Review-pending and submitted targets are rechecked until public proof exists or they are downgraded."
+    },
+    {
+      "id": "discovery_supply_engine",
+      "name": "Discovery Supply Engine",
+      "success_condition": "System discovers at least 100 new worthwhile target roots per day."
+    },
+    {
+      "id": "accelerator_optional_architecture",
+      "name": "Optional Accelerator Architecture",
+      "success_condition": "Paid or unstable research accelerators can improve throughput when available, but the default daily discovery baseline and SaaS product remain stable without them."
+    },
+    {
+      "id": "editorial_outreach_engine",
+      "name": "Editorial Outreach Engine",
+      "success_condition": "Editorial and email lanes produce repeatable high-trust opportunities and follow-through."
+    },
+    {
+      "id": "threaded_editorial_followups",
+      "name": "Threaded Editorial Follow-Ups",
+      "success_condition": "Once an editor replies, later follow-ups stay in-thread with explicit reply headers so the interaction reads like a real conversation, not a new cold pitch."
+    },
+    {
+      "id": "strongest_submission_state_memory",
+      "name": "Strongest Submission State Memory",
+      "success_condition": "Later blocked retries cannot erase earlier submit-success evidence; planning keeps the highest-confidence state until public proof or explicit rejection arrives."
+    },
+    {
+      "id": "live_submit_failure_memory",
+      "name": "Live Submit Failure Memory",
+      "success_condition": "Once a visible-browser live submit proves a form is broken, that host is downgraded from active recovery/editorial queues until the surface changes."
+    },
+    {
+      "id": "external_submit_surface_qualification",
+      "name": "External Submit Surface Qualification",
+      "success_condition": "Third-party structured forms are recognized, filled, and classified separately from generic contact forms, with explicit confirmation required before counting success."
+    },
+    {
+      "id": "visible_surface_probe",
+      "name": "Visible Surface Probe",
+      "success_condition": "Submission-route probes use a visible desktop browser when available, and host-recovery blockers such as SSL or DNS failures are separated from true no-surface outcomes."
+    },
+    {
+      "id": "probe_autoregistered_opportunities",
+      "name": "Probe Auto-Registered Opportunities",
+      "success_condition": "High-signal browser probe findings automatically register new opportunities so contact forms and auth gates do not get stranded outside the main execution queues."
+    },
+    {
+      "id": "captcha_surface_triage",
+      "name": "Captcha Surface Triage",
+      "success_condition": "Structured submit forms blocked by Turnstile or similar challenges are surfaced as deliberate captcha-recovery targets instead of being lost in weak-source noise."
+    },
+    {
+      "id": "language_adaptive_submission_copy",
+      "name": "Language-Adaptive Submission Copy",
+      "success_condition": "Submission descriptions, outreach emails, and contact-form intros are localized to the target host language and do not default to English-only copy."
+    },
+    {
+      "id": "gated_shell_pattern_memory",
+      "name": "Gated Shell Pattern Memory",
+      "success_condition": "When a repeated host family or page-shell pattern keeps collapsing into paid/auth/no-submit outcomes, the discovery system learns to demote similar variants faster."
+    },
+    {
+      "id": "durable_recovery_surface",
+      "name": "Durable Recovery Surface",
+      "success_condition": "Restart recovery preserves DR state, next actions, and productized learnings."
+    }
+  ],
+  "market_tiers": {
+    "proven_languages": [
+      "en"
+    ],
+    "buildout_languages": [
+      "ja",
+      "es",
+      "ar",
+      "ko",
+      "pt",
+      "de",
+      "fr",
+      "ru",
+      "tr",
+      "id",
+      "hi"
+    ],
+    "watchlist_languages": [
+      "he",
+      "fa",
+      "th",
+      "vi",
+      "it",
+      "pl",
+      "nl"
+    ],
+    "detected_language_counts": [
+      {
+        "language": "en",
+        "total_opportunity_count": 712,
+        "today_opportunity_count": 0
+      },
+      {
+        "language": "zh",
+        "total_opportunity_count": 133,
+        "today_opportunity_count": 0
+      },
+      {
+        "language": "ja",
+        "total_opportunity_count": 2,
+        "today_opportunity_count": 0
+      }
+    ]
+  },
+  "product_claim_policy": {
+    "rule": "Only markets with real downstream evidence should be shown to SaaS users as proven live supply. Planned markets without evidence must be labeled as buildout or watchlist.",
+    "distribution_model": "overweight_anchor_markets",
+    "anchor_markets": [
+      "en",
+      "ja"
+    ]
+  },
+  "product_surfaces_to_sync": [
+    {
+      "id": "dashboard_home",
+      "label": "Dashboard homepage",
+      "audience": "internal",
+      "summary": "Show the current capability contract, adoption state, and recent upgrade history on the main dashboard so product and ops do not rely on chat memory."
+    },
+    {
+      "id": "product_detail",
+      "label": "Product detail page",
+      "audience": "customer",
+      "summary": "Show the current proven/buildout/watchlist market tiers, the capability fingerprint, and the most important required SaaS actions inside each product view."
+    },
+    {
+      "id": "ops_status",
+      "label": "Ops status",
+      "audience": "internal",
+      "summary": "Expose the current capability fingerprint, review-needed state, and recent capability history in the internal operations status surface."
+    },
+    {
+      "id": "sales_claims",
+      "label": "Sales and marketing claims",
+      "audience": "customer",
+      "summary": "Keep public claims aligned with proven supply depth; never describe buildout lanes as proven live inventory."
+    },
+    {
+      "id": "localized_copy_claims",
+      "label": "Localized copy messaging",
+      "audience": "customer",
+      "summary": "Explain that submission and outreach copy adapts to the target host language instead of defaulting to English-only copy."
+    },
+    {
+      "id": "market_strategy_explainer",
+      "label": "Market strategy explainer",
+      "audience": "customer",
+      "summary": "Clarify that EN, JA are overweight anchor markets, while other languages are selective buildout lanes."
+    }
+  ],
+  "copy_update_guidance": {
+    "customer_summary": "Describe multilingual discovery honestly: only proven lanes should be pitched as live supply, and buildout/watchlist lanes should be framed as active expansion work.",
+    "public_claim_guardrail": "Use proven/buildout/watchlist language in customer-facing copy. Do not flatten the system into a generic 'global coverage' claim.",
+    "sales_enablement_note": "Lead with English / global as the current proven supply. Explain that EN, JA are overweight anchor markets.",
+    "localized_copy_note": "Target-language adaptive copy is a real quality differentiator and should be called out in product and sales copy.",
+    "operator_note": "When the capability fingerprint changes, update product copy and sales language only after the required SaaS actions are reviewed."
+  },
+  "required_saas_actions": [
+    {
+      "id": "consume_capability_feed",
+      "area": "data_layer",
+      "priority": "P0",
+      "required": true,
+      "action": "Read src/lib/capability-upgrade-feed.json alongside operational-insights.json on every dashboard/product render.",
+      "why": "This is the machine-readable contract that tells SaaS what changed and what still needs UI adoption.",
+      "source_files": [
+        "/root/backlinkpilot/src/lib/capability-upgrade-feed.json",
+        "/root/backlinkpilot/src/lib/operational-insights.json"
+      ]
+    },
+    {
+      "id": "honest_market_claims",
+      "area": "product_claims",
+      "priority": "P0",
+      "required": true,
+      "action": "Show multilingual markets by tier: proven, priority buildout, and watchlist. Do not market buildout lanes as proven supply.",
+      "why": "The discovery system is now evidence-weighted; product claims have to match real supply depth.",
+      "source_fields": [
+        "discovery_proven_markets",
+        "discovery_priority_buildout_markets",
+        "discovery_watchlist_markets",
+        "discovery_market_claim_rule"
+      ]
+    },
+    {
+      "id": "surface_language_adaptive_copy",
+      "area": "ux_copy",
+      "priority": "P1",
+      "required": true,
+      "action": "Expose that submission and outreach copy adapts to target language instead of defaulting to English-only messaging.",
+      "why": "This is now a real capability and a trust/quality differentiator for the SaaS product.",
+      "source_fields": [
+        "playbook.raw.operating_principles",
+        "reusable_capability_ids"
+      ]
+    },
+    {
+      "id": "show_anchor_market_strategy",
+      "area": "dashboard",
+      "priority": "P1",
+      "required": false,
+      "action": "Explain that English and Japanese are overweight anchor markets, while other languages are selective buildout lanes.",
+      "why": "Prevents customers from assuming the engine is evenly distributed across all languages.",
+      "source_fields": [
+        "discovery_anchor_markets",
+        "discovery_primary_markets",
+        "discovery_market_distribution_model"
+      ]
+    }
+  ],
+  "ready_to_consume_files": [
+    "/root/backlinkpilot/src/lib/operational-insights.json",
+    "/root/backlinkpilot/src/lib/capability-upgrade-feed.json"
+  ],
+  "team_handoff_summary": {
+    "one_line": "When this fingerprint changes, SaaS should review the required actions and update claims/UI based on the new capability contract.",
+    "current_focus": "English is the only proven multilingual discovery lane today; Japanese is an anchor buildout lane, and target-language adaptive copy is now a real capability."
+  }
+}
